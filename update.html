@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>更新日志</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid #333333;
+            z-index: 100;
+            padding: 10px 0;
+        }
+
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            height: 44px;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            color: #007AFF;
+            font-size: 17px;
+            font-weight: 400;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .back-button:hover {
+            opacity: 0.6;
+        }
+
+        .back-button:active {
+            opacity: 0.3;
+        }
+
+        .page-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 17px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .content {
+            padding: 30px 0 50px;
+        }
+
+        .changelog-item {
+            margin-bottom: 40px;
+            background: rgba(28, 28, 30, 0.6);
+            border-radius: 16px;
+            padding: 24px;
+            border: 0.5px solid #333333;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .changelog-item:hover {
+            transform: translateY(-2px);
+            background: rgba(44, 44, 46, 0.6);
+        }
+
+        .version-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .version-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #007AFF;
+            text-shadow: 0 0 10px rgba(0, 122, 255, 0.3);
+        }
+
+        .version-date {
+            font-size: 15px;
+            color: #8E8E93;
+            font-weight: 500;
+        }
+
+        .version-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .version-type.major {
+            background-color: #FF3B30;
+            color: #ffffff;
+        }
+
+        .version-type.minor {
+            background-color: #FF9500;
+            color: #ffffff;
+        }
+
+        .version-type.patch {
+            background-color: #34C759;
+            color: #ffffff;
+        }
+
+        .changelog-content h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 20px 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .changelog-content h3:first-child {
+            margin-top: 0;
+        }
+
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .feature-icon.new {
+            background-color: #34C759;
+        }
+
+        .feature-icon.improved {
+            background-color: #007AFF;
+        }
+
+        .feature-icon.fixed {
+            background-color: #FF9500;
+        }
+
+        .changelog-content ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .changelog-content li {
+            position: relative;
+            padding: 8px 0 8px 24px;
+            color: #D1D1D6;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .changelog-content li:before {
+            content: '•';
+            position: absolute;
+            left: 8px;
+            color: #007AFF;
+            font-weight: bold;
+        }
+
+        .highlight {
+            background: linear-gradient(90deg, #007AFF, #5856D6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+        }
+
+        /* 响应式设计 */
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+
+            .changelog-item {
+                padding: 20px;
+                margin-bottom: 24px;
+            }
+
+            .version-number {
+                font-size: 24px;
+            }
+
+            .version-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .changelog-content h3 {
+                font-size: 16px;
+            }
+
+            .changelog-content li {
+                font-size: 15px;
+                padding: 6px 0 6px 20px;
+            }
+
+            .changelog-content li:before {
+                left: 6px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .container {
+                padding: 0 12px;
+            }
+
+            .content {
+                padding: 20px 0 30px;
+            }
+
+            .changelog-item {
+                padding: 16px;
+                margin-bottom: 20px;
+                border-radius: 12px;
+            }
+
+            .version-number {
+                font-size: 22px;
+            }
+
+            .page-title {
+                font-size: 16px;
+            }
+
+            .back-button {
+                font-size: 16px;
+            }
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* 防止水平滚动 */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="nav-bar">
+                <button class="back-button" onclick="window.location.href='index.html'">
+                    <span>‹</span> 返回
+                </button>
+                <h1 class="page-title">更新日志</h1>
+            </div>
+        </header>
+
+        <main class="content">
+            
+            <!-- v0.5 -->
+            <div class="changelog-item">
+                <div class="version-header">
+                    <div>
+                        <div class="version-number">0.5</div>
+                        <span class="version-type patch">补丁</span>
+                    </div>
+                    <div class="version-date">2025年7月30日</div>
+                </div>
+                <div class="changelog-content">
+                    <h3><span class="feature-icon fixed">🔧</span>问题修复</h3>
+                    <ul>
+                        <li>补全了曼波丁真中贴图缺失</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- v0.4 -->
+            <div class="changelog-item">
+                <div class="version-header">
+                    <div>
+                        <div class="version-number">0.4</div>
+                        <span class="version-type minor">功能</span>
+                    </div>
+                    <div class="version-date">2025年7月30日</div>
+                </div>
+                <div class="changelog-content">
+                    <h3><span class="feature-icon new">✨</span>新功能</h3>
+                    <ul>
+                        <li>加入了丁真曼波项目</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- v0.3 -->
+            <div class="changelog-item">
+                <div class="version-header">
+                    <div>
+                        <div class="version-number">0.3</div>
+                        <span class="version-type patch">补丁</span>
+                    </div>
+                    <div class="version-date">2025年7月30日</div>
+                </div>
+                <div class="changelog-content">
+                    <h3><span class="feature-icon fixed">🔧</span>问题修复</h3>
+                    <ul>
+                        <li>修复了手机端摸一摸项目点按不到按钮的问题</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- v0.2 -->
+            <div class="changelog-item">
+                <div class="version-header">
+                    <div>
+                        <div class="version-number">0.2</div>
+                        <span class="version-type minor">功能</span>
+                    </div>
+                    <div class="version-date">2025年7月30日</div>
+                </div>
+                <div class="changelog-content">
+                    <h3><span class="feature-icon new">✨</span>新功能</h3>
+                    <ul>
+                        <li>加入了摸一摸项目</li>
+                        <li>优化了打人项目中部分贴图</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- v0.1 -->
+            <div class="changelog-item">
+                <div class="version-header">
+                    <div>
+                        <div class="version-number">0.1</div>
+                        <span class="version-type minor">功能</span>
+                    </div>
+                    <div class="version-date">2025年7月30日</div>
+                </div>
+                <div class="changelog-content">
+                    <h3><span class="feature-icon new">🎉</span>全新版本</h3>
+                    <ul>
+                        <li>更新了菜单页面</li>
+                        <li>解决了只有一个项目的问题</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 防止水平滚动
+        document.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // 平滑滚动效果
+        document.documentElement.style.scrollBehavior = 'smooth';
+
+        // 页面加载动画
+        window.addEventListener('load', function() {
+            const items = document.querySelectorAll('.changelog-item');
+            items.forEach((item, index) => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    item.style.transition = 'all 0.6s ease';
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+
+        // 返回按钮点击反馈
+        document.querySelector('.back-button').addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.95)';
+        });
+
+        document.querySelector('.back-button').addEventListener('touchend', function() {
+            this.style.transform = 'scale(1)';
+        });
+    </script>
+</body>
+</html>
