@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>曼波丁真</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #c0c0c0 0%, #808080 100%);
+            font-family: 'MS Sans Serif', sans-serif;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        /* 复古窗口样式 */
+        .window {
+            background: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            margin: 20px auto;
+            max-width: 800px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .title-bar {
+            background: linear-gradient(90deg, #000080 0%, #000040 100%);
+            color: white;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            border-bottom: 1px solid #808080;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .control-btn {
+            width: 16px;
+            height: 14px;
+            border: 1px outset #c0c0c0;
+            background: #c0c0c0;
+            font-size: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .control-btn:active {
+            border: 1px inset #c0c0c0;
+        }
+        
+        .content {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 24px;
+            color: #000080;
+            margin: 0 0 20px 0;
+            text-shadow: 1px 1px 0px #ffffff;
+            font-weight: bold;
+        }
+        
+        .image-container {
+            margin: 20px 0;
+            border: 2px inset #c0c0c0;
+            padding: 10px;
+            display: inline-block;
+            background: #ffffff;
+        }
+        
+        .main-image {
+            max-width: 300px;
+            max-height: 300px;
+            border: 1px solid #808080;
+            background: transparent;
+        }
+        
+        .button-container {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .audio-btn {
+            background: linear-gradient(135deg, #c0c0c0 0%, #808080 100%);
+            border: 2px outset #c0c0c0;
+            padding: 8px 16px;
+            font-family: 'MS Sans Serif', sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+            color: #000000;
+            cursor: pointer;
+            min-width: 80px;
+            text-shadow: 1px 1px 0px #ffffff;
+            transition: none;
+        }
+        
+        .audio-btn:hover {
+            background: linear-gradient(135deg, #d0d0d0 0%, #909090 100%);
+        }
+        
+        .audio-btn:active {
+            border: 2px inset #c0c0c0;
+            background: linear-gradient(135deg, #a0a0a0 0%, #808080 100%);
+            text-shadow: none;
+        }
+        
+
+        
+        /* 左下角固定图片 */
+        .fixed-corner-image {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100px;
+            height: 100px;
+            z-index: 1000;
+            border: 2px outset #c0c0c0;
+            background: #c0c0c0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #808080;
+            font-family: 'MS Sans Serif', sans-serif;
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 16px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #c0c0c0;
+            border: 1px inset #c0c0c0;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #808080;
+            border: 1px outset #c0c0c0;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #606060;
+        }
+        
+        /* 状态栏 */
+        .status-bar {
+            background: #c0c0c0;
+            border-top: 1px solid #808080;
+            padding: 4px 8px;
+            font-size: 10px;
+            color: #000000;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <!-- 左下角固定图片位置 -->
+    <div class="fixed-corner-image">
+        <span>角落图片位置</span>
+    </div>
+    
+    <div class="window">
+        <div class="title-bar">
+            <span>曼波丁真 - 音频播放器</span>
+            <div class="window-controls">
+                <div class="control-btn">_</div>
+                <div class="control-btn">□</div>
+                <div class="control-btn">×</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <h1>曼波丁真</h1>
+            
+            <div class="image-container">
+                <div class="main-image" style="width: 300px; height: 200px; display: flex; align-items: center; justify-content: center; color: #808080; font-size: 12px;">
+                    主图片位置<br>（透明背景）
+                </div>
+            </div>
+            
+            <div class="button-container" id="buttonContainer">
+                <button class="audio-btn" onclick="playAudio('audio1', this)">哈吉米</button>
+                <button class="audio-btn" onclick="playAudio('audio2', this)">噢嘛吉利曼波</button>
+                <button class="audio-btn" onclick="playAudio('audio3', this)">哇哦</button>
+                <button class="audio-btn" onclick="playAudio('audio4', this)">阿米诺斯</button>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <span>就绪</span>
+            <span id="playingCount">播放中: 0</span>
+        </div>
+    </div>
+    
+    <!-- 音频元素容器 -->
+    <div id="audioContainer"></div>
+    
+    <script>
+        // 音频管理对象
+        const audioManager = {
+            audios: {},
+            playingCount: 0
+        };
+        
+        // 创建音频元素
+        function createAudioElement(audioId) {
+            // 这个函数现在主要用于示例，实际播放使用独立的音频实例
+            if (!audioManager.audios[audioId]) {
+                const audio = new Audio();
+                // 这里您可以设置音频文件的路径
+                // audio.src = `path/to/${audioId}.mp3`;
+                audioManager.audios[audioId] = audio;
+            }
+            return audioManager.audios[audioId];
+        }
+        
+        // 播放音频函数
+        function playAudio(audioId, buttonElement) {
+            // 创建新的音频实例，这样每次点击都会创建一个独立的播放实例
+            const audio = new Audio();
+            
+            // 根据音频ID设置对应的音频文件路径
+            switch(audioId) {
+                case 'audio1':
+                    audio.src = 'hajimi.m4a';
+                    break;
+                case 'audio2':
+                    audio.src = 'omajilimanbo.m4a';
+                    break;
+                case 'audio3':
+                    audio.src = 'wow.m4a';
+                    break;
+                case 'audio4':
+                    audio.src = 'aminosi.m4a';
+                    break;
+                default:
+                    console.log(`未找到音频文件: ${audioId}`);
+                    return;
+            }
+            
+            // 音频播放结束时的处理
+            audio.addEventListener('ended', function() {
+                audioManager.playingCount--;
+                updatePlayingCount();
+            });
+            
+            audio.addEventListener('error', function(e) {
+                console.log(`音频 ${audioId} 加载失败`);
+                audioManager.playingCount--;
+                updatePlayingCount();
+            });
+            
+            try {
+                const playPromise = audio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        audioManager.playingCount++;
+                        updatePlayingCount();
+                    }).catch((error) => {
+                        console.log(`播放 ${audioId} 失败:`, error);
+                    });
+                }
+            } catch (error) {
+                console.log(`播放 ${audioId} 出错:`, error);
+            }
+        }
+        
+        // 更新播放计数显示
+        function updatePlayingCount() {
+            document.getElementById('playingCount').textContent = `播放中: ${audioManager.playingCount}`;
+        }
+        
+        // 添加新按钮的函数（方便后续扩展）
+        function addAudioButton(audioId, buttonText) {
+            const container = document.getElementById('buttonContainer');
+            const button = document.createElement('button');
+            button.className = 'audio-btn';
+            button.textContent = buttonText;
+            button.onclick = function() { playAudio(audioId, this); };
+            container.appendChild(button);
+        }
+        
+        // 示例：添加新按钮
+        // addAudioButton('audio6', '音频 6');
+        
+        console.log('复古音频播放器已加载完成');
+        console.log('使用说明：');
+        console.log('1. 将音频文件放在合适的路径下');
+        console.log('2. 修改 createAudioElement 函数中的 audio.src 设置音频路径');
+        console.log('3. 使用 addAudioButton 函数添加更多按钮');
+    </script>
+</body>
+</html>
