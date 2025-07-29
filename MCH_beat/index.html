@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>砸一砸 MCH 😋</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f6fff0 100%);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: rgb(0, 0, 0);
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            margin-top: 50px;
+        }
+
+        .person-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 50px 0;
+        }
+
+        .person {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+        }
+
+        .person.hit {
+            transform: scale(0.9) translateY(8px);
+            filter: brightness(0.6) saturate(1.5) hue-rotate(10deg);
+            box-shadow: 0 8px 25px rgba(255,0,0,0.4);
+            transition: all 0.1s ease-out;
+        }
+
+        .person.shaking {
+            animation: shake 0.2s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) scale(0.9) translateY(8px); }
+            25% { transform: translateX(-3px) scale(0.9) translateY(8px); }
+            75% { transform: translateX(3px) scale(0.9) translateY(8px); }
+        }
+
+        .hammer {
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-10deg);
+            font-size: 60px;
+            transform-origin: 80% 100%;
+            filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.3));
+            transition: all 0.15s ease-out;
+        }
+
+        .hammer.smash {
+            top: 30px;
+            transform: translateX(-50%) rotate(45deg) scale(1.1);
+            transition: all 0.1s ease-in;
+        }
+
+        .counter {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .click-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 28px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(238, 90, 36, 0.4);
+            transition: all 0.2s ease;
+            margin-top: 50px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .click-btn:hover {
+            background: linear-gradient(45deg, #ff5252, #d84315);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(238, 90, 36, 0.6);
+        }
+
+        .click-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 15px rgba(238, 90, 36, 0.4);
+        }
+
+        .title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .impact-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,0,0.9) 0%, rgba(255,100,0,0.6) 30%, transparent 70%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .impact-effect.show {
+            animation: impact 0.25s ease-out;
+        }
+
+        @keyframes impact {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0.3);
+            }
+            50% {
+                opacity: 0.8;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(2.5);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="title">砸一砸 MCH 😋</div>
+    
+    <div class="counter">
+        被砸了 <span id="clickCount">0</span> 次
+    </div>
+
+    <div class="game-container">
+        <div class="person-container">
+            <img src="osou.png" class="hammer" id="hammer">
+            <img src="sour.JPG" 
+                 alt="Person" class="person" id="person">
+            <div class="impact-effect" id="impactEffect"></div>
+        </div>
+    </div>
+
+    <button class="click-btn" id="clickBtn" onclick="smash()">使劲砸</button>
+
+    <script>
+        let clickCount = 0;
+        
+        function smash() {
+            clickCount++;
+            document.getElementById('clickCount').textContent = clickCount;
+            
+            const hammer = document.getElementById('hammer');
+            const person = document.getElementById('person');
+            const impactEffect = document.getElementById('impactEffect');
+            
+            // 锤子砸下动画 - 先快速砸下
+            hammer.classList.add('smash');
+            
+            // 延迟添加人物反馈效果，模拟撞击时机
+            setTimeout(() => {
+                person.classList.add('hit');
+                person.classList.add('shaking');
+                impactEffect.classList.add('show');
+            }, 80);
+            
+            // 复位动画
+            setTimeout(() => {
+                hammer.classList.remove('smash');
+            }, 150);
+            
+            setTimeout(() => {
+                person.classList.remove('hit');
+                person.classList.remove('shaking');
+                impactEffect.classList.remove('show');
+            }, 300);
+        }
+
+        // 添加一些趣味音效提示
+        function playSound() {
+            // 如果需要音效，可以在这里添加
+            console.log('砸！次数:', clickCount);
+        }
+    </script>
+</body>
+</html>
