@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.1.2/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script type="text/javascript">
+    MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\(', '\)']],
+            displayMath: [['$$', '$$'], ['\[', '\]']]
+        }
+    };
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>更新日志</title>
@@ -305,7 +315,26 @@
         </header>
 
         <main class="content">
-            
+           
+            <!-- v1.0 -->
+            <div class="changelog-item">
+                <div class="version-header">
+                    <div>
+                        <div class="version-number">1.0</div>
+                        <span class="version-type major">重大更新</span>
+                    </div>
+                    <div class="version-date">2025年8月1日</div>
+                </div>
+                <div class="changelog-content">
+                    <h3><span class="feature-icon new">🎉</span>重要功能</h3>
+                    <ul>
+                        <li>将 SPF.py 移植到 SPF.js 上，使多项式分解可以在网页中进行</li>
+                        <li>增加了网页对 $\mathrm{LaTex}$ 代码的支持，下面是一个案例</li>
+                        <li>$$ f(x)=\sum_{k=0}^n a_kx^k $$</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- v0.7 -->
             <div class="changelog-item">
                 <div class="version-header">
