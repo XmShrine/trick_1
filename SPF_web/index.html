@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对称多项式分解</title>
+    <script src="main.js"></script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.1.2/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script type="text/javascript">
+    MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\(', '\)']],
+            displayMath: [['$$', '$$'], ['\[', '\]']]
+        }
+    };
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 60px;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .input-section {
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .input-container {
+            position: relative;
+            flex: 1;
+            max-width: 500px;
+            min-width: 300px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 16px 20px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        input[type="text"]:focus {
+            border-color: rgba(255, 255, 255, 0.3);
+            background-color: rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .confirm-btn {
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #007AFF 0%, #0056CC 100%);
+            border: none;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            white-space: nowrap;
+            min-width: 80px;
+        }
+
+        .confirm-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 122, 255, 0.3);
+            background: linear-gradient(135deg, #0984FF 0%, #0066FF 100%);
+        }
+
+        .confirm-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 20px rgba(0, 122, 255, 0.2);
+        }
+
+        .output-section {
+            margin-top: 40px;
+        }
+
+        .output-container {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: left;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ffffff;
+            min-height: 60px;
+            backdrop-filter: blur(10px);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: none;
+            overflow-y: visible;
+            display: none;
+        }
+
+        .output-container.show {
+            display: block;
+            animation: fadeInUp 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .help-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 400;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+        }
+
+        .help-button:hover {
+            transform: translateY(-2px) scale(1.05);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+            box-shadow: 0 10px 25px rgba(255, 255, 255, 0.1);
+        }
+
+        .help-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+        }
+
+        .help-modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .help-content {
+            background: linear-gradient(145deg, rgba(28, 28, 30, 0.95) 0%, rgba(44, 44, 46, 0.95) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            backdrop-filter: blur(20px);
+            animation: slideIn 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .help-header {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .help-text {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 28px;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-button:hover {
+            color: #ffffff;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .error {
+            color: #FF3B30;
+            background-color: rgba(255, 59, 48, 0.1);
+            border-color: rgba(255, 59, 48, 0.3);
+        }
+
+        @media (max-width: 600px) {
+            .input-section {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .input-container {
+                max-width: 100%;
+            }
+
+            .confirm-btn {
+                width: 100%;
+                max-width: 200px;
+            }
+
+            h1 {
+                font-size: 2em;
+                margin-bottom: 40px;
+            }
+
+            .help-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>对称多项式分解</h1>
+        
+        <div class="input-section">
+            <div class="input-container">
+                <input type="text" id="polynomialInput" placeholder="请输入多项式表达式...">
+            </div>
+            <button class="confirm-btn" id="confirmBtn">确认</button>
+        </div>
+        
+        <div class="output-section">
+            <div class="output-container" id="outputContainer"></div>
+        </div>
+    </div>
+
+    <button class="help-button" id="helpBtn">?</button>
+
+    <div class="help-modal" id="helpModal">
+        <div class="help-content">
+            <button class="close-button" id="closeBtn">&times;</button>
+            <div class="help-header">使用说明</div>
+            <div class="help-text">
+                <!-- <p>这里是使用说明的内容区域。</p>
+                <p>您可以在这里添加关于对称多项式分解的详细说明、输入格式要求、示例等信息。</p>
+                <p>例如：</p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>支持的输入格式</li>
+                    <li>使用示例</li>
+                    <li>常见问题解答</li>
+                </ul> -->
+                <p>注意：输入多项式时请按照以下类似的格式进行输入</p>
+                <p>例如 $[1][2]+[1][1,1]+[1][0,2]$ 代表 $x^2 + xy + y^2$</p>
+                <p>结果输出 $[1][2]+[-1][0,1]$ 则表示可以分解为 $\sigma_1^2-\sigma_2$</p>
+                <p>如果返回框中为 $\mathrm{false}$ 则代表输入的不是对称多项式</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const polynomialInput = document.getElementById('polynomialInput');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const outputContainer = document.getElementById('outputContainer');
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const closeBtn = document.getElementById('closeBtn');
+
+        // 确认按钮点击事件
+        confirmBtn.addEventListener('click', handleConfirm);
+        
+        // 回车键事件
+        polynomialInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleConfirm();
+            }
+        });
+
+        // 处理确认逻辑
+        function handleConfirm() {
+            const input = polynomialInput.value.trim();
+            
+            if (!input) {
+                showOutput('请输入有效的多项式表达式', true);
+                return;
+            }
+
+            // 显示加载状态
+            confirmBtn.classList.add('loading');
+            confirmBtn.textContent = '处理中...';
+            
+            try {
+                // 检查 SPFApply 函数是否存在
+                if (typeof SPFApply !== 'function') {
+                    throw new Error('SPFApply 函数未找到，请确保 main.js 文件已正确加载');
+                }
+
+                // 调用 SPFApply 函数
+                const result = SPFApply(input);
+                showOutput(result, false);
+                
+            } catch (error) {
+                console.error('处理错误:', error);
+                showOutput(`错误: ${error.message}`, true);
+            } finally {
+                // 恢复按钮状态
+                confirmBtn.classList.remove('loading');
+                confirmBtn.textContent = '确认';
+            }
+        }
+
+        // 显示输出结果
+        function showOutput(content, isError = false) {
+            outputContainer.textContent = content;
+            outputContainer.className = `output-container show ${isError ? 'error' : ''}`;
+            
+            // 滚动到结果区域
+            setTimeout(() => {
+                outputContainer.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest' 
+                });
+            }, 100);
+        }
+
+        // 帮助按钮事件
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        });
+
+        // 关闭模态框事件
+        closeBtn.addEventListener('click', closeModal);
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                closeModal();
+            }
+        });
+
+        // ESC键关闭模态框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && helpModal.classList.contains('show')) {
+                closeModal();
+            }
+        });
+
+        function closeModal() {
+            helpModal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+
+        // 页面加载完成后自动聚焦输入框
+        window.addEventListener('load', () => {
+            polynomialInput.focus();
+        });
+    </script>
+</body>
+</html>
