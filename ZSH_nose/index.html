@@ -63,6 +63,94 @@
             gap: 10px;
         }
 
+        #delayCalibration {
+            border-top: 1px solid #333;
+            padding-top: 15px;
+            margin-top: 10px;
+        }
+
+        #delaySliderContainer {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #playTestBtn {
+            background: #444;
+            color: #fff;
+            border: 2px solid #666;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: monospace;
+            margin-bottom: 10px;
+            disabled: true;
+        }
+
+        #playTestBtn:hover:not(:disabled) {
+            background: #666;
+            border-color: #888;
+        }
+
+        #playTestBtn:disabled {
+            background: #222;
+            color: #666;
+            cursor: not-allowed;
+            border-color: #444;
+        }
+
+        #delaySlider {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        #delaySlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        #delaySlider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        #delayValue {
+            text-align: center;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        #clickIndicator {
+            position: absolute;
+            bottom: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffff44;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 16px;
+            border-radius: 5px;
+            border: 1px solid #ffff44;
+            display: none;
+            z-index: 200;
+        }
+
         button {
             background: #333;
             color: #fff;
@@ -364,6 +452,14 @@
         <div id="leftPanel">
             <div id="judgmentDisplay"></div>
             <div id="controls">
+                <div id="delayCalibration">
+                    <button id="calibrateBtn" onclick="toggleCalibration()">调整延迟</button>
+                    <div id="delaySliderContainer">
+                        <button id="playTestBtn" onclick="playTest()" disabled>播放</button>
+                        <input type="range" id="delaySlider" min="-500" max="500" value="0" oninput="updateDelay(this.value)">
+                        <div id="delayValue">延迟: 0ms</div>
+                    </div>
+                </div>
                 <button id="startBtn" onclick="startGame()">开始游戏</button>
                 <button id="pauseBtn" onclick="togglePause()" disabled>暂停</button>
                 <button id="restartBtn" onclick="restartGame()" disabled>重新开始</button>
@@ -403,6 +499,8 @@
                 <div id="progressFill"></div>
             </div>
         </div>
+        
+        <div id="clickIndicator">Click</div>
     </div>
 
     <!-- Game Over Screen -->
@@ -445,12 +543,30 @@
     <script>
         // Game configuration
         const clickTime = [4465,5094,5925,6947,7739,8584,9057,10249,10767,11565,13112,14006,14809,16073,16272,16453,16629,16808,17025,17213,17361,17567,17768,17953,18281,18668,19072,19456,19832,20435,20637,20816,21016,21402,21833,22223,22625,23018,23728,23891,24072,24213,24662,25028,25444,25860,26257,26872,27088,27334,27538,28153,28423,28855,29096,29907,30193,30425,30634,31040,31481,31862,32240,32607,33304,33497,33680,33919,34233,34632,35032,35410,35826,36488,36704,36929,37342,37834,38278,38638,39086,39260,39464,39815,40038,40272,40662,40853,41092,41473,41703,41921,42295,42687,43082,43393,43769,44025,44136,44359,44536,44735,44928,45091,45520,45764,45871,45959,46096,46224,46400,46646,47032,47301,47410,47501,47656,47831,47993,48177,48346,48685,49054,49289,49593,49878,50319,50619,50712,50810,50944,51135,51316,51478,51927,52136,52289,52393,52511,52600,52774,52960,53129,53529,53686,53830,53945,54067,54200,54321,54508,54711,55073,55486,55730,56018,56299,56617,56752,56896,57051,57198,57330,57481,57571,57787,57920,58136,58400,58577,58695,58814,58976,59146,59352,59510,59905,60133,60244,60472,60609,60794,60985,61175,61505,61832,62062,62385,62691,63119,63400,63511,63776,63903,64073,64215,64382,64818,64962,65071,65241,65375,65527,65754,65956,66327,66530,66671,66806,67047,67217,67368,67589,68058,68480,68794,69288,69432,69692,69887,70106,70303,70519,70714,70935,71127,71357,71562,71766,71945,72168,72346,72537,72736,72924,73089,73324,73510,73709,73874,74088,74269,74503,74689,74928,75112,75321,75481,75704,75862,76082,76245,76486,76654,76891,77055,77281,77455,77657,77866,78070,78230,78460,78644,78864,79083,79231,79394,79498,79614,79776,79951,80144,80390,80592,80824,81049,81302,81693,82136,82287,82570,82788,83016,83202,83455,83896,84105,84282,84416,84592,84829,85008,85178,85503,85751,85872,85986,86146,86353,86536,86722,86919,87400,87704,88062,88287,88793,88970,89097,89239,89348,89527,89694,89877,90363,90509,90648,90837,91032,91224,91445,91835,92118,92239,92348,92490,92615,92785,92998,93151,93567,93848,94145,94424,94784,95125,95267,95383,95476,95599,95752,95966,96152,96330,96793,96920,97066,97217,97394,97568,97784,97947,98339,98494,98669,98880,99080,99293,99488,99720,99934,100141,100336,100515,100851,101105,101516,101673,101889,102008,102100,102242,102351,102514,102692,102872,103222,103331,103470,103584,103737,103886,104007,104165,104330,104710,104878,105015,105122,105249,105486,105616,105807,106210,106392,106594,106784,107107,107455,107824,108093,108275,108435,108549,108702,108814,108983,109192,109552,109768,109942,110047,110144,110272,110413,110560,110736,111154,111338,111472,111586,111841,111951,112116,112294,112466,112812,113081,113327,113627,113915,114433,114714,114874,114976,115113,115250,115389,115566,115977,116207,116328,116430,116546,116662,116843,117017,117442,117681,117814,117911,118025,118136,118306,118441,118608,118780,119091,119641,119978,120423,120853,120958,121085,121204,121355,121601,121805,121975,122367,122613,122739,122847,122982,123126,123312,123489,123904,124318,124455,124705,124921,125135,125320,125706,125883,126126,126442,126681,127083,127248,127462,127666,127875,128100,128288,128518,128697,128924,129103,129312,129503,129707,129904,130134,130329,130543,130705,130931,131128,131353,131539,131752,131948,132157,132368,132556,132921,133318,133633,138275,138811,139638,141247,142046,142791,144942,145450]; // Example timing data
-        const timeLen = 148594; // Example max time
-        const NOTE_SPEED = 300; // pixels per second (可调节的下落速度)
+        const timeLen = 149000; // Example max time
+        const NOTE_SPEED = 600; // pixels per second (可调节的下落速度)
+        
+        // Delay calibration configuration
+        const lateRange = 1000; // 延迟调整范围 ±500ms
+        let lateTime = 0; // 当前延迟时间
+        const testClick = [964]; // 测试音频的关键帧
+        const testTime = 964; // "Click"提示出现的时间
+        const testdurTime = 500; // "Click"提示持续时间
         
         // Calculate fall distance and time once
         let FALL_DISTANCE = 0;
         let FALL_TIME = 0;
+        
+        // Delay calibration state
+        let calibrationState = {
+            isActive: false,
+            isPlaying: false,
+            audio: null,
+            startTime: 0,
+            clickIndicator: null,
+            testNote: null,
+            testNoteSpawned: false
+        };
         
         // Game state
         let gameState = {
@@ -481,6 +597,19 @@
             // Create audio elements
             gameAudio = new Audio('audio.m4a');
             pushAudio = new Audio('push.m4a');
+            calibrationState.audio = new Audio('test.m4a');
+            
+            // Setup calibration audio loop
+            calibrationState.audio.addEventListener('ended', () => {
+                // Reset for next play (but don't auto-play)
+                calibrationState.isPlaying = false;
+                calibrationState.testNoteSpawned = false;
+                if (calibrationState.testNote && calibrationState.testNote.element) {
+                    calibrationState.testNote.element.remove();
+                }
+                calibrationState.testNote = null;
+                document.getElementById('clickIndicator').style.display = 'none';
+            });
             
             gameAudio.addEventListener('loadedmetadata', () => {
                 const actualTimeLen = Math.min(timeLen, gameAudio.duration * 1000);
@@ -501,6 +630,9 @@
             
             // Update score display
             updateScoreDisplay();
+            
+            // Initialize delay slider
+            updateDelaySliderRange();
         }
 
         function calculateFallParameters() {
@@ -509,7 +641,7 @@
             const hitZoneBottom = 80; // Distance from bottom to hit zone center
             
             // Calculate fall distance: from top of track to hit zone
-            FALL_DISTANCE = trackHeight - hitZoneBottom - 30 - 70; // 30px for hit zone height/2
+            FALL_DISTANCE = trackHeight - hitZoneBottom - 30; // 30px for hit zone height/2
             
             // Calculate fall time based on speed: distance / speed
             FALL_TIME = (FALL_DISTANCE / NOTE_SPEED) * 1000; // Convert to milliseconds
@@ -522,8 +654,8 @@
             clickTime.forEach((hitTime, index) => {
                 const track = Math.floor(Math.random() * 4); // Random track 0-3
                 
-                // Calculate spawn time: hit time minus fall time
-                const spawnTime = hitTime - FALL_TIME;
+                // Calculate spawn time: hit time minus fall time, adjusted for delay
+                const spawnTime = hitTime - FALL_TIME - lateTime;
                 
                 gameState.notes.push({
                     id: index,
@@ -547,18 +679,30 @@
         function setupControls() {
             // Keyboard controls
             document.addEventListener('keydown', (e) => {
-                if (!gameState.isPlaying || gameState.isPaused) return;
-                
-                let keyIndex = -1;
-                switch(e.key.toLowerCase()) {
-                    case 'd': keyIndex = 0; break;
-                    case 'f': keyIndex = 1; break;
-                    case 'j': keyIndex = 2; break;
-                    case 'k': keyIndex = 3; break;
-                }
-                
-                if (keyIndex >= 0) {
-                    hitKey(keyIndex);
+                if (gameState.isPlaying && !gameState.isPaused) {
+                    let keyIndex = -1;
+                    switch(e.key.toLowerCase()) {
+                        case 'd': keyIndex = 0; break;
+                        case 'f': keyIndex = 1; break;
+                        case 'j': keyIndex = 2; break;
+                        case 'k': keyIndex = 3; break;
+                    }
+                    
+                    if (keyIndex >= 0) {
+                        hitKey(keyIndex);
+                    }
+                } else if (calibrationState.isActive) {
+                    let keyIndex = -1;
+                    switch(e.key.toLowerCase()) {
+                        case 'd': keyIndex = 0; break;
+                        case 'f': keyIndex = 1; break;
+                        case 'j': keyIndex = 2; break;
+                        case 'k': keyIndex = 3; break;
+                    }
+                    
+                    if (keyIndex >= 0) {
+                        hitTestKey(keyIndex);
+                    }
                 }
             });
 
@@ -568,6 +712,8 @@
                     e.preventDefault();
                     if (gameState.isPlaying && !gameState.isPaused) {
                         hitKey(index);
+                    } else if (calibrationState.isActive) {
+                        hitTestKey(index);
                     }
                 });
                 
@@ -575,6 +721,8 @@
                     e.preventDefault();
                     if (gameState.isPlaying && !gameState.isPaused) {
                         hitKey(index);
+                    } else if (calibrationState.isActive) {
+                        hitTestKey(index);
                     }
                 });
             });
@@ -595,7 +743,7 @@
             let bestDistance = Infinity;
 
             trackNotes.forEach(note => {
-                const distance = Math.abs(note.hitTime - currentTime);
+                const distance = Math.abs(note.hitTime - currentTime + lateTime); // Apply delay offset
                 if (distance < bestDistance && distance < 200) { // 200ms judgment window
                     bestDistance = distance;
                     bestNote = note;
@@ -657,6 +805,11 @@
         }
 
         function startGame() {
+            // Stop calibration if active
+            if (calibrationState.isActive) {
+                stopCalibration();
+            }
+            
             // Recalculate fall parameters in case window was resized
             calculateFallParameters();
             
@@ -674,6 +827,7 @@
             document.getElementById('startBtn').disabled = true;
             document.getElementById('pauseBtn').disabled = false;
             document.getElementById('restartBtn').disabled = false;
+            document.getElementById('calibrateBtn').disabled = true;
 
             // Start audio
             if (gameAudio) {
@@ -721,11 +875,171 @@
             document.getElementById('pauseBtn').disabled = true;
             document.getElementById('pauseBtn').textContent = '暂停';
             document.getElementById('restartBtn').disabled = true;
+            document.getElementById('calibrateBtn').disabled = false;
 
             // Reset display
             progressFill.style.width = '0%';
             judgmentDisplay.textContent = '';
             judgmentDisplay.className = '';
+        }
+
+        // Delay calibration functions
+        function updateDelaySliderRange() {
+            const slider = document.getElementById('delaySlider');
+            slider.min = -lateRange;
+            slider.max = lateRange;
+            slider.value = lateTime;
+            updateDelayDisplay();
+        }
+
+        function updateDelay(value) {
+            lateTime = parseInt(value);
+            updateDelayDisplay();
+        }
+
+        function updateDelayDisplay() {
+            document.getElementById('delayValue').textContent = `延迟: ${lateTime}ms`;
+        }
+
+        function toggleCalibration() {
+            if (calibrationState.isActive) {
+                stopCalibration();
+            } else {
+                startCalibration();
+            }
+        }
+
+        function startCalibration() {
+            calibrationState.isActive = true;
+            calibrationState.isPlaying = false;
+            calibrationState.testNoteSpawned = false;
+            calibrationState.testNote = null;
+            
+            // Update UI
+            document.getElementById('calibrateBtn').textContent = '停止';
+            document.getElementById('delaySliderContainer').style.display = 'flex';
+            document.getElementById('playTestBtn').disabled = false;
+            document.getElementById('startBtn').disabled = true;
+            
+            // Don't auto-start audio, wait for user to click play
+        }
+
+        function stopCalibration() {
+            calibrationState.isActive = false;
+            calibrationState.isPlaying = false;
+            
+            // Stop test audio
+            if (calibrationState.audio) {
+                calibrationState.audio.pause();
+                calibrationState.audio.currentTime = 0;
+            }
+            
+            // Clean up test note
+            if (calibrationState.testNote && calibrationState.testNote.element) {
+                calibrationState.testNote.element.remove();
+            }
+            calibrationState.testNote = null;
+            calibrationState.testNoteSpawned = false;
+            
+            // Hide click indicator
+            document.getElementById('clickIndicator').style.display = 'none';
+            
+            // Update UI
+            document.getElementById('calibrateBtn').textContent = '调整延迟';
+            document.getElementById('delaySliderContainer').style.display = 'none';
+            document.getElementById('playTestBtn').disabled = true;
+            document.getElementById('startBtn').disabled = false;
+        }
+
+        function playTest() {
+            if (!calibrationState.isActive || calibrationState.isPlaying) return;
+            
+            // Reset previous test
+            calibrationState.testNoteSpawned = false;
+            if (calibrationState.testNote && calibrationState.testNote.element) {
+                calibrationState.testNote.element.remove();
+            }
+            calibrationState.testNote = null;
+            
+            // Start test audio
+            calibrationState.isPlaying = true;
+            calibrationState.startTime = Date.now();
+            
+            if (calibrationState.audio) {
+                calibrationState.audio.currentTime = 0;
+                calibrationState.audio.play().catch(e => console.log('Test audio play failed:', e));
+            }
+            
+            // Start calibration loop
+            calibrationLoop();
+        }
+
+        function calibrationLoop() {
+            if (!calibrationState.isActive || !calibrationState.isPlaying) return;
+            
+            const currentTime = Date.now() - calibrationState.startTime;
+            const hitTime = testClick[0]; // Use the testClick timing
+            
+            // Generate test note
+            if (!calibrationState.testNoteSpawned) {
+                const spawnTime = hitTime - FALL_TIME - lateTime;
+                if (currentTime >= spawnTime) {
+                    spawnTestNote(hitTime);
+                    calibrationState.testNoteSpawned = true;
+                }
+            }
+            
+            // Update test note position
+            if (calibrationState.testNote && calibrationState.testNote.element) {
+                updateTestNotePosition(currentTime);
+            }
+            
+            // Show click indicator at specified time
+            if (currentTime >= testTime && currentTime <= testTime + testdurTime) {
+                document.getElementById('clickIndicator').style.display = 'block';
+            } else {
+                document.getElementById('clickIndicator').style.display = 'none';
+            }
+            
+            requestAnimationFrame(calibrationLoop);
+        }
+
+        function spawnTestNote(hitTime) {
+            // Choose a random track for the test note
+            const randomTrack = Math.floor(Math.random() * 4);
+            const track = tracks[randomTrack];
+            
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note';
+            noteElement.style.top = '0px';
+            
+            track.appendChild(noteElement);
+            
+            calibrationState.testNote = {
+                track: randomTrack,
+                hitTime: hitTime,
+                spawnTime: Date.now() - calibrationState.startTime,
+                element: noteElement,
+                hit: false,
+                missed: false
+            };
+        }
+
+        function updateTestNotePosition(currentTime) {
+            if (!calibrationState.testNote || !calibrationState.testNote.element) return;
+            
+            const timeSinceSpawn = currentTime - calibrationState.testNote.spawnTime;
+            const pixelsFromTop = (timeSinceSpawn / 1000) * NOTE_SPEED;
+            const maxTop = FALL_DISTANCE;
+            const noteTop = Math.min(pixelsFromTop, maxTop);
+            
+            calibrationState.testNote.element.style.top = noteTop + 'px';
+            
+            // Remove note if it's way past the hit zone or missed
+            if (timeSinceSpawn > FALL_TIME + 1000 || currentTime > calibrationState.testNote.hitTime + 500) {
+                calibrationState.testNote.element.remove();
+                calibrationState.testNote = null;
+            }
         }
 
         function clearNotes() {
@@ -764,7 +1078,7 @@
 
             // Check for missed notes
             gameState.notes.forEach(note => {
-                if (!note.hit && !note.missed && gameState.currentTime > note.hitTime + 200) {
+                if (!note.hit && !note.missed && gameState.currentTime > note.hitTime + 200 - lateTime) {
                     note.missed = true;
                     gameState.stats.miss++;
                     if (note.element) {
