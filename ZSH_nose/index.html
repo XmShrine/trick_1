@@ -1,894 +1,867 @@
 <!DOCTYPE html>
-
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>戳一戳</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四轨音游</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            font-family: monospace;
+            overflow: hidden;
             user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
         }
 
-    body {
-        background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-        font-family: 'Courier New', monospace;
-        overflow: hidden;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-    }
-
-    #gameContainer {
-        flex: 1;
-        position: relative;
-        display: flex;
-        flex-direction: column;
-    }
-
-    #gameArea {
-        flex: 1;
-        position: relative;
-        overflow: hidden;
-        border: 3px solid #00ff88;
-        border-radius: 8px;
-        margin: 10px;
-        background: 
-            radial-gradient(circle at 25% 25%, rgba(0, 255, 136, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 75% 75%, rgba(0, 136, 255, 0.1) 0%, transparent 50%),
-            linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.95) 100%);
-    }
-
-    #scoreBoard {
-        background: rgba(0, 0, 0, 0.8);
-        color: #00ff88;
-        padding: 10px;
-        font-size: 16px;
-        font-weight: bold;
-        text-align: center;
-        border-bottom: 2px solid #00ff88;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    #controlArea {
-        height: 100px;
-        background: rgba(0, 0, 0, 0.9);
-        border-top: 3px solid #00ff88;
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        padding: 10px;
-    }
-
-    .hitZone {
-        width: 80px;
-        height: 80px;
-        border: 3px solid #00ff88;
-        border-radius: 8px;
-        background: rgba(0, 255, 136, 0.1);
-        position: relative;
-        cursor: pointer;
-        transition: all 0.1s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        color: #00ff88;
-        font-weight: bold;
-        box-shadow: 
-            inset 0 0 10px rgba(0, 255, 136, 0.3),
-            0 0 20px rgba(0, 255, 136, 0.2);
-    }
-
-    .hitZone:active, .hitZone.active {
-        background: rgba(0, 255, 136, 0.4);
-        transform: scale(0.95);
-        box-shadow: 
-            inset 0 0 20px rgba(0, 255, 136, 0.6),
-            0 0 30px rgba(0, 255, 136, 0.4);
-    }
-
-    .note {
-        position: absolute;
-        width: 74px;
-        height: 74px;
-        border-radius: 6px;
-        border: 2px solid #ff6b6b;
-        background: 
-            linear-gradient(45deg, #ff6b6b, #ff8e8e),
-            url('source.jpeg');
-        background-size: cover, 100% 100%;
-        background-position: center, center;
-        background-blend-mode: multiply;
-        box-shadow: 
-            0 4px 8px rgba(255, 107, 107, 0.4),
-            inset 0 0 10px rgba(255, 255, 255, 0.2);
-        animation: fall linear;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        color: white;
-        font-weight: bold;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-    }
-
-    .note::before {
-        content: '';
-        position: absolute;
-        top: -2px;
-        left: -2px;
-        right: -2px;
-        bottom: -2px;
-        background: linear-gradient(45deg, 
-            transparent 25%, rgba(255, 255, 255, 0.1) 25%,
-            rgba(255, 255, 255, 0.1) 50%, transparent 50%,
-            transparent 75%, rgba(255, 255, 255, 0.1) 75%);
-        background-size: 8px 8px;
-        border-radius: 8px;
-        z-index: -1;
-    }
-
-    @keyframes fall {
-        from {
-            transform: translateY(-100px);
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
         }
-        to {
-            transform: translateY(calc(100vh - 100px));
-        }
-    }
 
-    .perfect, .good, .miss {
-        position: absolute;
-        font-size: 24px;
-        font-weight: bold;
-        pointer-events: none;
-        animation: scorePopup 1s ease-out forwards;
-    }
-
-    .perfect { color: #00ff88; }
-    .good { color: #ffaa00; }
-    .miss { color: #ff4444; }
-
-    @keyframes scorePopup {
-        0% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-        100% {
-            opacity: 0;
-            transform: translateY(-50px) scale(1.2);
-        }
-    }
-
-    #startButton {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(45deg, #00ff88, #00cc6a);
-        color: white;
-        border: none;
-        padding: 20px 40px;
-        font-size: 24px;
-        font-weight: bold;
-        border-radius: 12px;
-        cursor: pointer;
-        font-family: 'Courier New', monospace;
-        box-shadow: 
-            0 6px 20px rgba(0, 255, 136, 0.4),
-            inset 0 0 20px rgba(255, 255, 255, 0.1);
-        transition: all 0.2s ease;
-    }
-
-    #startButton:hover {
-        transform: translate(-50%, -50%) scale(1.05);
-        box-shadow: 
-            0 8px 25px rgba(0, 255, 136, 0.6),
-            inset 0 0 25px rgba(255, 255, 255, 0.2);
-    }
-
-    #startButton:active {
-        transform: translate(-50%, -50%) scale(0.98);
-    }
-
-    .combo {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        color: #ffaa00;
-        font-size: 20px;
-        font-weight: bold;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-    }
-
-    #gameEndScreen {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.95);
-        display: none;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        animation: fadeIn 0.5s ease-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    .results-container {
-        background: 
-            linear-gradient(135deg, 
-                rgba(0, 255, 136, 0.15) 0%, 
-                rgba(0, 136, 255, 0.15) 50%,
-                rgba(255, 107, 107, 0.15) 100%
-            );
-        border: 4px solid #00ff88;
-        border-radius: 16px;
-        padding: 30px;
-        text-align: center;
-        box-shadow: 
-            0 0 40px rgba(0, 255, 136, 0.3),
-            inset 0 0 20px rgba(255, 255, 255, 0.1);
-        max-width: 400px;
-        width: 90%;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-
-    .results-title {
-        font-size: 32px;
-        color: #00ff88;
-        font-weight: bold;
-        margin-bottom: 20px;
-        text-shadow: 
-            2px 2px 0px #004400,
-            0 0 20px rgba(0, 255, 136, 0.8);
-        letter-spacing: 2px;
-    }
-
-    .results-score {
-        font-size: 48px;
-        color: #ffffff;
-        font-weight: bold;
-        margin: 20px 0;
-        text-shadow: 
-            3px 3px 0px #333333,
-            0 0 30px rgba(255, 255, 255, 0.8);
-        background: linear-gradient(45deg, #ffffff, #00ff88);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
-    .results-stats {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        margin: 25px 0;
-    }
-
-    .stat-item {
-        background: rgba(0, 0, 0, 0.6);
-        border: 2px solid;
-        border-radius: 8px;
-        padding: 12px;
-        font-weight: bold;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-    }
-
-    .stat-perfect {
-        border-color: #00ff88;
-        color: #00ff88;
-        box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
-    }
-
-    .stat-good {
-        border-color: #ffaa00;
-        color: #ffaa00;
-        box-shadow: 0 0 15px rgba(255, 170, 0, 0.3);
-    }
-
-    .stat-miss {
-        border-color: #ff4444;
-        color: #ff4444;
-        box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
-    }
-
-    .stat-combo {
-        border-color: #8844ff;
-        color: #8844ff;
-        box-shadow: 0 0 15px rgba(136, 68, 255, 0.3);
-        grid-column: 1 / -1;
-    }
-
-    .restart-button {
-        background: linear-gradient(45deg, #00ff88, #00cc6a);
-        color: white;
-        border: 3px solid #00ff88;
-        padding: 15px 35px;
-        font-size: 20px;
-        font-weight: bold;
-        border-radius: 12px;
-        cursor: pointer;
-        font-family: 'Courier New', monospace;
-        margin-top: 20px;
-        transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        box-shadow: 
-            0 6px 20px rgba(0, 255, 136, 0.4),
-            inset 0 0 20px rgba(255, 255, 255, 0.1);
-    }
-
-    .restart-button:hover {
-        transform: scale(1.05);
-        background: linear-gradient(45deg, #00cc6a, #00aa55);
-        box-shadow: 
-            0 8px 25px rgba(0, 255, 136, 0.6),
-            inset 0 0 25px rgba(255, 255, 255, 0.2);
-    }
-
-    .restart-button:active {
-        transform: scale(0.98);
-    }
-
-    .accuracy-bar {
-        width: 100%;
-        height: 8px;
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 4px;
-        margin: 15px 0;
-        overflow: hidden;
-        border: 1px solid #333;
-    }
-
-    .accuracy-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #ff4444, #ffaa00, #00ff88);
-        border-radius: 3px;
-        transition: width 1s ease-out;
-        box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-    }
-
-    .rank-display {
-        font-size: 24px;
-        font-weight: bold;
-        margin: 10px 0;
-        padding: 8px 16px;
-        border-radius: 8px;
-        display: inline-block;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-    }
-
-    .rank-s { 
-        background: linear-gradient(45deg, #ffd700, #ffed4e);
-        color: #333;
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-    }
-    .rank-a { 
-        background: linear-gradient(45deg, #00ff88, #00cc6a);
-        color: white;
-        box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
-    }
-    .rank-b { 
-        background: linear-gradient(45deg, #0088ff, #0066cc);
-        color: white;
-        box-shadow: 0 0 20px rgba(0, 136, 255, 0.6);
-    }
-    .rank-c { 
-        background: linear-gradient(45deg, #ffaa00, #ff8800);
-        color: white;
-        box-shadow: 0 0 20px rgba(255, 170, 0, 0.6);
-    }
-    .rank-d { 
-        background: linear-gradient(45deg, #ff4444, #cc3333);
-        color: white;
-        box-shadow: 0 0 20px rgba(255, 68, 68, 0.6);
-    }
-
-    /* 手机适配 */
-    @media (max-width: 768px) {
-        #scoreBoard {
-            font-size: 14px;
-            padding: 8px;
-        }
-        
-        .hitZone {
-            width: 70px;
-            height: 70px;
-            font-size: 20px;
-        }
-        
-        .note {
-            width: 64px;
-            height: 64px;
-            font-size: 16px;
-        }
-        
-        #controlArea {
-            height: 90px;
-            padding: 8px;
-        }
-        
-        #startButton {
-            padding: 15px 30px;
-            font-size: 20px;
-        }
-        
-        .perfect, .good, .miss {
-            font-size: 20px;
-        }
-        
-        .combo {
-            font-size: 18px;
-            top: 15px;
-            right: 15px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .hitZone {
-            width: 60px;
-            height: 60px;
-            font-size: 18px;
-        }
-        
-        .note {
-            width: 54px;
-            height: 54px;
-            font-size: 14px;
-        }
-        
-        #controlArea {
-            height: 80px;
-        }
-        
-        #startButton {
-            padding: 12px 24px;
-            font-size: 18px;
-        }
-        
-        .results-container {
+        #leftPanel {
+            width: 200px;
             padding: 20px;
-            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 100;
         }
-        
-        .results-title {
-            font-size: 24px;
-        }
-        
-        .results-score {
-            font-size: 36px;
-        }
-        
-        .restart-button {
-            padding: 12px 25px;
-            font-size: 16px;
-        }
-    }
-</style>
 
+        #scoreDisplay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 18px;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #judgmentDisplay {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            min-height: 30px;
+        }
+
+        .miss { color: #ff4444; }
+        .good { color: #44ff44; }
+        .perfect { color: #ffff44; }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+
+        button:hover {
+            background: #555;
+        }
+
+        button:disabled {
+            background: #222;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        #gameArea {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #tracks {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 320px;
+            height: 100vh;
+            display: flex;
+        }
+
+        .track {
+            flex: 1;
+            position: relative;
+            border-left: 1px solid #333;
+            background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.1) 85%, rgba(255,255,255,0.2) 100%);
+        }
+
+        .track:last-child {
+            border-right: 1px solid #333;
+        }
+
+        .hitZone {
+            position: absolute;
+            bottom: 80px;
+            left: 5px;
+            right: 5px;
+            height: 60px;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .note {
+            position: absolute;
+            left: 5px;
+            right: 5px;
+            height: 40px;
+            background-image: url('source.jpeg');
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px;
+            border: 1px solid #fff;
+            opacity: 0.8;
+        }
+
+        .keyButton {
+            position: absolute;
+            bottom: 10px;
+            left: 5px;
+            right: 5px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .keyButton:active,
+        .keyButton.pressed {
+            background: rgba(255,255,255,0.5);
+            transform: scale(0.95);
+        }
+
+        #progressBar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #333;
+        }
+
+        #progressFill {
+            height: 100%;
+            background: #fff;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            #leftPanel {
+                width: 150px;
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            #scoreDisplay {
+                font-size: 14px;
+                padding: 5px;
+            }
+
+            #tracks {
+                width: calc(100vw - 150px);
+            }
+
+            .keyButton {
+                height: 80px;
+                font-size: 16px;
+            }
+
+            .hitZone {
+                bottom: 90px;
+            }
+
+            #judgmentDisplay {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .keyButton {
+                height: 60px;
+            }
+            
+            .hitZone {
+                bottom: 70px;
+            }
+        }
+
+        /* Game Over Screen */
+        #gameOverScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #gameOverPanel {
+            background: #000;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            font-family: monospace;
+        }
+
+        #gameOverTitle {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #finalScoreDisplay {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        #finalScoreNumber {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffff44;
+            margin: 10px 0;
+        }
+
+        #accuracyDisplay {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #ccc;
+        }
+
+        .statsGrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .statItem {
+            text-align: center;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .statLabel {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .statValue {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .statValue.perfect { color: #ffff44; }
+        .statValue.good { color: #44ff44; }
+        .statValue.miss { color: #ff4444; }
+
+        .gameOverButtons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .gameOverBtn {
+            background: #333;
+            color: #fff;
+            border: 2px solid #666;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 14px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .gameOverBtn:hover {
+            background: #555;
+            border-color: #888;
+        }
+
+        .gameOverBtn.primary {
+            background: #444;
+            border-color: #fff;
+        }
+
+        .gameOverBtn.primary:hover {
+            background: #666;
+        }
+
+        @media (max-width: 768px) {
+            #gameOverPanel {
+                padding: 30px 20px;
+            }
+            
+            #gameOverTitle {
+                font-size: 24px;
+            }
+            
+            #finalScoreNumber {
+                font-size: 36px;
+            }
+            
+            .statsGrid {
+                gap: 10px;
+            }
+            
+            .statItem {
+                padding: 10px;
+            }
+            
+            .gameOverButtons {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="gameContainer">
-        <div id="scoreBoard">
-            <div>Score: <span id="score">0</span></div>
-            <div>Perfect: <span id="perfect">0</span> | Good: <span id="good">0</span> | Miss: <span id="miss">0</span></div>
+        <div id="leftPanel">
+            <div id="judgmentDisplay"></div>
+            <div id="controls">
+                <button id="startBtn" onclick="startGame()">开始游戏</button>
+                <button id="pauseBtn" onclick="togglePause()" disabled>暂停</button>
+                <button id="restartBtn" onclick="restartGame()" disabled>重新开始</button>
+            </div>
+            <div id="stats">
+                <div>Perfect: <span id="perfectCount">0</span></div>
+                <div>Good: <span id="goodCount">0</span></div>
+                <div>Miss: <span id="missCount">0</span></div>
+            </div>
         </div>
 
-    <div id="gameArea">
-        <div class="combo" id="combo" style="display: none;">Combo: 0</div>
-        <button id="startButton">开始游戏</button>
-        
-        <div id="gameEndScreen">
-            <div class="results-container">
-                <div class="results-title">GAME OVER</div>
-                <div class="rank-display" id="rankDisplay">RANK A</div>
-                <div class="results-score" id="finalScore">0</div>
-                
-                <div class="accuracy-bar">
-                    <div class="accuracy-fill" id="accuracyFill"></div>
+        <div id="gameArea">
+            <div id="scoreDisplay">
+                <span id="currentScore">0</span> / <span id="maxScore">10000</span>
+            </div>
+            
+            <div id="tracks">
+                <div class="track" data-track="0">
+                    <div class="hitZone"></div>
+                    <div class="keyButton" data-key="0">D</div>
                 </div>
-                <div style="color: #ccc; font-size: 14px; margin-bottom: 15px;">
-                    Accuracy: <span id="accuracyText">0%</span>
+                <div class="track" data-track="1">
+                    <div class="hitZone"></div>
+                    <div class="keyButton" data-key="1">F</div>
                 </div>
-                
-                <div class="results-stats">
-                    <div class="stat-item stat-perfect">
-                        <div style="font-size: 12px;">PERFECT</div>
-                        <div style="font-size: 18px;" id="finalPerfect">0</div>
-                    </div>
-                    <div class="stat-item stat-good">
-                        <div style="font-size: 12px;">GOOD</div>
-                        <div style="font-size: 18px;" id="finalGood">0</div>
-                    </div>
-                    <div class="stat-item stat-miss">
-                        <div style="font-size: 12px;">MISS</div>
-                        <div style="font-size: 18px;" id="finalMiss">0</div>
-                    </div>
-                    <div class="stat-item stat-combo">
-                        <div style="font-size: 12px;">MAX COMBO</div>
-                        <div style="font-size: 18px;" id="finalCombo">0</div>
-                    </div>
+                <div class="track" data-track="2">
+                    <div class="hitZone"></div>
+                    <div class="keyButton" data-key="2">J</div>
                 </div>
-                
-                <button class="restart-button" onclick="restartGame()">PLAY AGAIN</button>
+                <div class="track" data-track="3">
+                    <div class="hitZone"></div>
+                    <div class="keyButton" data-key="3">K</div>
+                </div>
+            </div>
+
+            <div id="progressBar">
+                <div id="progressFill"></div>
             </div>
         </div>
     </div>
-    
-    <div id="controlArea">
-        <div class="hitZone" data-lane="0">D</div>
-        <div class="hitZone" data-lane="1">F</div>
-        <div class="hitZone" data-lane="2">J</div>
-        <div class="hitZone" data-lane="3">K</div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen">
+        <div id="gameOverPanel">
+            <div id="gameOverTitle">Game Over</div>
+            
+            <div id="finalScoreDisplay">
+                <div>Final Score</div>
+                <div id="finalScoreNumber">0</div>
+                <div id="maxScoreText">/ 10000</div>
+            </div>
+            
+            <div id="accuracyDisplay">
+                Accuracy: <span id="accuracyPercent">0</span>%
+            </div>
+            
+            <div class="statsGrid">
+                <div class="statItem">
+                    <div class="statLabel">Perfect</div>
+                    <div class="statValue perfect" id="finalPerfect">0</div>
+                </div>
+                <div class="statItem">
+                    <div class="statLabel">Good</div>
+                    <div class="statValue good" id="finalGood">0</div>
+                </div>
+                <div class="statItem">
+                    <div class="statLabel">Miss</div>
+                    <div class="statValue miss" id="finalMiss">0</div>
+                </div>
+            </div>
+            
+            <div class="gameOverButtons">
+                <button class="gameOverBtn primary" onclick="playAgain()">Play Again</button>
+                <button class="gameOverBtn" onclick="backToMenu()">Menu</button>
+            </div>
+        </div>
     </div>
-</div>
 
-<audio id="bgMusic" preload="auto">
-    <source src="audio.m4a" type="audio/mp4">
-</audio>
-
-<audio id="hitSound" preload="auto">
-    <source src="push.m4a" type="audio/mp4">
-</audio>
-
-<script>
-    // 游戏配置
-    const pushTime = [
-        // 示例节拍时间（毫秒），你可以根据音乐调整
-        5461,7486,8740,9993,11445,12436,13172,14003,14844,15685,16388,16613,16829,17036,17494,17893,18299,18678,19052,19444,19813,20472,20719,21018,21429,21829,22251,22653,23011,23730,23963,24309,24661,25035,25453,25806,26203,26916,27132,27316,27517,28126,28507,28846,29036,30160,30339,30532,31012,31435,31846,32229,32621,33267,33460,33636,33952,34293,34627,34997,35391,35844,36548,36757,36924,37375,37827,38243,38663,39044,39260,39460,39820,40042,40254,40656,40841,41069,41466,41670,41877,42318,42731,43105,43451,43811,43955,44132,44259,44420,44635,44838,45042,45395,45490,45745,45899,46001,46133,46303,46484,46693,47036,47324,47445,47540,47742,47923,48116,48286,48639,49005,49356,49674,49892,50261,50540,50682,50784,50877,51070,51269,51476,51857,52098,52228,52356,52537,52723,52934,53106,53492,53726,53868,53970,54102,54281,54476,54669,55006,55321,55716,55918,56317,56596,56905,57077,57314,57504,57708,57885,58333,58537,58716,58818,58997,59187,59410,59831,60142,60242,60355,60550,60741,60926,61108,61444,61837,62115,62445,62703,63184,63411,63620,63755,63848,64022,64189,64379,64749,64951,65092,65211,65378,65533,65747,65926,66293,66493,66651,66787,67015,67219,67437,67602,67967,68246,68589,68845,69214,69430,69620,69836,70059,70254,70502,70684,70916,71086,71308,71501,71701,71903,72119,72307,72509,72694,72913,73075,73310,73517,73733,73909,74102,74299,74494,74668,74877,75077,75285,75476,75695,75876,76073,76261,76500,76686,76883,77058,77292,77476,77694,77891,78093,78286,78493,78667,78894,79068,79261,79433,79656,79837,80044,80260,80459,80829,81175,81560,81950,82312,82484,82626,82754,83004,83239,83503,83724,84066,84435,84829,84987,85210,85612,85993,86443,86636,86868,87246,87509,87760,88052,88298,88686,88997,89174,89385,89587,89819,90035,90421,90679,90836,90939,91157,91349,91500,91863,92104,92234,92369,92541,92724,92933,93091,93453,93739,94094,94393,94809,95239,95666,95859,96079,96274,96479,96693,96911,97092,97268,97477,97668,97877,98253,98469,98659,98789,99003,99205,99405,99804,100220,100535,100863,101077,101469,101748,101940,102068,102228,102412,102611,102788,103092,103257,103470,103635,103763,103949,104141,104339,104662,104885,105036,105163,105307,105502,105709,105955,106317,106570,106789,107019,107251,107636,108054,108477,108620,108890,109060,109487,109724,109923,110086,110295,110492,110699,111066,111326,111458,111604,111804,112045,112269,112628,113067,113318,113648,113901,114384,114725,114876,115053,115252,115491,115926,116149,116355,116576,116738,116961,117138,117486,117742,117874,117981,118169,118301,118533,118682,119044,119372,119683,120068,120454,120876,121278,121455,121719,121896,122341,122516,122676,122850,123066,123268,123479,123890,124125,124366,124566,124766,124979,125195,125583,125943,126157,126468,126718,127050,127246,127436,127675,127877,128112,128325,128539,128750,128957,129150,129352,129565,129788,129965,130139,130332,130524,130719,130931,131123,131356,131565,131764,131950,132166,132356,132565,132939,133308,133710,137333,138287,138821,139564,141013,142039,142821,144686,145236,146086
-    ];
-
-    // 游戏状态
-    let gameState = {
-        isPlaying: false,
-        startTime: 0,
-        score: 0,
-        perfect: 0,
-        good: 0,
-        miss: 0,
-        combo: 0,
-        maxCombo: 0,
-        notes: []
-    };
-
-    // DOM 元素
-    const gameArea = document.getElementById('gameArea');
-    const startButton = document.getElementById('startButton');
-    const bgMusic = document.getElementById('bgMusic');
-    const hitSound = document.getElementById('hitSound');
-    const hitZones = document.querySelectorAll('.hitZone');
-    
-    // 分数显示元素
-    const scoreEl = document.getElementById('score');
-    const perfectEl = document.getElementById('perfect');
-    const goodEl = document.getElementById('good');
-    const missEl = document.getElementById('miss');
-    const comboEl = document.getElementById('combo');
-
-    // 游戏常量
-    const FALL_DURATION = 1000; // 音符下落时间
-    const HIT_TOLERANCE = 150; // 击中容忍度
-
-    // 开始游戏
-    startButton.addEventListener('click', startGame);
-
-    function startGame() {
-        startButton.style.display = 'none';
-        comboEl.style.display = 'block';
-        gameState.isPlaying = true;
-        gameState.startTime = Date.now();
+    <script>
+        // Game configuration
+        const clickTime = [4465,5094,5925,6947,7739,8584,9057,10249,10767,11565,13112,14006,14809,16073,16272,16453,16629,16808,17025,17213,17361,17567,17768,17953,18281,18668,19072,19456,19832,20435,20637,20816,21016,21402,21833,22223,22625,23018,23728,23891,24072,24213,24662,25028,25444,25860,26257,26872,27088,27334,27538,28153,28423,28855,29096,29907,30193,30425,30634,31040,31481,31862,32240,32607,33304,33497,33680,33919,34233,34632,35032,35410,35826,36488,36704,36929,37342,37834,38278,38638,39086,39260,39464,39815,40038,40272,40662,40853,41092,41473,41703,41921,42295,42687,43082,43393,43769,44025,44136,44359,44536,44735,44928,45091,45520,45764,45871,45959,46096,46224,46400,46646,47032,47301,47410,47501,47656,47831,47993,48177,48346,48685,49054,49289,49593,49878,50319,50619,50712,50810,50944,51135,51316,51478,51927,52136,52289,52393,52511,52600,52774,52960,53129,53529,53686,53830,53945,54067,54200,54321,54508,54711,55073,55486,55730,56018,56299,56617,56752,56896,57051,57198,57330,57481,57571,57787,57920,58136,58400,58577,58695,58814,58976,59146,59352,59510,59905,60133,60244,60472,60609,60794,60985,61175,61505,61832,62062,62385,62691,63119,63400,63511,63776,63903,64073,64215,64382,64818,64962,65071,65241,65375,65527,65754,65956,66327,66530,66671,66806,67047,67217,67368,67589,68058,68480,68794,69288,69432,69692,69887,70106,70303,70519,70714,70935,71127,71357,71562,71766,71945,72168,72346,72537,72736,72924,73089,73324,73510,73709,73874,74088,74269,74503,74689,74928,75112,75321,75481,75704,75862,76082,76245,76486,76654,76891,77055,77281,77455,77657,77866,78070,78230,78460,78644,78864,79083,79231,79394,79498,79614,79776,79951,80144,80390,80592,80824,81049,81302,81693,82136,82287,82570,82788,83016,83202,83455,83896,84105,84282,84416,84592,84829,85008,85178,85503,85751,85872,85986,86146,86353,86536,86722,86919,87400,87704,88062,88287,88793,88970,89097,89239,89348,89527,89694,89877,90363,90509,90648,90837,91032,91224,91445,91835,92118,92239,92348,92490,92615,92785,92998,93151,93567,93848,94145,94424,94784,95125,95267,95383,95476,95599,95752,95966,96152,96330,96793,96920,97066,97217,97394,97568,97784,97947,98339,98494,98669,98880,99080,99293,99488,99720,99934,100141,100336,100515,100851,101105,101516,101673,101889,102008,102100,102242,102351,102514,102692,102872,103222,103331,103470,103584,103737,103886,104007,104165,104330,104710,104878,105015,105122,105249,105486,105616,105807,106210,106392,106594,106784,107107,107455,107824,108093,108275,108435,108549,108702,108814,108983,109192,109552,109768,109942,110047,110144,110272,110413,110560,110736,111154,111338,111472,111586,111841,111951,112116,112294,112466,112812,113081,113327,113627,113915,114433,114714,114874,114976,115113,115250,115389,115566,115977,116207,116328,116430,116546,116662,116843,117017,117442,117681,117814,117911,118025,118136,118306,118441,118608,118780,119091,119641,119978,120423,120853,120958,121085,121204,121355,121601,121805,121975,122367,122613,122739,122847,122982,123126,123312,123489,123904,124318,124455,124705,124921,125135,125320,125706,125883,126126,126442,126681,127083,127248,127462,127666,127875,128100,128288,128518,128697,128924,129103,129312,129503,129707,129904,130134,130329,130543,130705,130931,131128,131353,131539,131752,131948,132157,132368,132556,132921,133318,133633,138275,138811,139638,141247,142046,142791,144942,145450]; // Example timing data
+        const timeLen = 148594; // Example max time
+        const NOTE_SPEED = 300; // pixels per second (可调节的下落速度)
         
-        // 重置分数
-        resetScore();
+        // Calculate fall distance and time once
+        let FALL_DISTANCE = 0;
+        let FALL_TIME = 0;
         
-        // 播放背景音乐
-        bgMusic.currentTime = 0;
-        bgMusic.play().catch(e => console.log('音频播放失败:', e));
-        
-        // 生成音符
-        generateNotes();
-        
-        // 开始游戏循环
-        gameLoop();
-    }
+        // Game state
+        let gameState = {
+            isPlaying: false,
+            isPaused: false,
+            startTime: 0,
+            currentTime: 0,
+            score: 0,
+            maxScore: 10000,
+            pointsPerNote: 0,
+            notes: [],
+            stats: { perfect: 0, good: 0, miss: 0 }
+        };
 
-    function generateNotes() {
-        pushTime.forEach((time, index) => {
+        // Audio elements
+        let gameAudio = null;
+        let pushAudio = null;
+
+        // Game elements
+        const tracks = document.querySelectorAll('.track');
+        const keyButtons = document.querySelectorAll('.keyButton');
+        const judgmentDisplay = document.getElementById('judgmentDisplay');
+        const currentScoreEl = document.getElementById('currentScore');
+        const progressFill = document.getElementById('progressFill');
+
+        // Initialize game
+        function initGame() {
+            // Create audio elements
+            gameAudio = new Audio('audio.m4a');
+            pushAudio = new Audio('push.m4a');
+            
+            gameAudio.addEventListener('loadedmetadata', () => {
+                const actualTimeLen = Math.min(timeLen, gameAudio.duration * 1000);
+                console.log('Game duration:', actualTimeLen + 'ms');
+            });
+
+            // Calculate fall distance and time based on track layout
+            calculateFallParameters();
+
+            // Calculate points per note
+            gameState.pointsPerNote = Math.floor(gameState.maxScore / clickTime.length);
+            
+            // Generate notes with calculated spawn times
+            generateNotes();
+            
+            // Setup controls
+            setupControls();
+            
+            // Update score display
+            updateScoreDisplay();
+        }
+
+        function calculateFallParameters() {
+            // Wait for DOM to be ready
+            const trackHeight = window.innerHeight;
+            const hitZoneBottom = 80; // Distance from bottom to hit zone center
+            
+            // Calculate fall distance: from top of track to hit zone
+            FALL_DISTANCE = trackHeight - hitZoneBottom - 30 - 70; // 30px for hit zone height/2
+            
+            // Calculate fall time based on speed: distance / speed
+            FALL_TIME = (FALL_DISTANCE / NOTE_SPEED) * 1000; // Convert to milliseconds
+            
+            console.log(`Fall distance: ${FALL_DISTANCE}px, Fall time: ${FALL_TIME}ms`);
+        }
+
+        function generateNotes() {
+            gameState.notes = [];
+            clickTime.forEach((hitTime, index) => {
+                const track = Math.floor(Math.random() * 4); // Random track 0-3
+                
+                // Calculate spawn time: hit time minus fall time
+                const spawnTime = hitTime - FALL_TIME;
+                
+                gameState.notes.push({
+                    id: index,
+                    track: track,
+                    hitTime: hitTime,        // When note should reach hit zone
+                    spawnTime: spawnTime,    // When note should be created
+                    element: null,
+                    hit: false,
+                    missed: false,
+                    spawned: false
+                });
+            });
+            
+            console.log('Generated notes with spawn times:', gameState.notes.map(n => ({
+                hitTime: n.hitTime,
+                spawnTime: n.spawnTime,
+                track: n.track
+            })));
+        }
+
+        function setupControls() {
+            // Keyboard controls
+            document.addEventListener('keydown', (e) => {
+                if (!gameState.isPlaying || gameState.isPaused) return;
+                
+                let keyIndex = -1;
+                switch(e.key.toLowerCase()) {
+                    case 'd': keyIndex = 0; break;
+                    case 'f': keyIndex = 1; break;
+                    case 'j': keyIndex = 2; break;
+                    case 'k': keyIndex = 3; break;
+                }
+                
+                if (keyIndex >= 0) {
+                    hitKey(keyIndex);
+                }
+            });
+
+            // Touch controls
+            keyButtons.forEach((btn, index) => {
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (gameState.isPlaying && !gameState.isPaused) {
+                        hitKey(index);
+                    }
+                });
+                
+                btn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    if (gameState.isPlaying && !gameState.isPaused) {
+                        hitKey(index);
+                    }
+                });
+            });
+        }
+
+        function hitKey(keyIndex) {
+            const keyButton = keyButtons[keyIndex];
+            keyButton.classList.add('pressed');
+            setTimeout(() => keyButton.classList.remove('pressed'), 100);
+
+            // Check for hit notes
+            const currentTime = gameState.currentTime;
+            const trackNotes = gameState.notes.filter(note => 
+                note.track === keyIndex && !note.hit && !note.missed && note.spawned
+            );
+
+            let bestNote = null;
+            let bestDistance = Infinity;
+
+            trackNotes.forEach(note => {
+                const distance = Math.abs(note.hitTime - currentTime);
+                if (distance < bestDistance && distance < 200) { // 200ms judgment window
+                    bestDistance = distance;
+                    bestNote = note;
+                }
+            });
+
+            if (bestNote) {
+                bestNote.hit = true;
+                if (bestNote.element) {
+                    bestNote.element.remove();
+                }
+
+                let judgment;
+                if (bestDistance < 50) {
+                    judgment = 'perfect';
+                    gameState.stats.perfect++;
+                    gameState.score += gameState.pointsPerNote;
+                } else if (bestDistance < 100) {
+                    judgment = 'good';
+                    gameState.stats.good++;
+                    gameState.score += Math.floor(gameState.pointsPerNote * 0.7);
+                } else {
+                    judgment = 'good';
+                    gameState.stats.good++;
+                    gameState.score += Math.floor(gameState.pointsPerNote * 0.5);
+                }
+
+                showJudgment(judgment);
+                playPushSound();
+                updateStats();
+            }
+        }
+
+        function showJudgment(judgment) {
+            judgmentDisplay.textContent = judgment.toUpperCase();
+            judgmentDisplay.className = judgment;
             setTimeout(() => {
-                if (gameState.isPlaying) {
-                    createNote(Math.floor(Math.random() * 4));
+                judgmentDisplay.textContent = '';
+                judgmentDisplay.className = '';
+            }, 1000);
+        }
+
+        function playPushSound() {
+            if (pushAudio) {
+                pushAudio.currentTime = 0;
+                pushAudio.play().catch(e => console.log('Audio play failed:', e));
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('perfectCount').textContent = gameState.stats.perfect;
+            document.getElementById('goodCount').textContent = gameState.stats.good;
+            document.getElementById('missCount').textContent = gameState.stats.miss;
+            updateScoreDisplay();
+        }
+
+        function updateScoreDisplay() {
+            currentScoreEl.textContent = gameState.score;
+        }
+
+        function startGame() {
+            // Recalculate fall parameters in case window was resized
+            calculateFallParameters();
+            
+            gameState.isPlaying = true;
+            gameState.isPaused = false;
+            gameState.startTime = Date.now();
+            gameState.score = 0;
+            gameState.stats = { perfect: 0, good: 0, miss: 0 };
+
+            // Reset notes
+            generateNotes();
+            clearNotes();
+
+            // Update UI
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('restartBtn').disabled = false;
+
+            // Start audio
+            if (gameAudio) {
+                gameAudio.currentTime = 0;
+                gameAudio.play().catch(e => console.log('Audio play failed:', e));
+            }
+
+            // Start game loop
+            gameLoop();
+        }
+
+        function togglePause() {
+            if (!gameState.isPlaying) return;
+
+            gameState.isPaused = !gameState.isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+
+            if (gameState.isPaused) {
+                pauseBtn.textContent = '继续';
+                if (gameAudio) gameAudio.pause();
+            } else {
+                pauseBtn.textContent = '暂停';
+                gameState.startTime = Date.now() - gameState.currentTime;
+                if (gameAudio) gameAudio.play().catch(e => console.log('Audio play failed:', e));
+                gameLoop();
+            }
+        }
+
+        function restartGame() {
+            gameState.isPlaying = false;
+            gameState.isPaused = false;
+            gameState.currentTime = 0;
+
+            // Stop audio
+            if (gameAudio) {
+                gameAudio.pause();
+                gameAudio.currentTime = 0;
+            }
+
+            // Clear notes
+            clearNotes();
+
+            // Reset UI
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('pauseBtn').textContent = '暂停';
+            document.getElementById('restartBtn').disabled = true;
+
+            // Reset display
+            progressFill.style.width = '0%';
+            judgmentDisplay.textContent = '';
+            judgmentDisplay.className = '';
+        }
+
+        function clearNotes() {
+            tracks.forEach(track => {
+                const notes = track.querySelectorAll('.note');
+                notes.forEach(note => note.remove());
+            });
+        }
+
+        function gameLoop() {
+            if (!gameState.isPlaying || gameState.isPaused) return;
+
+            gameState.currentTime = Date.now() - gameState.startTime;
+            const maxTime = Math.min(timeLen, gameAudio ? gameAudio.duration * 1000 : timeLen);
+
+            // Update progress
+            const progress = Math.min(gameState.currentTime / maxTime, 1);
+            progressFill.style.width = (progress * 100) + '%';
+
+            // Spawn notes based on calculated spawn time
+            gameState.notes.forEach(note => {
+                if (!note.spawned && !note.hit && !note.missed) {
+                    if (gameState.currentTime >= note.spawnTime) {
+                        spawnNote(note);
+                        note.spawned = true;
+                    }
                 }
-            }, time - FALL_DURATION);
-        });
-    }
+            });
 
-    function createNote(lane) {
-        const note = document.createElement('div');
-        note.className = 'note';
-        note.dataset.lane = lane;
-        note.dataset.createTime = Date.now();
-        
-        // 设置音符位置
-        const hitZone = hitZones[lane];
-        const rect = hitZone.getBoundingClientRect();
-        const gameRect = gameArea.getBoundingClientRect();
-        
-        note.style.left = (rect.left - gameRect.left + 3) + 'px';
-        note.style.animationDuration = FALL_DURATION + 'ms';
-        
-        gameArea.appendChild(note);
-        gameState.notes.push(note);
-        
-        // 移除超时的音符
-        setTimeout(() => {
-            if (note.parentNode) {
-                note.remove();
-                const index = gameState.notes.indexOf(note);
-                if (index > -1) {
-                    gameState.notes.splice(index, 1);
-                    // 超时算miss
-                    addScore('miss', lane);
+            // Update note positions based on physics
+            gameState.notes.forEach(note => {
+                if (note.element && !note.hit && note.spawned) {
+                    updateNotePosition(note);
                 }
+            });
+
+            // Check for missed notes
+            gameState.notes.forEach(note => {
+                if (!note.hit && !note.missed && gameState.currentTime > note.hitTime + 200) {
+                    note.missed = true;
+                    gameState.stats.miss++;
+                    if (note.element) {
+                        note.element.remove();
+                    }
+                    showJudgment('miss');
+                    updateStats();
+                }
+            });
+
+            // Check for game end
+            if (gameState.currentTime >= maxTime) {
+                endGame();
+                return;
             }
-        }, FALL_DURATION + 500);
-    }
 
-    function gameLoop() {
-        if (!gameState.isPlaying) return;
-        
-        // 检查游戏结束条件
-        const currentTime = Date.now() - gameState.startTime;
-        if (currentTime > Math.max(...pushTime) + FALL_DURATION + 1000) {
-            endGame();
-            return;
-        }
-        
-        requestAnimationFrame(gameLoop);
-    }
-
-    function endGame() {
-        gameState.isPlaying = false;
-        bgMusic.pause();
-        
-        // 显示结算界面
-        showGameEndScreen();
-    }
-
-    function showGameEndScreen() {
-        const gameEndScreen = document.getElementById('gameEndScreen');
-        const finalScore = document.getElementById('finalScore');
-        const finalPerfect = document.getElementById('finalPerfect');
-        const finalGood = document.getElementById('finalGood');
-        const finalMiss = document.getElementById('finalMiss');
-        const finalCombo = document.getElementById('finalCombo');
-        const accuracyFill = document.getElementById('accuracyFill');
-        const accuracyText = document.getElementById('accuracyText');
-        const rankDisplay = document.getElementById('rankDisplay');
-
-        // 计算准确率
-        const totalNotes = gameState.perfect + gameState.good + gameState.miss;
-        const accuracy = totalNotes > 0 ? ((gameState.perfect + gameState.good) / totalNotes * 100) : 0;
-        
-        // 计算等级
-        let rank, rankClass;
-        if (accuracy >= 95) {
-            rank = 'S';
-            rankClass = 'rank-s';
-        } else if (accuracy >= 85) {
-            rank = 'A';
-            rankClass = 'rank-a';
-        } else if (accuracy >= 75) {
-            rank = 'B';
-            rankClass = 'rank-b';
-        } else if (accuracy >= 60) {
-            rank = 'C';
-            rankClass = 'rank-c';
-        } else {
-            rank = 'D';
-            rankClass = 'rank-d';
+            requestAnimationFrame(gameLoop);
         }
 
-        // 更新显示
-        finalScore.textContent = gameState.score.toLocaleString();
-        finalPerfect.textContent = gameState.perfect;
-        finalGood.textContent = gameState.good;
-        finalMiss.textContent = gameState.miss;
-        finalCombo.textContent = gameState.maxCombo;
-        accuracyText.textContent = accuracy.toFixed(1) + '%';
-        rankDisplay.textContent = 'RANK ' + rank;
-        rankDisplay.className = 'rank-display ' + rankClass;
-
-        // 显示屏幕
-        gameEndScreen.style.display = 'flex';
-
-        // 动画效果
-        setTimeout(() => {
-            accuracyFill.style.width = accuracy + '%';
-        }, 500);
-    }
-
-    function restartGame() {
-        const gameEndScreen = document.getElementById('gameEndScreen');
-        gameEndScreen.style.display = 'none';
-        
-        // 清理剩余音符
-        gameState.notes.forEach(note => note.remove());
-        gameState.notes = [];
-        
-        // 重置状态
-        resetScore();
-        startButton.style.display = 'block';
-        startButton.textContent = '重新开始';
-        comboEl.style.display = 'none';
-    }
-
-    // 按键处理
-    hitZones.forEach((zone, index) => {
-        // 鼠标/触摸事件
-        zone.addEventListener('mousedown', () => hitLane(index));
-        zone.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            hitLane(index);
-        });
-    });
-
-    // 键盘事件
-    document.addEventListener('keydown', (e) => {
-        if (!gameState.isPlaying) return;
-        
-        const keyMap = { 'KeyD': 0, 'KeyF': 1, 'KeyJ': 2, 'KeyK': 3 };
-        if (keyMap[e.code] !== undefined) {
-            e.preventDefault();
-            hitLane(keyMap[e.code]);
-        }
-    });
-
-    function hitLane(lane) {
-        if (!gameState.isPlaying) return;
-        
-        // 视觉反馈
-        hitZones[lane].classList.add('active');
-        setTimeout(() => hitZones[lane].classList.remove('active'), 100);
-        
-        // 查找该轨道的音符
-        const laneNotes = gameState.notes.filter(note => 
-            parseInt(note.dataset.lane) === lane && note.parentNode
-        );
-        
-        if (laneNotes.length === 0) return;
-        
-        // 找到最接近击中区域的音符
-        const hitZoneRect = hitZones[lane].getBoundingClientRect();
-        const hitZoneCenter = hitZoneRect.top + hitZoneRect.height / 2;
-        
-        let closestNote = null;
-        let minDistance = Infinity;
-        
-        laneNotes.forEach(note => {
-            const noteRect = note.getBoundingClientRect();
-            const noteCenter = noteRect.top + noteRect.height / 2;
-            const distance = Math.abs(noteCenter - hitZoneCenter);
+        function spawnNote(note) {
+            const track = tracks[note.track];
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note';
             
-            if (distance < minDistance && distance < HIT_TOLERANCE) {
-                minDistance = distance;
-                closestNote = note;
+            // Start at the top of the track
+            noteElement.style.top = '0px';
+            
+            track.appendChild(noteElement);
+            note.element = noteElement;
+        }
+
+        function updateNotePosition(note) {
+            if (!note.element) return;
+
+            const currentTime = gameState.currentTime;
+            const timeSinceSpawn = currentTime - note.spawnTime;
+            
+            // Calculate position based on time since spawn and constant speed
+            const pixelsFromTop = (timeSinceSpawn / 1000) * NOTE_SPEED; // pixels per second
+            
+            // Clamp position to track bounds
+            const maxTop = FALL_DISTANCE;
+            const noteTop = Math.min(pixelsFromTop, maxTop);
+            
+            note.element.style.top = noteTop + 'px';
+            
+            // Remove note if it's way past the hit zone (cleanup)
+            if (timeSinceSpawn > FALL_TIME + 1000) { // 1 second grace period
+                note.element.remove();
             }
-        });
-        
-        if (closestNote) {
-            // 播放击中音效
-            hitSound.currentTime = 0;
-            hitSound.play().catch(e => console.log('音效播放失败:', e));
+        }
+
+        function endGame() {
+            gameState.isPlaying = false;
             
-            // 移除音符
-            closestNote.remove();
-            const index = gameState.notes.indexOf(closestNote);
-            if (index > -1) {
-                gameState.notes.splice(index, 1);
+            // Stop audio
+            if (gameAudio) {
+                gameAudio.pause();
             }
-            
-            // 计算得分
-            const scoreType = minDistance < 50 ? 'perfect' : 'good';
-            addScore(scoreType, lane);
+
+            // Show game over screen
+            showGameOverScreen();
         }
-    }
 
-    function addScore(type, lane) {
-        const hitZoneRect = hitZones[lane].getBoundingClientRect();
-        const gameRect = gameArea.getBoundingClientRect();
-        
-        let points = 0;
-        let text = '';
-        
-        switch(type) {
-            case 'perfect':
-                points = 100;
-                text = 'PERFECT!';
-                gameState.perfect++;
-                gameState.combo++;
-                gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
-                break;
-            case 'good':
-                points = 50;
-                text = 'GOOD!';
-                gameState.good++;
-                gameState.combo++;
-                gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
-                break;
-            case 'miss':
-                points = 0;
-                text = 'MISS!';
-                gameState.miss++;
-                gameState.combo = 0;
-                break;
+        function showGameOverScreen() {
+            const totalNotes = clickTime.length;
+            const hitNotes = gameState.stats.perfect + gameState.stats.good;
+            const accuracy = totalNotes > 0 ? Math.round((hitNotes / totalNotes) * 100) : 0;
+
+            // Update game over screen
+            document.getElementById('finalScoreNumber').textContent = gameState.score;
+            document.getElementById('accuracyPercent').textContent = accuracy;
+            document.getElementById('finalPerfect').textContent = gameState.stats.perfect;
+            document.getElementById('finalGood').textContent = gameState.stats.good;
+            document.getElementById('finalMiss').textContent = gameState.stats.miss;
+
+            // Show the screen
+            document.getElementById('gameOverScreen').style.display = 'flex';
         }
-        
-        gameState.score += points;
-        updateDisplay();
-        
-        // 显示得分动画
-        const scorePopup = document.createElement('div');
-        scorePopup.className = type;
-        scorePopup.textContent = text;
-        scorePopup.style.left = (hitZoneRect.left - gameRect.left + hitZoneRect.width / 2) + 'px';
-        scorePopup.style.top = (hitZoneRect.top - gameRect.top) + 'px';
-        
-        gameArea.appendChild(scorePopup);
-        setTimeout(() => scorePopup.remove(), 1000);
-    }
 
-    function updateDisplay() {
-        scoreEl.textContent = gameState.score;
-        perfectEl.textContent = gameState.perfect;
-        goodEl.textContent = gameState.good;
-        missEl.textContent = gameState.miss;
-        comboEl.textContent = gameState.combo > 0 ? `Combo: ${gameState.combo}` : '';
-        comboEl.style.display = gameState.combo > 5 ? 'block' : 'none';
-    }
-
-    function resetScore() {
-        gameState.score = 0;
-        gameState.perfect = 0;
-        gameState.good = 0;
-        gameState.miss = 0;
-        gameState.combo = 0;
-        gameState.maxCombo = 0;
-        updateDisplay();
-    }
-
-    // 防止页面滚动
-    document.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-    }, { passive: false });
-    
-    // 防止双击缩放
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', (e) => {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) {
-            e.preventDefault();
+        function hideGameOverScreen() {
+            document.getElementById('gameOverScreen').style.display = 'none';
         }
-        lastTouchEnd = now;
-    }, false);
-</script>
 
+        function playAgain() {
+            hideGameOverScreen();
+            restartGame();
+            startGame();
+        }
+
+        function backToMenu() {
+            hideGameOverScreen();
+            restartGame();
+        }
+
+        // Initialize game when page loads
+        window.addEventListener('load', initGame);
+    </script>
 </body>
 </html>
