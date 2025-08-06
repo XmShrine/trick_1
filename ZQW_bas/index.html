@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我不会贝斯</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f7; /* 设置网页背景色为浅灰色 */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        #toggleButton {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e5e5e5;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #toggleButton.active {
+            background-color: #007aff;
+        }
+
+        #toggleButton .icon {
+            width: 20px;
+            height: 20px;
+            background-color: #666;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        #toggleButton.active .icon {
+            background-color: #fff;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .image-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 50px 0;
+        }
+
+        .main-image {
+            max-width: 50%; /* 将图片的最大宽度设置为容器的 50% */
+            height: auto;
+            display: block;
+        }
+
+        .button-group {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px; /* 按钮之间的间距 */
+        }
+
+        .apple-button {
+            flex-grow: 1;
+            padding: 15px 25px;
+            border-radius: 12px;
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .apple-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-blue { background-color: #007aff; }
+        .btn-green { background-color: #34c759; }
+        .btn-red { background-color: #ff3b30; }
+        .btn-purple { background-color: #af52de; }
+        .btn-yellow { background-color: #d6bd00; }
+        .btn-black { background-color: #000000; }
+        .btn-grey { background-color: #818181; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button id="toggleButton" aria-label="Toggle Stop">
+            <div class="icon"></div>
+        </button>
+    </div>
+
+    <div class="container">
+        <div class="image-container">
+            <img class="main-image" src="source.png" alt="Main Image">
+        </div>
+
+        <div class="button-group" id="button-group">
+            <button class="apple-button btn-blue" onclick="generate('e1')">E1</button>
+            <button class="apple-button btn-blue" onclick="generate('e2')">E2</button>
+            <button class="apple-button btn-blue" onclick="generate('e3')">E3</button>
+            <button class="apple-button btn-blue" onclick="generate('e4')">E4</button>
+
+            <button class="apple-button btn-green" onclick="generate('f1')">F1</button>
+            <button class="apple-button btn-green" onclick="generate('f2')">F2</button>
+            <button class="apple-button btn-green" onclick="generate('f3')">F3</button>
+            <button class="apple-button btn-green" onclick="generate('f4')">F4</button>
+
+            <button class="apple-button btn-red" onclick="generate('d2')">D2</button>
+            <button class="apple-button btn-red" onclick="generate('d3')">D3</button>
+            <button class="apple-button btn-red" onclick="generate('d4')">D4</button>
+
+            <button class="apple-button btn-yellow" onclick="generate('c2')">C2</button>
+            <button class="apple-button btn-yellow" onclick="generate('c3')">C3</button>
+            <button class="apple-button btn-yellow" onclick="generate('c4')">C4</button>
+
+            <button class="apple-button btn-purple" onclick="generate('b1')">B1</button>
+            <button class="apple-button btn-purple" onclick="generate('b2')">B2</button>
+            <button class="apple-button btn-purple" onclick="generate('b3')">B3</button>
+
+            <button class="apple-button btn-black" onclick="generate('g1')">G1</button>
+            <button class="apple-button btn-black" onclick="generate('g2')">G2</button>
+            <button class="apple-button btn-black" onclick="generate('g3')">G3</button>
+        </div>
+    </div>
+
+    <script>
+        let stopMod = 0;
+        let dataDic = {e1:[0,1], e2:[0,1], e3:[1,1], e4:[1,1], f1:[1,1], f2:[1,0], f3:[1,0], f4:[1,0],
+            d2:[0,1], d3:[0,1], d4:[0,1], c2:[0,1], c3:[0,1], c4:[0,1],
+            b1:[0,1], b2:[0,1], b3:[0,1], g1:[1,0], g2:[1,0], g3:[1,0]
+        };
+        const toggleButton = document.getElementById('toggleButton');
+        toggleButton.addEventListener('click', function() {
+            if (stopMod === 0) {
+                stopMod = 1;
+                this.classList.add('active');
+                console.log('stopMod is now 1');
+            } else {
+                stopMod = 0;
+                this.classList.remove('active');
+                console.log('stopMod is now 0');
+            }
+        });
+        function generate(src) {
+            if (stopMod == 0) {
+                if (dataDic[src][0]==1) {
+                    const aud = new Audio(`__pjcohen__standup_bass_normal_${src}.wav`);
+                    aud.play();
+                } else if (dataDic[src][1]==1) {
+                    const aud = new Audio(`__pjcohen__standup_bass_stop_finger_${src}.wav`);
+                    aud.play(); 
+                }
+            } else {
+                if (dataDic[src][1]==1) {
+                    const aud = new Audio(`__pjcohen__standup_bass_stop_finger_${src}.wav`);
+                    aud.play();
+                } else if (dataDic[src][0]==1) {
+                    const aud = new Audio(`__pjcohen__standup_bass_normal_${src}.wav`);
+                    aud.play(); 
+                } 
+            }
+        }
+        
+    </script>
+</body>
+</html>
