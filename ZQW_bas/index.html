@@ -163,7 +163,6 @@
             d2:[0,1], d3:[0,1], d4:[0,1], c2:[0,1], c3:[0,1], c4:[0,1],
             b1:[0,1], b2:[0,1], b3:[0,1], g1:[1,0], g2:[1,0], g3:[1,0]
         };
-        let audioDic = {};
         const toggleButton = document.getElementById('toggleButton');
         toggleButton.addEventListener('click', function() {
             if (stopMod === 0) {
@@ -176,34 +175,26 @@
                 console.log('stopMod is now 0');
             }
         });
-        function load(src) {
-            audioDic[src] = [0,0];
-            if (dataDic[src][0]==1) {
-                audioDic[src][0] = new Audio(`__pjcohen__standup_bass_normal_${src}.wav`);
-            }
-            if (dataDic[src][1]==1) {
-                audioDic[src][1] = new Audio(`__pjcohen__standup_bass_stop_finger_${src}.wav`);
-            }
-        }
         function generate(src) {
             if (stopMod == 0) {
                 if (dataDic[src][0]==1) {
-                    audioDic[src][0].play();
+                    const aud = new Audio(`__pjcohen__standup_bass_normal_${src}.wav`);
+                    aud.play();
                 } else if (dataDic[src][1]==1) {
-                    audioDic[src][1].play();
+                    const aud = new Audio(`__pjcohen__standup_bass_stop_finger_${src}.wav`);
+                    aud.play(); 
                 }
             } else {
                 if (dataDic[src][1]==1) {
-                    audioDic[src][1].play();
+                    const aud = new Audio(`__pjcohen__standup_bass_stop_finger_${src}.wav`);
+                    aud.play();
                 } else if (dataDic[src][0]==1) {
-                    audioDic[src][0].play();
+                    const aud = new Audio(`__pjcohen__standup_bass_normal_${src}.wav`);
+                    aud.play(); 
                 } 
             }
         }
-        for (var i in dataDic) {
-            load(i);
-        }
-        console.log("Complete")
+        
     </script>
 </body>
 </html>
