@@ -162,6 +162,7 @@
         </div>
     </div>
     <script type="text/javascript" src="../playAudio.js"></script>
+    <script type="text/javascript" src="../webLogger.js"></script>
     <script>
         let stopMod = 0;
         let dataDic = {e1:[1,1], e2:[1,1], e3:[1,1], e4:[1,1], f1:[1,1], f2:[1,1], f3:[1,1], f4:[1,1],
@@ -196,6 +197,7 @@
                 } 
             }
         }
+        showInfoOverlay("正在载入音频中...", "top-right");
         for (var i in dataDic) {
             if (dataDic[i][0]==1) {
                 loadAudio(`now_audio/__pjcohen__standup_bass_normal_${i}.wav`);
