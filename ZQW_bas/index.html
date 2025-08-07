@@ -214,7 +214,8 @@
             if (temp === loadTime) {
                 // 条件满足，执行 action()
                 hideInfoOverlay();
-                setTimeout(()=>{showInfoOverlay("音频加载完成", "top-right");}, 1000); 
+                showInfoOverlay("音频加载完成", "top-right");
+                setTimeout(()=>{hideInfoOverlay()}, 1000); 
                 // 退出监测，清除定时器
                 clearInterval(monitorInterval);
                 console.log("监测已退出。");
