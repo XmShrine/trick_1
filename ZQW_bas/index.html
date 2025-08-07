@@ -190,7 +190,14 @@
                 } 
             }
         }
-        
+        for (var i in dataDic) {
+            if (dataDic[i][0]==1) {
+                loadAudio(`__pjcohen__standup_bass_normal_${i}.wav`);
+            }
+            if (dataDic[i][1]==1) {
+                loadAudio(`__pjcohen__standup_bass_stop_finger_${i}.wav`);
+            }
+        }
     </script>
 </body>
 </html>
