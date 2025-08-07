@@ -184,24 +184,24 @@
         function generate(src) {
             if (stopMod == 0) {
                 if (dataDic[src][0]==1) {
-                    playAudio(`__pjcohen__standup_bass_normal_${src}.wav`);
+                    playAudio(`now_audio/__pjcohen__standup_bass_normal_${src}.wav`);
                 } else if (dataDic[src][1]==1) {
-                    playAudio(`__pjcohen__standup_bass_stop_finger_${src}.wav`);
+                    playAudio(`now_audio/__pjcohen__standup_bass_stop_finger_${src}.wav`);
                 }
             } else {
                 if (dataDic[src][1]==1) {
-                    playAudio(`__pjcohen__standup_bass_stop_finger_${src}.wav`);
+                    playAudio(`now_audio/__pjcohen__standup_bass_stop_finger_${src}.wav`);
                 } else if (dataDic[src][0]==1) {
-                    playAudio(`__pjcohen__standup_bass_normal_${src}.wav`);
+                    playAudio(`now_audio/__pjcohen__standup_bass_normal_${src}.wav`);
                 } 
             }
         }
         for (var i in dataDic) {
             if (dataDic[i][0]==1) {
-                loadAudio(`__pjcohen__standup_bass_normal_${i}.wav`);
+                loadAudio(`now_audio/__pjcohen__standup_bass_normal_${i}.wav`);
             }
             if (dataDic[i][1]==1) {
-                loadAudio(`__pjcohen__standup_bass_stop_finger_${i}.wav`);
+                loadAudio(`now_audio/__pjcohen__standup_bass_stop_finger_${i}.wav`);
             }
         }
     </script>
