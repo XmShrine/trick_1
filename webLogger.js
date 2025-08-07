@@ -4,7 +4,7 @@
  * @param {string} [position='top-left'] - 浮层的位置，可选值: 'top-left', 'top-right', 'bottom-left', 'bottom-right'。
  */
 function showInfoOverlay(message, position = 'top-left') {
-  // 移除旧的浮层
+  // 移除旧的浮层，以防重复
   const existingOverlay = document.getElementById('info-overlay');
   if (existingOverlay) {
     existingOverlay.remove();
@@ -50,6 +50,15 @@ function showInfoOverlay(message, position = 'top-left') {
       break;
   }
 
-  // 将浮层添加到 body
   document.body.appendChild(overlay);
+}
+
+/**
+ * 隐藏并移除当前的信息浮层。
+ */
+function hideInfoOverlay() {
+  const overlay = document.getElementById('info-overlay');
+  if (overlay) {
+    overlay.remove();
+  }
 }

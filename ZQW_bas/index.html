@@ -206,6 +206,9 @@
                 loadAudio(`now_audio/__pjcohen__standup_bass_stop_finger_${i}.wav`);
             }
         }
+        hideInfoOverlay();
+        showInfoOverlay("载入完成", "top-right");
+        setTimeout(()=>{hideInfoOverlay()}, 1000)
     </script>
 </body>
 </html>
