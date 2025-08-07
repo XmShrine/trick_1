@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四轨音游</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            font-family: monospace;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+        }
+
+        #leftPanel {
+            width: 200px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        #scoreDisplay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 18px;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #judgmentDisplay {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            min-height: 30px;
+        }
+
+        .miss { color: #ff4444; }
+        .good { color: #44ff44; }
+        .perfect { color: #ffff44; }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #delayCalibration {
+            border-top: 1px solid #333;
+            padding-top: 15px;
+            margin-top: 10px;
+        }
+
+        #delaySliderContainer {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #playTestBtn {
+            background: #444;
+            color: #fff;
+            border: 2px solid #666;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: monospace;
+            margin-bottom: 10px;
+            disabled: true;
+        }
+
+        #playTestBtn:hover:not(:disabled) {
+            background: #666;
+            border-color: #888;
+        }
+
+        #playTestBtn:disabled {
+            background: #222;
+            color: #666;
+            cursor: not-allowed;
+            border-color: #444;
+        }
+
+        #delaySlider {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        #delaySlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        #delaySlider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        #delayValue {
+            text-align: center;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        #clickIndicator {
+            position: absolute;
+            bottom: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffff44;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 16px;
+            border-radius: 5px;
+            border: 1px solid #ffff44;
+            display: none;
+            z-index: 200;
+        }
+
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+
+        button:hover {
+            background: #555;
+        }
+
+        button:disabled {
+            background: #222;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        #gameArea {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #tracks {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 320px;
+            height: 100vh;
+            display: flex;
+        }
+
+        .track {
+            flex: 1;
+            position: relative;
+            border-left: 1px solid #333;
+            background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.1) 85%, rgba(255,255,255,0.2) 100%);
+        }
+
+        .track:last-child {
+            border-right: 1px solid #333;
+        }
+
+        .hitZone {
+            position: absolute;
+            bottom: 80px;
+            left: 5px;
+            right: 5px;
+            height: 60px;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .note {
+            position: absolute;
+            left: 5px;
+            right: 5px;
+            height: 40px;
+            background-image: url('source.jpeg');
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px;
+            border: 1px solid #fff;
+            opacity: 0.8;
+        }
+
+        .keyButton {
+            position: absolute;
+            bottom: 10px;
+            left: 5px;
+            right: 5px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .keyButton:active,
+        .keyButton.pressed {
+            background: rgba(255,255,255,0.5);
+            transform: scale(0.95);
+        }
+
+        #progressBar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #333;
+        }
+
+        #progressFill {
+            height: 100%;
+            background: #fff;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            #leftPanel {
+                width: 150px;
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            #scoreDisplay {
+                font-size: 14px;
+                padding: 5px;
+            }
+
+            #tracks {
+                width: calc(100vw - 150px);
+            }
+
+            .keyButton {
+                height: 80px;
+                font-size: 16px;
+            }
+
+            .hitZone {
+                bottom: 90px;
+            }
+
+            #judgmentDisplay {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .keyButton {
+                height: 60px;
+            }
+            
+            .hitZone {
+                bottom: 70px;
+            }
+        }
+
+        /* Game Over Screen */
+        #gameOverScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #gameOverPanel {
+            background: #000;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            font-family: monospace;
+        }
+
+        #gameOverTitle {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #finalScoreDisplay {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        #finalScoreNumber {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffff44;
+            margin: 10px 0;
+        }
+
+        #accuracyDisplay {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #ccc;
+        }
+
+        .statsGrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .statItem {
+            text-align: center;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .statLabel {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .statValue {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .statValue.perfect { color: #ffff44; }
+        .statValue.good { color: #44ff44; }
+        .statValue.miss { color: #ff4444; }
+
+        .gameOverButtons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .gameOverBtn {
+            background: #333;
+            color: #fff;
+            border: 2px solid #666;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 14px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .gameOverBtn:hover {
+            background: #555;
+            border-color: #888;
+        }
+
+        .gameOverBtn.primary {
+            background: #444;
+            border-color: #fff;
+        }
+
+        .gameOverBtn.primary:hover {
+            background: #666;
+        }
+
+        @media (max-width: 768px) {
+            #gameOverPanel {
+                padding: 30px 20px;
+            }
+            
+            #gameOverTitle {
+                font-size: 24px;
+            }
+            
+            #finalScoreNumber {
+                font-size: 36px;
+            }
+            
+            .statsGrid {
+                gap: 10px;
+            }
+            
+            .statItem {
+                padding: 10px;
+            }
+            
+            .gameOverButtons {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="leftPanel">
+            <div id="judgmentDisplay"></div>
+            <div id="controls">
+                <div id="delayCalibration">
+                    <button id="calibrateBtn" onclick="toggleCalibration()">调整延迟</button>
+                    <div id="delaySliderContainer">
+                        <button id="playTestBtn" onclick="playTest()" disabled>播放</button>
+                        <input type="range" id="delaySlider" min="-500" max="500" value="0" oninput="updateDelay(this.value)">
+                        <div id="delayValue">延迟: 0ms</div>
+                    </div>
+                </div>
+                <button id="startBtn" onclick="startGame()">开始游戏</button>
+                <button id="pauseBtn" onclick="togglePause()" disabled>暂停</button>
+                <button id="restartBtn" onclick="restartGame()" disabled>重新开始</button>
+            </div>
+            <div id="stats">
+                <div>Perfect: <span id="perfectCount">0</span></div>
+                <div>Good: <span id="goodCount">0</span></div>
+                <div>Miss: <span id="missCount">0</span></div>
+            </div>
+        </div>
+
+        <div id="gameArea">
+            <div id="scoreDisplay">
+                <span id="currentScore">0</span> / <span id="maxScore">10000</span>
+            </div>
+            
+            <div id="tracks">
+                <div class="track" data-track="0">
+                    <div class="hitZone"></div>
+                    <div class="keyButton" data-key="0">D</div>
+                </div>
+                <div class="track" data-track="1">
+                    <div class="hitZone"></div>
+                    <div class="keyButton" data-key="1">F</div>
+                </div>
+                <div class="track" data-track="2">
+                    <div class="hitZone"></div>
+                    <div class="keyButton" data-key="2">J</div>
+                </div>
+                <div class="track" data-track="3">
+                    <div class="hitZone"></div>
+                    <div class="keyButton" data-key="3">K</div>
+                </div>
+            </div>
+
+            <div id="progressBar">
+                <div id="progressFill"></div>
+            </div>
+        </div>
+        
+        <div id="clickIndicator">Click</div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen">
+        <div id="gameOverPanel">
+            <div id="gameOverTitle">Game Over</div>
+            
+            <div id="finalScoreDisplay">
+                <div>Final Score</div>
+                <div id="finalScoreNumber">0</div>
+                <div id="maxScoreText">/ 10000</div>
+            </div>
+            
+            <div id="accuracyDisplay">
+                Accuracy: <span id="accuracyPercent">0</span>%
+            </div>
+            
+            <div class="statsGrid">
+                <div class="statItem">
+                    <div class="statLabel">Perfect</div>
+                    <div class="statValue perfect" id="finalPerfect">0</div>
+                </div>
+                <div class="statItem">
+                    <div class="statLabel">Good</div>
+                    <div class="statValue good" id="finalGood">0</div>
+                </div>
+                <div class="statItem">
+                    <div class="statLabel">Miss</div>
+                    <div class="statValue miss" id="finalMiss">0</div>
+                </div>
+            </div>
+            
+            <div class="gameOverButtons">
+                <button class="gameOverBtn primary" onclick="playAgain()">Play Again</button>
+                <button class="gameOverBtn" onclick="backToMenu()">Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game configuration
+        const clickTime = [
+        4506,5126,7713,8612,9944,10825,11635,13065,13980,14735,16047,16346,16799,17192,17623,17942,18327,18703,19042,19425,19829,20472,20881,21232,21576,21905,22281,22655,23031,23851,24250,24601,24998,25421,25818,26233,27455,28300,28518,28878,29131,30044,30439,30726,31159,31465,31839,32243,32628,33255,33441,33671,33926,34263,34662,35025,35431,35849,36546,36743,36975,37409,37867,38299,38705,39123,39302,39543,39938,40298,40695,40878,41099,41515,41714,41956,42344,42762,43175,43669,44064,44482,44863,45279,45685,46073,46351,46537,46767,47148,47535,47919,48151,48418,48680,49075,49351,49720,50039,50357,50666,50877,51183,51534,51950,52240,52658,53074,53477,53888,54313,54673,55047,55468,55830,56231,56680,57077,57569,57992,58419,58760,59148,59501,59900,60295,60704,61047,61430,61869,62141,62512,62835,63249,63632,64057,64363,64758,65181,65513,65691,65914,66297,66718,67087,67263,67498,67914,68315,68687,69119,69555,70008,70470,70879,71232,71659,72051,72469,72820,73268,73647,74062,74441,74868,75239,75662,76057,76479,76798,77007,77239,77464,77671,78075,78465,78667,78899,79113,79329,79514,79733,80151,80566,80794,80984,81184,81425,81802,82166,82338,82542,82765,82942,83137,83348,83750,84135,84358,84532,84730,84936,85103,85331,85739,85942,86150,86341,86536,86752,86956,87607,87959,88264,88719,88946,89123,89306,89501,89671,89896,90305,90530,90760,90978,91136,91326,91526,91930,92148,92248,92360,92545,92761,92961,93142,93542,93894,94180,94407,94754,95176,95376,95566,95759,95994,96168,96374,96760,96992,97164,97336,97542,97735,97940,98281,98629,98935,99100,99289,99681,100096,100317,100519,100854,101137,101606,101813,102054,102277,102456,102667,103041,103266,103457,103682,103907,104130,104339,104701,104887,105084,105328,105549,105751,105957,106343,106582,106812,107058,107408,107847,108154,108514,108890,109283,109682,110077,110492,110862,111254,111686,112034,112449,112608,112828,113111,113390,113666,113936,114161,114574,114923,115310,115715,116118,116506,116933,117217,117577,117948,118427,118742,119151,119785,120277,120609,120844,121039,121264,121512,121710,121907,122434,122671,122899,123087,123296,123519,123923,124157,124529,124898,125112,125328,125685,125978,126194,126475,126721,127074,127287,127487,127682,127877,128088,128288,128495,128715,128889,129096,129291,129500,129698,129893,130118,130320,130503,130726,130919,131135,131328,131553,131753,131985,132201,132426,132851,133167,133624,133991,136605,137335,138289,138677,139659,140256,141184,141944,142791,144113,145132  
+    ];
+        const timeLen = 149000; // Example max time
+        const NOTE_SPEED = 600; // pixels per second (可调节的下落速度)
+        
+        // Delay calibration configuration
+        const lateRange = 1000; // 延迟调整范围 ±500ms
+        let lateTime = 0; // 当前延迟时间
+        const testClick = [964]; // 测试音频的关键帧
+        const testTime = 964; // "Click"提示出现的时间
+        const testdurTime = 500; // "Click"提示持续时间
+        
+        // Calculate fall distance and time once
+        let FALL_DISTANCE = 0;
+        let FALL_TIME = 0;
+        
+        // Delay calibration state
+        let calibrationState = {
+            isActive: false,
+            isPlaying: false,
+            audio: null,
+            startTime: 0,
+            clickIndicator: null,
+            testNote: null,
+            testNoteSpawned: false
+        };
+        
+        // Game state
+        let gameState = {
+            isPlaying: false,
+            isPaused: false,
+            startTime: 0,
+            currentTime: 0,
+            score: 0,
+            maxScore: 10000,
+            pointsPerNote: 0,
+            notes: [],
+            stats: { perfect: 0, good: 0, miss: 0 }
+        };
+
+        // Audio elements
+        let gameAudio = null;
+        let pushAudio = null;
+
+        // Game elements
+        const tracks = document.querySelectorAll('.track');
+        const keyButtons = document.querySelectorAll('.keyButton');
+        const judgmentDisplay = document.getElementById('judgmentDisplay');
+        const currentScoreEl = document.getElementById('currentScore');
+        const progressFill = document.getElementById('progressFill');
+
+        // Initialize game
+        function initGame() {
+            // Create audio elements
+            gameAudio = new Audio('audio.m4a');
+            pushAudio = new Audio('push.m4a');
+            calibrationState.audio = new Audio('test.m4a');
+            
+            // Setup calibration audio loop
+            calibrationState.audio.addEventListener('ended', () => {
+                // Reset for next play (but don't auto-play)
+                calibrationState.isPlaying = false;
+                calibrationState.testNoteSpawned = false;
+                if (calibrationState.testNote && calibrationState.testNote.element) {
+                    calibrationState.testNote.element.remove();
+                }
+                calibrationState.testNote = null;
+                document.getElementById('clickIndicator').style.display = 'none';
+            });
+            
+            gameAudio.addEventListener('loadedmetadata', () => {
+                const actualTimeLen = Math.min(timeLen, gameAudio.duration * 1000);
+                console.log('Game duration:', actualTimeLen + 'ms');
+            });
+
+            // Calculate fall distance and time based on track layout
+            calculateFallParameters();
+
+            // Calculate points per note
+            gameState.pointsPerNote = Math.floor(gameState.maxScore / clickTime.length);
+            
+            // Generate notes with calculated spawn times
+            generateNotes();
+            
+            // Setup controls
+            setupControls();
+            
+            // Update score display
+            updateScoreDisplay();
+            
+            // Initialize delay slider
+            updateDelaySliderRange();
+        }
+
+        function calculateFallParameters() {
+            // Wait for DOM to be ready
+            const trackHeight = window.innerHeight;
+            const hitZoneBottom = 80; // Distance from bottom to hit zone center
+            
+            // Calculate fall distance: from top of track to hit zone
+            FALL_DISTANCE = trackHeight - hitZoneBottom - 30; // 30px for hit zone height/2
+            
+            // Calculate fall time based on speed: distance / speed
+            FALL_TIME = (FALL_DISTANCE / NOTE_SPEED) * 1000; // Convert to milliseconds
+            
+            console.log(`Fall distance: ${FALL_DISTANCE}px, Fall time: ${FALL_TIME}ms`);
+        }
+
+        function generateNotes() {
+            gameState.notes = [];
+            clickTime.forEach((hitTime, index) => {
+                const track = Math.floor(Math.random() * 4); // Random track 0-3
+                
+                // Calculate spawn time: hit time minus fall time, adjusted for delay
+                const spawnTime = hitTime - FALL_TIME - lateTime;
+                
+                gameState.notes.push({
+                    id: index,
+                    track: track,
+                    hitTime: hitTime,        // When note should reach hit zone
+                    spawnTime: spawnTime,    // When note should be created
+                    element: null,
+                    hit: false,
+                    missed: false,
+                    spawned: false
+                });
+            });
+            
+            console.log('Generated notes with spawn times:', gameState.notes.map(n => ({
+                hitTime: n.hitTime,
+                spawnTime: n.spawnTime,
+                track: n.track
+            })));
+        }
+
+        function setupControls() {
+            // Keyboard controls
+            document.addEventListener('keydown', (e) => {
+                if (gameState.isPlaying && !gameState.isPaused) {
+                    let keyIndex = -1;
+                    switch(e.key.toLowerCase()) {
+                        case 'd': keyIndex = 0; break;
+                        case 'f': keyIndex = 1; break;
+                        case 'j': keyIndex = 2; break;
+                        case 'k': keyIndex = 3; break;
+                    }
+                    
+                    if (keyIndex >= 0) {
+                        hitKey(keyIndex);
+                    }
+                } else if (calibrationState.isActive) {
+                    let keyIndex = -1;
+                    switch(e.key.toLowerCase()) {
+                        case 'd': keyIndex = 0; break;
+                        case 'f': keyIndex = 1; break;
+                        case 'j': keyIndex = 2; break;
+                        case 'k': keyIndex = 3; break;
+                    }
+                    
+                    if (keyIndex >= 0) {
+                        hitTestKey(keyIndex);
+                    }
+                }
+            });
+
+            // Touch controls
+            keyButtons.forEach((btn, index) => {
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (gameState.isPlaying && !gameState.isPaused) {
+                        hitKey(index);
+                    } else if (calibrationState.isActive) {
+                        hitTestKey(index);
+                    }
+                });
+                
+                btn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    if (gameState.isPlaying && !gameState.isPaused) {
+                        hitKey(index);
+                    } else if (calibrationState.isActive) {
+                        hitTestKey(index);
+                    }
+                });
+            });
+        }
+
+        function hitKey(keyIndex) {
+            const keyButton = keyButtons[keyIndex];
+            keyButton.classList.add('pressed');
+            setTimeout(() => keyButton.classList.remove('pressed'), 100);
+
+            // Check for hit notes
+            const currentTime = gameState.currentTime;
+            const trackNotes = gameState.notes.filter(note => 
+                note.track === keyIndex && !note.hit && !note.missed && note.spawned
+            );
+
+            let bestNote = null;
+            let bestDistance = Infinity;
+
+            trackNotes.forEach(note => {
+                const distance = Math.abs(note.hitTime - currentTime + lateTime); // Apply delay offset
+                if (distance < bestDistance && distance < 200) { // 200ms judgment window
+                    bestDistance = distance;
+                    bestNote = note;
+                }
+            });
+
+            if (bestNote) {
+                bestNote.hit = true;
+                if (bestNote.element) {
+                    bestNote.element.remove();
+                }
+
+                let judgment;
+                if (bestDistance < 50) {
+                    judgment = 'perfect';
+                    gameState.stats.perfect++;
+                    gameState.score += gameState.pointsPerNote;
+                } else if (bestDistance < 100) {
+                    judgment = 'good';
+                    gameState.stats.good++;
+                    gameState.score += Math.floor(gameState.pointsPerNote * 0.7);
+                } else {
+                    judgment = 'good';
+                    gameState.stats.good++;
+                    gameState.score += Math.floor(gameState.pointsPerNote * 0.5);
+                }
+
+                showJudgment(judgment);
+                playPushSound();
+                updateStats();
+            }
+        }
+
+        function showJudgment(judgment) {
+            judgmentDisplay.textContent = judgment.toUpperCase();
+            judgmentDisplay.className = judgment;
+            setTimeout(() => {
+                judgmentDisplay.textContent = '';
+                judgmentDisplay.className = '';
+            }, 1000);
+        }
+
+        function playPushSound() {
+            if (pushAudio) {
+                pushAudio.currentTime = 0;
+                pushAudio.play().catch(e => console.log('Audio play failed:', e));
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('perfectCount').textContent = gameState.stats.perfect;
+            document.getElementById('goodCount').textContent = gameState.stats.good;
+            document.getElementById('missCount').textContent = gameState.stats.miss;
+            updateScoreDisplay();
+        }
+
+        function updateScoreDisplay() {
+            currentScoreEl.textContent = gameState.score;
+        }
+
+        function startGame() {
+            // Stop calibration if active
+            if (calibrationState.isActive) {
+                stopCalibration();
+            }
+            
+            // Recalculate fall parameters in case window was resized
+            calculateFallParameters();
+            
+            gameState.isPlaying = true;
+            gameState.isPaused = false;
+            gameState.startTime = Date.now();
+            gameState.score = 0;
+            gameState.stats = { perfect: 0, good: 0, miss: 0 };
+
+            // Reset notes
+            generateNotes();
+            clearNotes();
+
+            // Update UI
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('restartBtn').disabled = false;
+            document.getElementById('calibrateBtn').disabled = true;
+
+            // Start audio
+            if (gameAudio) {
+                gameAudio.currentTime = 0;
+                gameAudio.play().catch(e => console.log('Audio play failed:', e));
+            }
+
+            // Start game loop
+            gameLoop();
+        }
+
+        function togglePause() {
+            if (!gameState.isPlaying) return;
+
+            gameState.isPaused = !gameState.isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+
+            if (gameState.isPaused) {
+                pauseBtn.textContent = '继续';
+                if (gameAudio) gameAudio.pause();
+            } else {
+                pauseBtn.textContent = '暂停';
+                gameState.startTime = Date.now() - gameState.currentTime;
+                if (gameAudio) gameAudio.play().catch(e => console.log('Audio play failed:', e));
+                gameLoop();
+            }
+        }
+
+        function restartGame() {
+            gameState.isPlaying = false;
+            gameState.isPaused = false;
+            gameState.currentTime = 0;
+
+            // Stop audio
+            if (gameAudio) {
+                gameAudio.pause();
+                gameAudio.currentTime = 0;
+            }
+
+            // Clear notes
+            clearNotes();
+
+            // Reset UI
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('pauseBtn').textContent = '暂停';
+            document.getElementById('restartBtn').disabled = true;
+            document.getElementById('calibrateBtn').disabled = false;
+
+            // Reset display
+            progressFill.style.width = '0%';
+            judgmentDisplay.textContent = '';
+            judgmentDisplay.className = '';
+        }
+
+        // Delay calibration functions
+        function updateDelaySliderRange() {
+            const slider = document.getElementById('delaySlider');
+            slider.min = -lateRange;
+            slider.max = lateRange;
+            slider.value = lateTime;
+            updateDelayDisplay();
+        }
+
+        function updateDelay(value) {
+            lateTime = parseInt(value);
+            updateDelayDisplay();
+        }
+
+        function updateDelayDisplay() {
+            document.getElementById('delayValue').textContent = `延迟: ${lateTime}ms`;
+        }
+
+        function toggleCalibration() {
+            if (calibrationState.isActive) {
+                stopCalibration();
+            } else {
+                startCalibration();
+            }
+        }
+
+        function startCalibration() {
+            calibrationState.isActive = true;
+            calibrationState.isPlaying = false;
+            calibrationState.testNoteSpawned = false;
+            calibrationState.testNote = null;
+            
+            // Update UI
+            document.getElementById('calibrateBtn').textContent = '停止';
+            document.getElementById('delaySliderContainer').style.display = 'flex';
+            document.getElementById('playTestBtn').disabled = false;
+            document.getElementById('startBtn').disabled = true;
+            
+            // Don't auto-start audio, wait for user to click play
+        }
+
+        function stopCalibration() {
+            calibrationState.isActive = false;
+            calibrationState.isPlaying = false;
+            
+            // Stop test audio
+            if (calibrationState.audio) {
+                calibrationState.audio.pause();
+                calibrationState.audio.currentTime = 0;
+            }
+            
+            // Clean up test note
+            if (calibrationState.testNote && calibrationState.testNote.element) {
+                calibrationState.testNote.element.remove();
+            }
+            calibrationState.testNote = null;
+            calibrationState.testNoteSpawned = false;
+            
+            // Hide click indicator
+            document.getElementById('clickIndicator').style.display = 'none';
+            
+            // Update UI
+            document.getElementById('calibrateBtn').textContent = '调整延迟';
+            document.getElementById('delaySliderContainer').style.display = 'none';
+            document.getElementById('playTestBtn').disabled = true;
+            document.getElementById('startBtn').disabled = false;
+        }
+
+        function playTest() {
+            if (!calibrationState.isActive || calibrationState.isPlaying) return;
+            
+            // Reset previous test
+            calibrationState.testNoteSpawned = false;
+            if (calibrationState.testNote && calibrationState.testNote.element) {
+                calibrationState.testNote.element.remove();
+            }
+            calibrationState.testNote = null;
+            
+            // Start test audio
+            calibrationState.isPlaying = true;
+            calibrationState.startTime = Date.now();
+            
+            if (calibrationState.audio) {
+                calibrationState.audio.currentTime = 0;
+                calibrationState.audio.play().catch(e => console.log('Test audio play failed:', e));
+            }
+            
+            // Start calibration loop
+            calibrationLoop();
+        }
+
+        function calibrationLoop() {
+            if (!calibrationState.isActive || !calibrationState.isPlaying) return;
+            
+            const currentTime = Date.now() - calibrationState.startTime;
+            const hitTime = testClick[0]; // Use the testClick timing
+            
+            // Generate test note
+            if (!calibrationState.testNoteSpawned) {
+                const spawnTime = hitTime - FALL_TIME - lateTime;
+                if (currentTime >= spawnTime) {
+                    spawnTestNote(hitTime);
+                    calibrationState.testNoteSpawned = true;
+                }
+            }
+            
+            // Update test note position
+            if (calibrationState.testNote && calibrationState.testNote.element) {
+                updateTestNotePosition(currentTime);
+            }
+            
+            // Show click indicator at specified time
+            if (currentTime >= testTime && currentTime <= testTime + testdurTime) {
+                document.getElementById('clickIndicator').style.display = 'block';
+            } else {
+                document.getElementById('clickIndicator').style.display = 'none';
+            }
+            
+            requestAnimationFrame(calibrationLoop);
+        }
+
+        function spawnTestNote(hitTime) {
+            // Choose a random track for the test note
+            const randomTrack = Math.floor(Math.random() * 4);
+            const track = tracks[randomTrack];
+            
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note';
+            noteElement.style.top = '0px';
+            
+            track.appendChild(noteElement);
+            
+            calibrationState.testNote = {
+                track: randomTrack,
+                hitTime: hitTime,
+                spawnTime: Date.now() - calibrationState.startTime,
+                element: noteElement,
+                hit: false,
+                missed: false
+            };
+        }
+
+        function updateTestNotePosition(currentTime) {
+            if (!calibrationState.testNote || !calibrationState.testNote.element) return;
+            
+            const timeSinceSpawn = currentTime - calibrationState.testNote.spawnTime;
+            const pixelsFromTop = (timeSinceSpawn / 1000) * NOTE_SPEED;
+            const maxTop = FALL_DISTANCE;
+            const noteTop = Math.min(pixelsFromTop, maxTop);
+            
+            calibrationState.testNote.element.style.top = noteTop + 'px';
+            
+            // Remove note if it's way past the hit zone or missed
+            if (timeSinceSpawn > FALL_TIME + 1000 || currentTime > calibrationState.testNote.hitTime + 500) {
+                calibrationState.testNote.element.remove();
+                calibrationState.testNote = null;
+            }
+        }
+
+        function clearNotes() {
+            tracks.forEach(track => {
+                const notes = track.querySelectorAll('.note');
+                notes.forEach(note => note.remove());
+            });
+        }
+
+        function gameLoop() {
+            if (!gameState.isPlaying || gameState.isPaused) return;
+
+            gameState.currentTime = Date.now() - gameState.startTime;
+            const maxTime = Math.min(timeLen, gameAudio ? gameAudio.duration * 1000 : timeLen);
+
+            // Update progress
+            const progress = Math.min(gameState.currentTime / maxTime, 1);
+            progressFill.style.width = (progress * 100) + '%';
+
+            // Spawn notes based on calculated spawn time
+            gameState.notes.forEach(note => {
+                if (!note.spawned && !note.hit && !note.missed) {
+                    if (gameState.currentTime >= note.spawnTime) {
+                        spawnNote(note);
+                        note.spawned = true;
+                    }
+                }
+            });
+
+            // Update note positions based on physics
+            gameState.notes.forEach(note => {
+                if (note.element && !note.hit && note.spawned) {
+                    updateNotePosition(note);
+                }
+            });
+
+            // Check for missed notes
+            gameState.notes.forEach(note => {
+                if (!note.hit && !note.missed && gameState.currentTime > note.hitTime + 200 - lateTime) {
+                    note.missed = true;
+                    gameState.stats.miss++;
+                    if (note.element) {
+                        note.element.remove();
+                    }
+                    showJudgment('miss');
+                    updateStats();
+                }
+            });
+
+            // Check for game end
+            if (gameState.currentTime >= maxTime) {
+                endGame();
+                return;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function spawnNote(note) {
+            const track = tracks[note.track];
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note';
+            
+            // Start at the top of the track
+            noteElement.style.top = '0px';
+            
+            track.appendChild(noteElement);
+            note.element = noteElement;
+        }
+
+        function updateNotePosition(note) {
+            if (!note.element) return;
+
+            const currentTime = gameState.currentTime;
+            const timeSinceSpawn = currentTime - note.spawnTime;
+            
+            // Calculate position based on time since spawn and constant speed
+            const pixelsFromTop = (timeSinceSpawn / 1000) * NOTE_SPEED; // pixels per second
+            
+            // Clamp position to track bounds
+            const maxTop = FALL_DISTANCE;
+            const noteTop = Math.min(pixelsFromTop, maxTop);
+            
+            note.element.style.top = noteTop + 'px';
+            
+            // Remove note if it's way past the hit zone (cleanup)
+            if (timeSinceSpawn > FALL_TIME + 1000) { // 1 second grace period
+                note.element.remove();
+            }
+        }
+
+        function endGame() {
+            gameState.isPlaying = false;
+            
+            // Stop audio
+            if (gameAudio) {
+                gameAudio.pause();
+            }
+
+            // Show game over screen
+            showGameOverScreen();
+        }
+
+        function showGameOverScreen() {
+            const totalNotes = clickTime.length;
+            const hitNotes = gameState.stats.perfect + gameState.stats.good;
+            const accuracy = totalNotes > 0 ? Math.round((hitNotes / totalNotes) * 100) : 0;
+
+            // Update game over screen
+            document.getElementById('finalScoreNumber').textContent = gameState.score;
+            document.getElementById('accuracyPercent').textContent = accuracy;
+            document.getElementById('finalPerfect').textContent = gameState.stats.perfect;
+            document.getElementById('finalGood').textContent = gameState.stats.good;
+            document.getElementById('finalMiss').textContent = gameState.stats.miss;
+
+            // Show the screen
+            document.getElementById('gameOverScreen').style.display = 'flex';
+        }
+
+        function hideGameOverScreen() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+        }
+
+        function playAgain() {
+            hideGameOverScreen();
+            restartGame();
+            startGame();
+        }
+
+        function backToMenu() {
+            hideGameOverScreen();
+            restartGame();
+        }
+
+        // Initialize game when page loads
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>

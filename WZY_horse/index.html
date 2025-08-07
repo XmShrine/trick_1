@@ -194,16 +194,16 @@
             </div>
             
             <div class="button-container" id="buttonContainer">
-                <button class="audio-btn" onclick="playAudio('audio1', this)">哈吉米</button>
-                <button class="audio-btn" onclick="playAudio('audio2', this)">噢嘛吉利曼波</button>
-                <button class="audio-btn" onclick="playAudio('audio3', this)">哇哦</button>
-                <button class="audio-btn" onclick="playAudio('audio4', this)">阿米诺斯</button>
+                <button class="audio-btn" onclick="playAudio('hajimi.m4a')">哈吉米</button>
+                <button class="audio-btn" onclick="playAudio('omajilimanbo.m4a')">噢嘛吉利曼波</button>
+                <button class="audio-btn" onclick="playAudio('wow.m4a')">哇哦</button>
+                <button class="audio-btn" onclick="playAudio('aminosi.m4a')">阿米诺斯</button>
             </div>
         </div>
         
         <div class="status-bar">
             <span>就绪</span>
-            <span id="playingCount">播放中: 0</span>
+            <span id="playingCount">播放中: Unknow</span>
         </div>
     </div>
     
@@ -211,80 +211,6 @@
     <div id="audioContainer"></div>
     
     <script>
-        // 音频管理对象
-        const audioManager = {
-            audios: {},
-            playingCount: 0
-        };
-        
-        // 创建音频元素
-        function createAudioElement(audioId) {
-            // 这个函数现在主要用于示例，实际播放使用独立的音频实例
-            if (!audioManager.audios[audioId]) {
-                const audio = new Audio();
-                // 这里您可以设置音频文件的路径
-                // audio.src = `path/to/${audioId}.mp3`;
-                audioManager.audios[audioId] = audio;
-            }
-            return audioManager.audios[audioId];
-        }
-        
-        // 播放音频函数
-        function playAudio(audioId, buttonElement) {
-            // 创建新的音频实例，这样每次点击都会创建一个独立的播放实例
-            const audio = new Audio();
-            
-            // 根据音频ID设置对应的音频文件路径
-            switch(audioId) {
-                case 'audio1':
-                    audio.src = 'hajimi.m4a';
-                    break;
-                case 'audio2':
-                    audio.src = 'omajilimanbo.m4a';
-                    break;
-                case 'audio3':
-                    audio.src = 'wow.m4a';
-                    break;
-                case 'audio4':
-                    audio.src = 'aminosi.m4a';
-                    break;
-                default:
-                    console.log(`未找到音频文件: ${audioId}`);
-                    return;
-            }
-            
-            // 音频播放结束时的处理
-            audio.addEventListener('ended', function() {
-                audioManager.playingCount--;
-                updatePlayingCount();
-            });
-            
-            audio.addEventListener('error', function(e) {
-                console.log(`音频 ${audioId} 加载失败`);
-                audioManager.playingCount--;
-                updatePlayingCount();
-            });
-            
-            try {
-                const playPromise = audio.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        audioManager.playingCount++;
-                        updatePlayingCount();
-                    }).catch((error) => {
-                        console.log(`播放 ${audioId} 失败:`, error);
-                    });
-                }
-            } catch (error) {
-                console.log(`播放 ${audioId} 出错:`, error);
-            }
-        }
-        
-        // 更新播放计数显示
-        function updatePlayingCount() {
-            document.getElementById('playingCount').textContent = `播放中: ${audioManager.playingCount}`;
-        }
         
         // 添加新按钮的函数（方便后续扩展）
         function addAudioButton(audioId, buttonText) {
