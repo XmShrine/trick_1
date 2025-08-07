@@ -2,6 +2,8 @@
 let audioCtx;
 const audioBuffers = new Map();
 
+var loadTime = 0;
+var playTime = 0;
 /**
  * 加载并播放音频文件。
  * 在第一次调用时，它会加载并解码音频文件，然后播放。
@@ -31,6 +33,7 @@ async function loadAudio(src) {
             throw error; // 抛出错误，让调用者可以捕获
         }
     }
+    loadTime += 1;
 }
 
 async function playAudio(src) {
@@ -47,6 +50,8 @@ async function playAudio(src) {
     // 连接到扬声器
     source.connect(audioCtx.destination);
     
+    playTime += 1;
+
     // 立即播放
     source.start(0);
 }
