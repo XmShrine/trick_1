@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>低延迟音频播放</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        button {
+            padding: 20px 40px;
+            font-size: 24px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #007BFF;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:active {
+            background-color: #004085;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="playButton">播放 test.m4a</button>
+
+    <script>
+        document.getElementById('playButton').addEventListener('click', function() {
+            // 每次点击都创建一个新的 Audio 对象
+            const audio = new Audio('test.m4a');
+            // 立即播放
+            audio.play().catch(error => {
+                console.error("音频播放失败:", error);
+            });
+        });
+    </script>
+
+</body>
+</html>
