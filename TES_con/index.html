@@ -3,25 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>低延迟音频播放 (预加载)</title>
+    <title>Web Audio API 播放器</title>
 </head>
 <body>
 
     <button id="playButton">播放 test.m4a</button>
+    <p id="status"></p>
 
     <script>
-        // 预先创建 Audio 对象，但不要播放
-        const preloadAudio = new Audio('test.m4a');
+        let audioCtx;
+        let audioBuffer;
+        let isAudioLoaded = false;
+        const statusElement = document.getElementById('status');
+        const playButton = document.getElementById('playButton');
+
+        // 在用户第一次交互时创建 AudioContext 并加载音频
+        async function loadAndPlayAudio() {
+            // 第一次点击
+            if (!isAudioLoaded) {
+                statusElement.textContent = "正在加载音频...";
+                playButton.disabled = true;
+
+                try {
+                    // 创建一个 AudioContext
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // 从服务器加载音频文件
+                    const response = await fetch('test.m4a');
+                    const arrayBuffer = await response.arrayBuffer();
+                    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                    
+                    isAudioLoaded = true;
+                    statusElement.textContent = "音频加载完成，可以播放。";
+                } catch (error) {
+                    console.error("音频加载或解码失败:", error);
+                    statusElement.textContent = "加载失败。";
+                    playButton.disabled = false;
+                    return;
+                }
+                
+                playButton.disabled = false;
+            }
+
+            // 每次点击都播放
+            playBuffer();
+        }
+
+        // 播放音频缓冲区的函数
+        function playBuffer() {
+            if (audioBuffer) {
+                const source = audioCtx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioCtx.destination);
+                source.start(0);
+            }
+        }
         
-        document.getElementById('playButton').addEventListener('click', function() {
-            // 每次点击都创建一个新的 Audio 对象
-            const audio = new Audio('test.m4a');
-            
-            // 播放它
-            audio.play().catch(error => {
-                console.error("音频播放失败:", error);
-            });
-        });
+        playButton.addEventListener('click', loadAndPlayAudio);
     </script>
 
 </body>
