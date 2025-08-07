@@ -161,7 +161,51 @@
             <button class="apple-button btn-grey" onclick="generate('a3')">A3</button>
         </div>
     </div>
-    <script type="text/javascript" src="../playAudio.js"></script>
+    <script>
+        var countData = 0;
+        async function loadAudio(src) {
+            // 确保 AudioContext 存在
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            // 检查是否已经加载过该音频文件
+            if (!audioBuffers.has(src)) {
+                try {
+                    // 从服务器加载音频文件
+                    const response = await fetch(src);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                    
+                    // 缓存解码后的音频数据
+                    audioBuffers.set(src, audioBuffer);
+                    console.log(`音频文件 ${src} 已加载并解码。`);
+                } catch (error) {
+                    console.error(`音频文件 ${src} 加载或解码失败:`, error);
+                    throw error; // 抛出错误，让调用者可以捕获
+                }
+            }
+            countData += 1;
+        }
+
+        async function playAudio(src) {
+
+            loadAudio(src);
+
+            // 获取缓存的音频数据
+            const audioBuffer = audioBuffers.get(src);
+
+            // 每次播放都创建一个新的 AudioBufferSourceNode
+            const source = audioCtx.createBufferSource();
+            source.buffer = audioBuffer;
+            
+            // 连接到扬声器
+            source.connect(audioCtx.destination);
+            
+            // 立即播放
+            source.start(0);
+        }
+    </script>
     <script type="text/javascript" src="../webLogger.js"></script>
     <script>
         let stopMod = 0;
@@ -198,17 +242,24 @@
             }
         }
         showInfoOverlay("正在载入音频中...", "top-right");
+        var temp = 0;
         for (var i in dataDic) {
             if (dataDic[i][0]==1) {
                 loadAudio(`now_audio/__pjcohen__standup_bass_normal_${i}.wav`);
+                temp += 1;
             }
             if (dataDic[i][1]==1) {
                 loadAudio(`now_audio/__pjcohen__standup_bass_stop_finger_${i}.wav`);
+                temp += 1;
             }
         }
-        hideInfoOverlay();
-        showInfoOverlay("载入完成", "top-right");
-        setTimeout(()=>{hideInfoOverlay()}, 1000)
+        while (true) {
+            if (countData == temp) {
+                hideInfoOverlay();
+                showInfoOverlay("载入完成", "top-right");
+                setTimeout(()=>{hideInfoOverlay()}, 1000)
+            }
+        }
     </script>
 </body>
 </html>
