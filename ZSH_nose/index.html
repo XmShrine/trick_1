@@ -276,7 +276,7 @@
         let totalScore = 0;
         
         const clickMap = [3919,4878,7056,8623,10000,10950,11654,13188,14001,14837,16748,17800,19017,19532,20591,21803,22646,23949,24991,25860,27074,28365,30069,31312,32593,33789,34839,35914,36977,37969,39137,40328,41524,42473,43317,43976,44522,45285,46049,46962,47916,48729,49565,50296,51111,52138,52978,53586,54170,54957,55758,56598,57741,58665,59452,60353,61226,62057,62970,63964,64941,65902,66866,67709,68608,69486,70500,71359,72177,73003,73835,74710,75660,76498,77274,78191,78976,79949,80703,81704,82503,83227,84045,84774,85640,86390];
-        const audioSrc = ['audio.m4a'];
+        // const audioSrc = ['audio.m4a'];
         const duringTime = 800;
         const fixedRadius = 50;
         const fixedImageUrl = 'source.jpeg';
@@ -352,7 +352,7 @@
         
         function endGame() {
             cancelAnimationFrame(animationFrameId);
-            stopAudio(audioSrc[0]);
+            // stopAudio(audioSrc[0]);
             
             document.getElementById('missNum').textContent = missNum;
             document.getElementById('goodNum').textContent = goodNum;
@@ -367,14 +367,14 @@
 
         function gameLoop(timestamp) {
             if (!isGameStarted) {
-                showInfoOverlay("正在载入音频中...", "top-right");
-                if (loadTime < audioSrc.length) {
-                    animationFrameId = requestAnimationFrame(gameLoop);
-                    return;
-                }
-                hideInfoOverlay();
-                showInfoOverlay("音频加载完成", "top-right");
-                setTimeout(()=>{hideInfoOverlay()}, 1000); // 改动区域
+            //     showInfoOverlay("正在载入音频中...", "top-right");
+            //     if (loadTime < audioSrc.length) {
+            //         animationFrameId = requestAnimationFrame(gameLoop);
+            //         return;
+            //     }
+            //     hideInfoOverlay();
+            //     showInfoOverlay("音频加载完成", "top-right");
+            //     setTimeout(()=>{hideInfoOverlay()}, 1000); // 改动区域
                 startGame();
             }
             
@@ -434,15 +434,15 @@
         function startGame() {
             if (!isGameStarted) {
                 isGameStarted = true;
-                playAudio(audioSrc[0]);
+                // playAudio(audioSrc[0]);
                 gameStartTime = performance.now();
                 console.log(gameStartTime);
             }
         }
         
-        for (var i=0; i<audioSrc.length; i++) {
-            loadAudio(audioSrc[i]);
-        }
+        // for (var i=0; i<audioSrc.length; i++) {
+        //     loadAudio(audioSrc[i]);
+        // }
         animationFrameId = requestAnimationFrame(gameLoop);
 
         canvas.addEventListener('click', (e) => {
