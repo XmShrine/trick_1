@@ -3,75 +3,468 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>网站正在升级中</title>
+    <title>全屏 Canvas 游戏</title>
     <style>
-        /* CSS样式 */
-        body {
-            touch-action: manipulation;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            background-color: #111;
+        }
+        #endScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-            color: #333;
             text-align: center;
+            z-index: 100;
+            display: none; /* 默认隐藏 */
         }
-
-        .container {
-            padding: 40px;
+        #endScreen h1 {
+            font-size: 72px;
+            margin: 0;
+        }
+        #endScreen p {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        #endScreen button {
+            padding: 15px 40px;
+            font-size: 24px;
+            cursor: pointer;
+            border: 2px solid #fff;
+            background-color: transparent;
+            color: #fff;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        #endScreen button:hover {
             background-color: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
-            width: 90%;
+            color: #111;
         }
-
-        h1 {
-            color: #1a73e8;
-            font-size: 2.5em;
-            margin-bottom: 0.5em;
+        #progressBarContainer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: #555;
+            z-index: 99;
         }
-
-        p {
-            font-size: 1.1em;
-            line-height: 1.6;
-            color: #666;
-        }
-
-        .countdown {
-            margin-top: 20px;
-            font-size: 1.2em;
-            color: #4a4a4a;
-        }
-
-        .countdown span {
-            font-weight: bold;
-            color: #1a73e8;
-            font-size: 1.5em;
-        }
-
-        .footer {
-            margin-top: 30px;
-            font-size: 0.9em;
-            color: #999;
+        #progressBar {
+            height: 100%;
+            width: 0;
+            background-color: #fff;
+            transition: width 0.1s linear;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>网站正在升级中...</h1>
-        <p>我们正在对网站进行重要的维护和升级工作，以提供更好的服务体验。</p>
-        <p>预计很快就会回来。感谢您的耐心等待！</p>
-        
-        <div class="countdown">
-            预计完成倒计时：<span id="countdown-timer">不知道</span>
-        </div>
-
-        <div class="footer">
-            如果您有紧急事项，忍着</a>
-        </div>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="endScreen">
+        <h1><span id="finalScore">0</span> / <span id="finalTotalScore">0</span></h1>
+        <p>Miss:<span id="missNum">0</span>  Good:<span id="goodNum">0</span>  Perfect:<span id="perfectNum">0</span></p>
+        <button id="restartButton">重新开始</button>
     </div>
+
+    <div id="progressBarContainer">
+        <div id="progressBar"></div>
+    </div>
+
+    <script type="text/javascript" src="../playAudio.js"></script>
+    <script type="text/javascript" src="../webLogger.js"></script>
+
+    <script>
+        class Ball {
+            constructor(x, y, spawnTime, duringTime, radius, imageUrl, demo = "", fontSize = 24, score = 0) {
+                this.x = x;
+                this.y = y;
+                this.spawnTime = spawnTime;
+                this.duringTime = duringTime;
+                this.r = radius; 
+                this.imageUrl = imageUrl;
+                this.demo = demo;
+                this.fontSize = fontSize;
+                this.score = score;
+                
+                this.image = new Image();
+                this.image.src = imageUrl;
+                this.isImageLoaded = false;
+                this.image.onload = () => {
+                    this.isImageLoaded = true;
+                };
+
+                this.ringRadius = 100;
+                this.ringAlpha = 1;
+                this.startTime = 0;
+                this.isMerging = false;
+                this.isSpawned = false;
+
+                this.isHit = false;
+                this.clickTime = 0;
+                
+                // 关键修改：在初始化时计算完成时间
+                this.mergeCompleteTime = this.spawnTime + this.duringTime;
+                this.isTimedOut = false;
+                this.timeoutDuration = 200;
+                
+                this.gapTime = 0;
+            }
+
+            draw(ctx) {
+                if (this.isHit || this.isTimedOut || !this.isSpawned) return;
+
+                if (this.isImageLoaded) {
+                    ctx.save(); 
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.clip(); 
+                    ctx.globalAlpha = 0.7;
+                    ctx.drawImage(
+                        this.image, 
+                        this.x - this.r, 
+                        this.y - this.r, 
+                        this.r * 2, 
+                        this.r * 2
+                    );
+                    ctx.restore(); 
+                } else {
+                    ctx.fillStyle = '#999';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                if (this.demo) {
+                    ctx.fillStyle = '#fff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = `${this.fontSize}px Arial`;
+                    ctx.fillText(this.demo, this.x, this.y);
+                }
+
+                if (this.isMerging) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${this.ringAlpha})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.ringRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            
+            merge() {
+                this.isMerging = true;
+                this.startTime = performance.now();
+                this.ringRadius = 100;
+                this.ringAlpha = 1;
+                this.isTimedOut = false;
+                this.isSpawned = true;
+            }
+
+            update(currentTime) {
+                if (this.isHit || this.isTimedOut) return;
+                
+                if (this.isMerging) {
+                    const elapsedTime = currentTime - this.startTime;
+                    const progress = Math.min(elapsedTime / this.duringTime, 1);
+                    
+                    const startRadius = 100;
+                    const endRadius = this.r;
+                    this.ringRadius = startRadius - (startRadius - endRadius) * progress;
+
+                    // 这里不再需要更新 this.mergeCompleteTime
+                    // 当进度达到1时，结束收缩
+                    if (progress >= 1) {
+                        this.isMerging = false;
+                    }
+                } else if (this.isSpawned) {
+                    // 使用预计算的 mergeCompleteTime 来判断是否超时
+                    const gameTime = currentTime - gameStartTime;
+                    if (gameTime - this.mergeCompleteTime > this.timeoutDuration) {
+                        this.isTimedOut = true;
+                        this.oneTimeFeedback(game, true);
+                    }
+                }
+            }
+            
+            getScore(gapTime) {
+                if (gapTime <= 50) {
+                    perfectNum += 1;
+                    return { text: 'Perfect', color: '#00ff00', score: this.score };
+                } else if (gapTime <= 250) {
+                    goodNum += 1;
+                    return { text: 'Good', color: '#ffff00', score: this.score * 0.8 };
+                } else {
+                    missNum += 1;
+                    return { text: 'Miss', color: '#ff0000', score: 0 };
+                }
+            }
+
+            oneTimeFeedback(game, isTimeout = false) {
+                let result;
+                if (isTimeout) {
+                    missNum += 1;
+                    result = { text: 'Miss', color: '#ff0000', score: 0 };
+                } else {
+                    // 使用预计算的 mergeCompleteTime 来计算 gapTime
+                    const actualClickTime = this.clickTime - gameStartTime;
+                    this.gapTime = Math.abs(actualClickTime - this.mergeCompleteTime);
+                    result = this.getScore(this.gapTime);
+                }
+                game.setFeedback(result.text, result.color);
+                game.updateScore(result.score);
+            }
+        }
+        
+        // // --- 外部函数（无需实现） ---
+        // let loadTime = 0;
+        // let audio = new Audio();
+        // function loadAudio(src) {
+        //     console.log(`开始加载音频: ${src}`);
+        //     loadTime = 2;
+        //     audio.src = src;
+        //     audio.addEventListener('canplaythrough', () => {
+        //         loadTime = 1;
+        //         console.log(`音频加载完成!`);
+        //     });
+        //     audio.load();
+        // }
+        // function playAudio() {
+        //     if (audio && audio.src) {
+        //         audio.play();
+        //     }
+        // }
+        // function stopAudio() {
+        //     if (audio && audio.src) {
+        //         audio.pause();
+        //         audio.currentTime = 0;
+        //     }
+        // }
+        
+        // --- 游戏主程序 ---
+        var missNum = 0;
+        var goodNum = 0;
+        var perfectNum = 0; 
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const endScreen = document.getElementById('endScreen');
+        const finalScoreSpan = document.getElementById('finalScore');
+        const finalTotalScoreSpan = document.getElementById('finalTotalScore');
+        const restartButton = document.getElementById('restartButton');
+        const progressBar = document.getElementById('progressBar');
+        
+        let balls = [];
+        let gameStartTime = 0;
+        let isGameStarted = false;
+        let animationFrameId = null;
+        
+        const totalPossibleScore = 100000;
+        let currentScore = 0;
+        let totalScore = 0;
+        
+        const clickMap = [3919,4878,7056,8623,10000,10950,11654,13188,14001,14837,16748,17800,19017,19532,20591,21803,22646,23949,24991,25860,27074,28365,30069,31312,32593,33789,34839,35914,36977,37969,39137,40328,41524,42473,43317,43976,44522,45285,46049,46962,47916,48729,49565,50296,51111,52138,52978,53586,54170,54957,55758,56598,57741,58665,59452,60353,61226,62057,62970,63964,64941,65902,66866,67709,68608,69486,70500,71359,72177,73003,73835,74710,75660,76498,77274,78191,78976,79949,80703,81704,82503,83227,84045,84774,85640,86390];
+        const audioSrc = ['audio.m4a'];
+        const duringTime = 800;
+        const fixedRadius = 50;
+        const fixedImageUrl = 'source.jpeg';
+        const fixedFontSize = 24;
+        const gameLen = 88000; // 游戏时长，单位ms
+
+        let scoreText = '';
+        let scoreColor = '#fff';
+        let scoreDisplayTime = 0;
+        const scoreDisplayDuration = 500;
+
+        function setFeedback(text, color) {
+            scoreText = text;
+            scoreColor = color;
+            scoreDisplayTime = performance.now();
+        }
+
+        function updateScore(scoreToAdd) {
+            currentScore += scoreToAdd;
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initBalls();
+        }
+
+        function getRandomPosition(balls, radius, margin = 20) {
+            let x, y;
+            let isValid = false;
+            const maxAttempts = 100;
+
+            for (let i = 0; i < maxAttempts; i++) {
+                x = Math.random() * (canvas.width - 2 * radius - 2 * margin) + radius + margin;
+                y = Math.random() * (canvas.height - 2 * radius - 2 * margin) + radius + margin;
+                isValid = true;
+
+                for (const ball of balls) {
+                    const distance = Math.sqrt((x - ball.x)**2 + (y - ball.y)**2);
+                    if (distance < (radius + ball.r + margin * 2)) {
+                        isValid = false;
+                        break;
+                    }
+                }
+                if (isValid) break;
+            }
+            return { x, y };
+        }
+
+        function initBalls() {
+            balls = [];
+            const ballsInGame = clickMap.filter(time => time <= gameLen);
+            const scorePerBall = totalPossibleScore / ballsInGame.length;
+            totalScore = totalPossibleScore;
+            
+            ballsInGame.forEach(spawnTime => {
+                const { x, y } = getRandomPosition(balls, fixedRadius);
+
+                const newBall = new Ball(
+                    x, 
+                    y, 
+                    spawnTime, // Fixed
+                    duringTime, 
+                    fixedRadius, 
+                    fixedImageUrl, 
+                    'Tap', 
+                    fixedFontSize,
+                    scorePerBall
+                );
+                balls.push(newBall);
+            });
+        }
+        
+        function endGame() {
+            cancelAnimationFrame(animationFrameId);
+            stopAudio(audioSrc[0]);
+            
+            document.getElementById('missNum').textContent = missNum;
+            document.getElementById('goodNum').textContent = goodNum;
+            document.getElementById('perfectNum').textContent = perfectNum;
+            finalScoreSpan.textContent = Math.floor(currentScore);
+            finalTotalScoreSpan.textContent = totalScore;
+            endScreen.style.display = 'flex';
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function gameLoop(timestamp) {
+            if (!isGameStarted) {
+                showInfoOverlay("正在载入音频中...", "top-right");
+                if (loadTime < audioSrc.length) {
+                    animationFrameId = requestAnimationFrame(gameLoop);
+                    return;
+                }
+                hideInfoOverlay();
+                showInfoOverlay("音频加载完成", "top-right");
+                setTimeout(()=>{hideInfoOverlay()}, 1000); // 改动区域
+                startGame();
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const gameTime = timestamp - gameStartTime;
+
+            const progress = Math.min(gameTime / gameLen, 1);
+            progressBar.style.width = `${progress * 100}%`;
+
+            if (gameTime >= gameLen) {
+                endGame();
+                return;
+            }
+
+            balls = balls.filter(ball => !ball.isHit && !ball.isTimedOut);
+
+            balls.forEach(ball => {
+                if (gameTime >= ball.spawnTime && !ball.isSpawned) {
+                    ball.merge();
+                }
+                if (ball.isSpawned) {
+                    ball.update(timestamp);
+                }
+                ball.draw(ctx);
+            });
+            
+            ctx.save();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(`${Math.floor(currentScore)} / ${totalScore}`, 20, 20);
+            ctx.restore();
+
+            if (scoreText) {
+                ctx.save();
+                ctx.fillStyle = scoreColor;
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(scoreText, canvas.width - 20, canvas.height - 20);
+                ctx.restore();
+
+                if (timestamp - scoreDisplayTime > scoreDisplayDuration) {
+                    scoreText = '';
+                }
+            }
+            
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        const game = {
+            setFeedback: setFeedback,
+            updateScore: updateScore
+        };
+        
+        function startGame() {
+            if (!isGameStarted) {
+                isGameStarted = true;
+                playAudio(audioSrc[0]);
+                gameStartTime = performance.now();
+                console.log(gameStartTime);
+            }
+        }
+        
+        for (var i=0; i<audioSrc.length; i++) {
+            loadAudio(audioSrc[i]);
+        }
+        animationFrameId = requestAnimationFrame(gameLoop);
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            balls.forEach(ball => {
+                if (!ball.isHit && !ball.isTimedOut && performance.now()+gameStartTime>=ball.spawnTime) { // 一切 Bug 的来源：不判断点按时Ball是否已经开始加载
+                    const distance = Math.sqrt((clickX - ball.x)**2 + (clickY - ball.y)**2);
+                    if (distance < ball.r) {
+                        ball.clickTime = performance.now();
+                        ball.oneTimeFeedback(game);
+                        ball.isHit = true;
+                    }
+                }
+            });
+        });
+
+        restartButton.addEventListener('click', () => {
+            location.reload();
+        });
+    </script>
 </body>
 </html>

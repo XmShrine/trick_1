@@ -55,3 +55,11 @@ async function playAudio(src) {
     // 立即播放
     source.start(0);
 }
+
+async function stopAudio(src) {
+    // 检查是否有正在播放的音频源
+    const source = playingSources.get(src);
+    if (source) {
+        source.stop(); // 调用 stop 方法停止播放
+    }
+}
