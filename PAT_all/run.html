@@ -1,0 +1,182 @@
+<!-- <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运行页面</title>
+</head>
+<body>
+    <h1>请打开控制台查看代码</h1>
+    <p>按下 **F12** 或 **Ctrl+Shift+I**，然后点击 **控制台 (Console)** 选项卡。</p>
+
+    <script>
+        var curveFunc;
+        var vFunc;
+        var centerImg;
+        var centerImgPx;
+        var starImg;
+        var starImgPx;
+        // 在页面加载时从 sessionStorage 中获取数据
+        const userDataString = sessionStorage.getItem('userData');
+
+        if (userDataString) {
+            const data = JSON.parse(userDataString);
+            
+            // 打印曲线代码到控制台
+            console.log("--- 用户代码（曲线）---");
+            console.log(data.codeTempCurve);
+            
+            // 打印 V 代码到控制台
+            console.log("--- 用户代码（V）---");
+            console.log(data.codeTempV);
+
+            eval(`curveFunc = ()=> { ${data.codeTempCurve} }`);
+            eval(`vFunc = ()=> { ${data.codeTempV} }`);
+
+            centerImg = data.centerImg;
+            centerImgPx = data.centerImgPx;
+            starImg = data.starImg;
+            starImgPx = data.starImgPx;
+
+        } else {
+            console.log("sessionStorage 中没有找到数据。");
+        }
+    </script>
+
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UGC</title>
+<style>
+  body {
+    touch-action: manipulation;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+  }
+  .container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  #center-image {
+    position: relative;
+    z-index: 10;
+  }
+  #play-button {
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    border: none;
+    background-color: #4CAF50;
+    margin-top: 20px;
+    cursor: pointer;
+    z-index: 9;
+  }
+  .star-image {
+    position: absolute;
+    z-index: 5;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <img id="center-image">
+  <button id="play-button" onclick="play()"></button>
+</div>
+
+<script>
+    var curveFunc;
+    var vFunc;
+    var centerImg;
+    var centerImgPx;
+    var starImg;
+    var starImgPx;
+    // 在页面加载时从 sessionStorage 中获取数据
+    const userDataString = sessionStorage.getItem('userData');
+
+    if (userDataString) {
+        const data = JSON.parse(userDataString);
+        
+        // 打印曲线代码到控制台
+        console.log("--- 用户代码（曲线）---");
+        console.log(data.codeTempCurve);
+        
+        // 打印 V 代码到控制台
+        console.log("--- 用户代码（V）---");
+        console.log(data.codeTempV);
+
+        eval(`curveFunc = ()=> { ${data.codeTempCurve} }`);
+        eval(`vFunc = (()=> { ${data.codeTempV} })()`);
+
+        centerImg = data.centerImg;
+        centerImgPx = data.centerImgPx;
+        starImg = data.starImg;
+        starImgPx = data.starImgPx;
+
+    } else {
+        console.log("sessionStorage 中没有找到数据。");
+    }
+
+    // 设置中心图片尺寸和数据源
+    const centerImage = document.getElementById("center-image");
+    centerImage.src = centerImg;
+    centerImage.style.width = centerImgPx;
+    centerImage.style.height = "auto";
+
+    // 播放函数
+    function play() {
+    const starImage = document.createElement("img");
+    starImage.src = starImg; // 使用图片数据变量
+    starImage.className = "star-image";
+    starImage.style.width = starImgPx;
+    starImage.style.height = "auto";
+
+    document.body.appendChild(starImage);
+
+    let totalTime = vFunc();
+    let curve = curveFunc();
+    let startTime = performance.now();
+
+    function animate(currentTime) {
+        let elapsedTime = (currentTime - startTime) / 1000;
+        let progress = elapsedTime / totalTime;
+
+        if (progress > 1) {
+        document.body.removeChild(starImage);
+        return;
+        }
+
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const position = curve(progress);
+        
+        let newX = position[0] * screenWidth;
+        let newY = position[1] * screenHeight;
+
+        starImage.style.left = `${newX}px`;
+        starImage.style.top = `${newY}px`;
+        
+        requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+    }
+</script>
+
+</body>
+</html>
