@@ -135,46 +135,46 @@
     // 设置中心图片尺寸和数据源
     const centerImage = document.getElementById("center-image");
     centerImage.src = centerImg;
-    centerImage.style.width = centerImgPx;
+    centerImage.style.width = `${centerImgPx}px`;
     centerImage.style.height = "auto";
 
     // 播放函数
     function play() {
-    const starImage = document.createElement("img");
-    starImage.src = starImg; // 使用图片数据变量
-    starImage.className = "star-image";
-    starImage.style.width = starImgPx;
-    starImage.style.height = "auto";
+        const starImage = document.createElement("img");
+        starImage.src = starImg; // 使用图片数据变量
+        starImage.className = "star-image";
+        starImage.style.width = `${starImgPx}px`;
+        starImage.style.height = "auto";
 
-    document.body.appendChild(starImage);
+        document.body.appendChild(starImage);
 
-    let totalTime = vFunc();
-    let curve = curveFunc();
-    let startTime = performance.now();
+        let totalTime = vFunc();
+        let curve = curveFunc();
+        let startTime = performance.now();
 
-    function animate(currentTime) {
-        let elapsedTime = (currentTime - startTime) / 1000;
-        let progress = elapsedTime / totalTime;
+        function animate(currentTime) {
+            let elapsedTime = (currentTime - startTime) / 1000;
+            let progress = elapsedTime / totalTime;
 
-        if (progress > 1) {
-        document.body.removeChild(starImage);
-        return;
+            if (progress > 1) {
+            document.body.removeChild(starImage);
+            return;
+            }
+
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const position = curve(progress);
+            
+            let newX = position[0] * screenWidth;
+            let newY = position[1] * screenHeight;
+
+            starImage.style.left = `${newX}px`;
+            starImage.style.top = `${newY}px`;
+            
+            requestAnimationFrame(animate);
         }
 
-        const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
-        const position = curve(progress);
-        
-        let newX = position[0] * screenWidth;
-        let newY = position[1] * screenHeight;
-
-        starImage.style.left = `${newX}px`;
-        starImage.style.top = `${newY}px`;
-        
         requestAnimationFrame(animate);
-    }
-
-    requestAnimationFrame(animate);
     }
 </script>
 
