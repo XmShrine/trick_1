@@ -165,8 +165,8 @@
             const screenHeight = window.innerHeight;
             const position = curve(progress);
             
-            let newX = position[0] * screenWidth;
-            let newY = position[1] * screenHeight;
+            let newX = position[0] * screenWidth - starImage.width / 2;
+            let newY = position[1] * screenHeight - starImage.height / 2;
 
             starImage.style.left = `${newX}px`;
             starImage.style.top = `${newY}px`;
