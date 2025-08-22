@@ -108,7 +108,39 @@
 
         <div class="input-group">
             <label for="jsonCode">输入配置 JSON:</label>
-            <textarea id="jsonCode" placeholder="请输入指定的 JSON 文件"></textarea>
+            <textarea id="jsonCode" placeholder="请输入指定的 JSON 文件">{
+    "ifImgCenter": true, "//":"决定是按照图片中心放置还是按照左上角放置",
+    "ifDisappear": true, "//":"true-时间到后消失，false-不消失",
+    "centerPoint": {
+        "x": 0.5,
+        "y": 0.5,
+        "ifRational": true, "//":"true-按比例，false-像素点"
+    },
+    "centerImg": {
+        "src":"Base64ImageString",
+        "width":200,
+        "height":150
+    },
+    "starImg": {
+        "src":"Base64ImageString",
+        "width":50,
+        "height":12,
+        "ifObeyCenter": true, "//":"true-按照中心点放置，false-按照正常放置"
+    },
+    "funcRevolve": "FUNC_JSON function(){return function(t){return t*10;};}",
+    "funcRevolveSet": {
+        "ifRational":true, "//":"true-时间是 0-1 间的，false-时间就是实际时间",
+        "ifRevolve":true, "//":"true-旋转，false-不旋转"
+    },
+    "funcTime": "FUNC_JSON function(){return 1;}",
+    "funcTimeSet": {
+        "ifRational":true, "//":"true-时间是 0-1 间的，false-时间就是实际时间"
+    },
+    "funcCurve": "FUNC_JSON function(){return function(t){return [30*Math.sin(t*6.28), 30*Math.cos(t*6.28)];};}",
+    "funcCurveSet": {
+        "ifRational":false, "//":"true-按照屏幕比例进行，数值为 0-1 间，false-直接代表像素"
+    }
+}</textarea>
         </div>
 
         <div class="button-container">
