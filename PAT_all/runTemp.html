@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UGC</title>
+  <style>
+    body {
+      touch-action: manipulation;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+    .container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    #center-image {
+      position: relative;
+      z-index: 10;
+    }
+    #play-button {
+      width: 30px;
+      height: 30px;
+      border-radius: 15px;
+      border: none;
+      background-color: #814caf;
+      position: fixed;
+      bottom: 20px;
+      cursor: pointer;
+      z-index: 9;
+    }
+    .star-image {
+      position: absolute;
+      z-index: 5;
+      pointer-events: none;
+    }
+  </style>
+  </head>
+<body>
+
+<div class="container">
+  <img id="center-image">
+  <button id="play-button" onclick="play()"></button>
+</div>
+<script type="text/javascript" src="../funcJSON.js"></script>
+<script type="text/javascript">
+    var curveFunc;
+    var vFunc;
+    var centerImg;
+    var centerImgPx;
+    var starImg;
+    var starImgPx;
+
+    const userDataString = sessionStorage.getItem('userData');
+    var jsonData;
+
+    if (userDataString) {
+        const data = JSON.parse(userDataString);
+
+        jsonData = parse(data.code);
+        jsonData.centerImg.src = data.centerImg;
+        jsonData.starImg.src = data.starImg;
+
+    } else {
+        console.log("sessionStorage 中没有找到数据。");
+    }
+
+    // 设置中心图片尺寸和数据源
+    const centerImage = document.createElement("img");
+    centerImage.src = jsonData.centerImg.src;
+    centerImage.className = "star-image";
+    centerImage.style.width = `${jsonData.centerImg.width}px`;
+    centerImage.style.height = `${jsonData.centerImg.height}px`;
+    
+    if (jsonData.centerPoint.ifRational==true) {
+      jsonData.centerPoint.x = jsonData.centerPoint.x * window.innerWidth;
+      jsonData.centerPoint.y = jsonData.centerPoint.y * window.innerHeight;
+    }
+
+    var a = jsonData.centerPoint.x,b = jsonData.centerPoint.y;
+
+    if (jsonData.ifImgCenter == true) {
+      a -= Number(centerImage.style.width.replace('px', '')) / 2;
+      b -= Number(centerImage.style.height.replace('px', '')) / 2;
+    }
+
+    centerImage.style.left = `${a}px`;
+    centerImage.style.top = `${b}px`;
+
+    console.log(`x:${centerImage.style.left}, y:${centerImage.style.top}`);
+
+    document.body.appendChild(centerImage);
+
+    // 播放函数
+    function play() {
+        const starImage = document.createElement("img");
+        starImage.src = jsonData.starImg.src; // 使用图片数据变量
+        starImage.className = "star-image";
+        starImage.style.width = `${jsonData.starImg.width}px`;
+        starImage.style.height = `${jsonData.starImg.height}px`;
+
+        document.body.appendChild(starImage);
+
+        let totalTime = jsonData.funcTime();
+        let curve = jsonData.funcCurve();
+        let startTime = performance.now();
+        let revolve = jsonData.funcRevolve();
+
+        function animate(currentTime) {
+            let elapsedTime = (currentTime - startTime) / 1000;
+            let progress = elapsedTime / totalTime;
+
+            if (progress > 1) {
+              if (jsonData.ifDisappear == true) {
+                document.body.removeChild(starImage);
+              }
+              return;
+            }
+
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const position = (jsonData.funcTimeSet.ifRational==true)?curve(progress):curve(elapsedTime);
+            
+            let newX = (jsonData.funcCurveSet.ifRational==true)?position[0] * screenWidth:position[0];
+            let newY = (jsonData.funcCurveSet.ifRational==true)?position[1] * screenHeight:position[1];
+
+            if (jsonData.ifImgCenter == true) {
+                newX -= starImage.width / 2;
+                newY -= starImage.height / 2;
+            }
+
+            if (jsonData.starImg.ifObeyCenter == true) {
+                newX += jsonData.centerPoint.x;
+                newY += jsonData.centerPoint.y;
+            }
+
+            starImage.style.left = `${newX}px`;
+            starImage.style.top = `${newY}px`;
+
+            if (jsonData.funcRevolveSet.ifRevolve == true) {
+              if (jsonData.funcRevolveSet.ifRational == true) {
+                starImage.style.transform = `rotate(${revolve(progress)}rad)`;
+              } else {
+                starImage.style.transform = `rotate(${revolve(elapsedTime)}rad)`;
+              }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        requestAnimationFrame(animate);
+    }
+</script>
+
+</body>
+</html>
