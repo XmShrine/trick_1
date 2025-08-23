@@ -34,6 +34,8 @@
             justify-content: flex-start;
             align-items: center;
             border-bottom: 1px solid #e8e8e8;
+            overflow-x: auto; /* 允许水平滚动 */
+            -webkit-overflow-scrolling: touch; /* 增强 iOS 上的滚动体验 */
         }
 
         .buttons .button {
@@ -46,6 +48,7 @@
             cursor: pointer;
             transition: background-color 0.2s, transform 0.2s;
             margin-right: 10px;
+            flex-wrap: nowrap; /* 禁止换行 */
         }
 
         .buttons .button:hover {
