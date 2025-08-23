@@ -21,6 +21,7 @@
             box-sizing: border-box;
         }
         body {
+            padding: 80px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #000000 0%, #000000 100%);
             min-height: 100vh;
@@ -263,12 +264,44 @@
                 right: 5px;
             }
         }
+        /* 返回按钮 */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%; /* 圆形 */
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+            font-size: 20px;
+            z-index: 100;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        .back-button:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="title">神人之家</h1>
-        
+        <a href="https://github.com/XmShrine" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-left"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </a>
         <div class="button-grid">
             <!-- MCH666 -->
             <div class="site-button" onclick="showPasswordModal('MCH_beat/index.html', 3493947695)">
@@ -309,27 +342,20 @@
                 <div class="button-title">我不会弹贝斯</div>
                 <div class="button-description">演奏</div>
             </div>
-            <!-- GENCAKE -->
-            <div class="site-button" onclick="showPasswordModal('PAT_all/index.html', 2435938377)">
-                <div class="button-icon" style="background: linear-gradient(45deg, #4cd490, #a6ffff);">☺️</div>
-                <div class="button-title">小蛋糕生成</div>
+            <div class="site-button" onclick="window.open('PAT_all/index.html', '_blank')">
+                <div class="button-icon" style="background: linear-gradient(45deg, #00ff80, #00ffff);">☺️</div>
+                <div class="button-title">小蛋糕组件</div>
                 <div class="button-description">UGC内容</div>
             </div>
-            <!-- GENCAKE -->
-            <div class="site-button" onclick="showPasswordModal('PAT_all/indexTemp.html', 2435938377)">
-                <div class="button-icon" style="background: linear-gradient(45deg, #395a4a, #2c4848);">☺️</div>
-                <div class="button-title">小蛋糕生成 开发版</div>
-                <div class="button-description">UGC内容</div>
-            </div>
-            <div class="site-button" onclick="showPasswordModal('SPF_web/index.html', 1494998928)">
+            <div class="site-button" onclick="window.open('SPF_web/index.html', '_blank')">
                 <div class="button-icon" style="background: linear-gradient(45deg, #000000, #000000);">💻</div>
                 <div class="button-title">对称多项式分解</div>
-                <div class="button-description">密码: SPF</div>
+                <div class="button-description">高代内容</div>
             </div>
-            <div class="site-button" onclick="showPasswordModal('update.html', 890022063)">
+            <div class="site-button" onclick="window.open('update.html', '_blank')">
                 <div class="button-icon" style="background: linear-gradient(45deg, #000000, #000000);">⚙️</div>
                 <div class="button-title">更新日志</div>
-                <div class="button-description">密码: 0</div>
+                <div class="button-description">查看更新内容</div>
             </div>
             
         </div>
