@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>触摸轨迹记录器</title>
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f7;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #1d1d1f;
+        }
+
+        .container {
+            width: 90%;
+            height: 90%;
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 15px 25px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .buttons .button {
+            background-color: #f2f2f7;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            margin-right: 10px;
+        }
+
+        .buttons .button:hover {
+            background-color: #e5e5ea;
+        }
+
+        .buttons .button:active {
+            transform: scale(0.98);
+        }
+
+        .buttons .button:disabled {
+            background-color: #f2f2f7;
+            color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #canvas {
+            flex-grow: 1;
+            background-color: #fff;
+            border-radius: 0 0 20px 20px;
+            cursor: crosshair;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            width: 80%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e8e8e8;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-button {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+        }
+
+        pre {
+            background: #f0f0f5;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 0;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        #jsonCode {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 10px;
+        }
+
+        .copy-button {
+            background-color: #007aff;
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .copy-button:hover {
+            background-color: #005ce6;
+        }
+
+        .copy-button:active {
+            transform: scale(0.98);
+        }
+        .ratio-button.active {
+            background-color: #007aff;
+            color: #fff;
+        }
+
+        /* 语法高亮 (仿 json) */
+        .language-json .string { color: #d14; }
+        .language-json .number { color: #007acc; }
+        .language-json .boolean { color: #007acc; }
+        .language-json .null { color: #d14; }
+        .language-json .key { color: #800080; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="buttons">
+                <button id="startButton" class="button">开始</button>
+                <button id="endButton" class="button" disabled>结束</button>
+                <button id="previewButton" class="button">预览</button>
+                <button id="ratioButton" class="button ratio-button">按比例</button>
+            </div>
+        </div>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close-button">&times;</span>
+                <h2>预览数据</h2>
+            </div>
+            <pre><code id="jsonCode" class="language-json"></code></pre>
+            <div class="modal-footer">
+                <button id="copyButton" class="copy-button">一键复制</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        // ... 其他按钮
+        const ratioButton = document.getElementById('ratioButton');
+
+        let ifRational = false; // 新增的变量
+        // ... touchData 等其他变量
+        ratioButton.addEventListener('click', () => {
+            ifRational = !ifRational; // 切换布尔值
+            ratioButton.classList.toggle('active', ifRational); // 切换 'active' 类
+            console.log('按比例模式:', ifRational);
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            const startButton = document.getElementById('startButton');
+            const endButton = document.getElementById('endButton');
+            const previewButton = document.getElementById('previewButton');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const modal = document.getElementById('modal');
+            const closeButton = document.querySelector('.close-button');
+            const jsonCode = document.getElementById('jsonCode');
+            const copyButton = document.getElementById('copyButton');
+
+            let isRecording = false;
+            let touchData = {
+                startTime: null,
+                endTime: null,
+                duration: null,
+                fixedTime: 50, // 记录频率，单位毫秒
+                points: []
+            };
+            let recordInterval = null;
+
+            function resizeCanvas() {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#007aff';
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // 开始记录
+            startButton.addEventListener('click', () => {
+                if (isRecording) return;
+                isRecording = true;
+                startButton.disabled = true;
+                endButton.disabled = false;
+                previewButton.disabled = true;
+
+                touchData.startTime = Date.now();
+                touchData.points = [];
+                touchData.endTime = null;
+                touchData.duration = null;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                recordInterval = setInterval(() => {
+                    if (lastTouchPos) {
+                        const rect = canvas.getBoundingClientRect();
+                        const relativeX = (ifRational == true)?(lastTouchPos.x - rect.left) / rect.width:(lastTouchPos.x - rect.left);
+                        const relativeY = (ifRational == true)?(lastTouchPos.y - rect.top) / rect.height:(lastTouchPos.y - rect.top);
+                        touchData.points.push({
+                            x: relativeX,
+                            y: relativeY,
+                            time: Date.now() - touchData.startTime
+                        });
+                    }
+                }, touchData.fixedTime);
+            });
+
+            // 结束记录
+            endButton.addEventListener('click', () => {
+                if (!isRecording) return;
+                isRecording = false;
+                startButton.disabled = false;
+                endButton.disabled = true;
+                previewButton.disabled = false;
+
+                clearInterval(recordInterval);
+                touchData.endTime = Date.now();
+                touchData.duration = touchData.endTime - touchData.startTime;
+            });
+
+            let lastTouchPos = null;
+
+            // 绘制轨迹并记录 (触摸事件)
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!isRecording) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const x = e.touches[0].clientX - rect.left;
+                const y = e.touches[0].clientY - rect.top;
+
+                if (lastTouchPos) {
+                    ctx.beginPath();
+                    ctx.moveTo(lastTouchPos.x, lastTouchPos.y);
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                }
+                lastTouchPos = { x: x, y: y };
+            });
+
+            canvas.addEventListener('touchend', () => {
+                if (!isRecording) return;
+                lastTouchPos = null;
+            });
+            
+            // 绘制轨迹并记录 (鼠标事件，便于桌面端测试)
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isRecording || e.buttons !== 1) return; // 只有左键按下时才触发
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                if (lastTouchPos) {
+                    ctx.beginPath();
+                    ctx.moveTo(lastTouchPos.x, lastTouchPos.y);
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                }
+                lastTouchPos = { x: x, y: y };
+            });
+            
+            canvas.addEventListener('mousedown', (e) => {
+                if (!isRecording || e.buttons !== 1) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                lastTouchPos = { x: x, y: y };
+            });
+
+            canvas.addEventListener('mouseup', () => {
+                lastTouchPos = null;
+            });
+
+            var pointsMap;
+            var jsonString;
+            var textToCopy;
+            previewButton.addEventListener('click', () => {
+                pointsMap = touchData.points.reduce((map, p) => {
+                        const timeInSeconds = (p.time / 1000).toFixed(2);
+                        map[timeInSeconds] = [
+                            parseFloat(p.x.toFixed(6)),
+                            parseFloat(p.y.toFixed(6))
+                        ];
+                        return map;
+                }, {});
+                // 防止一开始没有数据产生故障，故意加上一个点
+                const keys = Object.keys(pointsMap);
+                pointsMap[0] = pointsMap[keys[0]];
+                pointsMap[touchData.duration/1000] = pointsMap[keys[keys.length - 1]];
+                // 预览数据
+                jsonString = `{
+    "curveMap": ${JSON.stringify(pointsMap)},
+    "ifImgCenter": true, "//":"决定是按照图片中心放置还是按照左上角放置",
+    "ifDisappear": true, "//":"true-时间到后消失，false-不消失",
+    "centerPoint": {
+        "x": 0.5,
+        "y": 0.5,
+        "ifRational": true, "//":"true-按比例，false-像素点"
+    },
+    "centerImg": {
+        "src":"Base64ImageString",
+        "width":300,
+        "height":300
+    },
+    "starImg": {
+        "src":"Base64ImageString",
+        "width":200,
+        "height":200,
+        "ifObeyCenter": false, "//":"true-按照中心点放置，false-按照正常放置"
+    },
+    "funcRevolve": "FUNC_JSON function(){return function(t){return 0;};}",
+    "funcRevolveSet": {
+        "ifRational":true, "//":"true-时间是 0-1 间的，false-时间就是实际时间",
+        "ifRevolve":false, "//":"true-旋转，false-不旋转"
+    },
+    "funcTime": "FUNC_JSON function(){return ${touchData.duration/1000};}",
+    "funcTimeSet": {
+        "ifRational":false, "//":"true-时间是 0-1 间的，false-时间就是实际时间"
+    },
+    "funcCurve": "FUNC_JSON function(){let curveMap = this.curveMap; return function(t){const newObject = {};for (const key in curveMap) {newObject[Number(key)] = curveMap[key];}curveMap = newObject;const times = Object.keys(curveMap).map(Number).sort((a, b) => a - b);let t1 = null;let t2 = null;for (let i = 0; i < times.length - 1; i++) {if (t >= times[i] && t <= times[i+1]) {t1 = times[i];t2 = times[i+1];break;}}if (t1 === null) {return null;}const [x1, y1] = curveMap[t1];const [x2, y2] = curveMap[t2];const totalDuration = t2 - t1;if (totalDuration === 0) {return [x1, y1];}const weight2 = (t - t1) / totalDuration;const weight1 = 1 - weight2;const weightedX = weight1 * x1 + weight2 * x2;const weightedY = weight1 * y1 + weight2 * y2;return [weightedX, weightedY];};}",
+    "funcCurveSet": {
+        "ifRational":${ifRational}, "//":"true-按照屏幕比例进行，数值为 0-1 间，false-直接代表像素"
+    }
+}`;
+        // 此处特别注意 funcCurve 中的 let temp = this.curveMap 是必须的，不能改成别的
+                textToCopy = jsonString;
+                const highlightedJson = jsonString
+                    .replace(/(".*?")/g, '<span class="string">$1</span>')
+                    .replace(/\b(\d+(\.\d+)?)\b/g, '<span class="number">$1</span>')
+                    .replace(/\b(true|false)\b/g, '<span class="boolean">$1</span>')
+                    .replace(/\bnull\b/g, '<span class="null">$1</span>');
+
+                jsonCode.innerHTML = highlightedJson;
+                modal.style.display = 'flex';
+            });
+
+            // 关闭模态框
+            closeButton.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            window.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            // 一键复制
+            copyButton.addEventListener('click', () => {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    // alert('JSON 数据已复制到剪贴板！');
+                }).catch(err => {
+                    console.error('复制失败: ', err);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -118,7 +118,7 @@
         function animate(currentTime) {
             let elapsedTime = (currentTime - startTime) / 1000;
             let progress = elapsedTime / totalTime;
-
+          
             if (progress > 1) {
               if (jsonData.ifDisappear == true) {
                 document.body.removeChild(starImage);
