@@ -252,6 +252,33 @@
             resizeCanvas();
 
             // 开始记录
+            // startButton.addEventListener('click', () => {
+            //     if (isRecording) return;
+            //     isRecording = true;
+            //     startButton.disabled = true;
+            //     endButton.disabled = false;
+            //     previewButton.disabled = true;
+
+            //     touchData.startTime = Date.now();
+            //     touchData.points = [];
+            //     touchData.endTime = null;
+            //     touchData.duration = null;
+
+            //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            //     recordInterval = setInterval(() => {
+            //         if (lastTouchPos) {
+            //             const rect = canvas.getBoundingClientRect();
+            //             const relativeX = (ifRational == true)?(lastTouchPos.x - rect.left) / rect.width:(lastTouchPos.x - rect.left);
+            //             const relativeY = (ifRational == true)?(lastTouchPos.y - rect.top) / rect.height:(lastTouchPos.y - rect.top);
+            //             touchData.points.push({
+            //                 x: relativeX,
+            //                 y: relativeY,
+            //                 time: Date.now() - touchData.startTime
+            //             });
+            //         }
+            //     }, touchData.fixedTime);
+            // });
             startButton.addEventListener('click', () => {
                 if (isRecording) return;
                 isRecording = true;
@@ -266,14 +293,20 @@
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+                // ... 在 startButton.addEventListener 中
                 recordInterval = setInterval(() => {
                     if (lastTouchPos) {
-                        const rect = canvas.getBoundingClientRect();
-                        const relativeX = (ifRational == true)?(lastTouchPos.x - rect.left) / rect.width:(lastTouchPos.x - rect.left);
-                        const relativeY = (ifRational == true)?(lastTouchPos.y - rect.top) / rect.height:(lastTouchPos.y - rect.top);
+                        // 使用 lastTouchPos 中已经计算好的相对画布坐标
+                        const relativeX = lastTouchPos.x;
+                        const relativeY = lastTouchPos.y;
+
+                        // 如果是按比例模式，则进行比例转换
+                        const xToRecord = ifRational ? relativeX / canvas.width : relativeX;
+                        const yToRecord = ifRational ? relativeY / canvas.height : relativeY;
+
                         touchData.points.push({
-                            x: relativeX,
-                            y: relativeY,
+                            x: xToRecord,
+                            y: yToRecord,
                             time: Date.now() - touchData.startTime
                         });
                     }
