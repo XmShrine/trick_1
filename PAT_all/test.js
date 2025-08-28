@@ -1,10 +1,6 @@
 function getWeightedAverageCoordinates(t, curveMap) {
     console.log(curveMap);
-    const newObject = {};
-for (const key in curveMap) {
-  newObject[Number(key)] = curveMap[key];
-}
-curveMap = newObject;
+    const newObject = {};for (const key in curveMap) {newObject[Number(key)] = curveMap[key];}curveMap = newObject;
 console.log(curveMap);
   const times = Object.keys(curveMap).map(Number).sort((a, b) => a - b);
   // 查找 t 所在的两个时间点
