@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown with KaTeX</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+
+    <style>
+        /* 基础页面和字体样式 */
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 内容容器 */
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 15px;
+            }
+        }
+
+        /* 标题样式 */
+        h1, h2, h3, h4, h5, h6 {
+            border-bottom: 1px solid #444444;
+            color: #ffffff;
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+        h1 { font-size: 2em; }
+        h2 { font-size: 1.5em; }
+        h3 { font-size: 1.25em; }
+        h4 { font-size: 1em; }
+        h5 { font-size: 0.875em; }
+        h6 { font-size: 0.85em; }
+
+        /* 链接和粗体 */
+        a { color: #8ab4f7; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        strong { color: #ffffff; }
+
+        /* 列表和引用 */
+        ul, ol { padding-left: 2em; }
+        blockquote {
+            border-left: 4px solid #555555;
+            color: #aaaaaa;
+            margin: 0;
+            padding: 0 1em;
+        }
+
+        /* 代码块和行内代码 */
+        pre {
+            background-color: #1a1a1a;
+            border-radius: 6px;
+            padding: 16px;
+            overflow: auto;
+        }
+        code {
+            background-color: #333333;
+            border-radius: 3px;
+            padding: 0.2em 0.4em;
+            font-family: 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+            color: #cccccc;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #cccccc;
+        }
+        
+        /* KaTeX 公式样式 */
+        .katex {
+            font-size: 1.2em; /* 稍微调大一些 */
+        }
+    </style>
+</head>
+<body>
+    <div class="markdown-body" id="markdown-container"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+    <script>
+        // 设置 marked.js 的代码高亮
+        marked.setOptions({
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            gfm: true,
+            breaks: true
+        });
+
+        // 渲染 Markdown 内容
+        function renderMarkdown(markdownContent) {
+            const container = document.getElementById('markdown-container');
+            
+            // 解决行间公式问题：在 Marked.js 解析之前，先找到并处理行间公式
+            const processedMarkdown = markdownContent.replace(/\$\$(.*?)\$\$/gs, (match) => {
+                // 将行间公式包裹在一个唯一的占位符中
+                // 这里的处理是将公式内容本身作为 HTML 标签，避免 Marked.js 干扰
+                return '$$' + match.substring(2, match.length - 2).trim() + '$$';
+            });
+
+            // 使用 Marked.js 解析其余的 Markdown
+            container.innerHTML = marked.parse(processedMarkdown);
+            
+            // 使用 KaTeX 的 auto-render 扩展来渲染数学公式
+            renderMathInElement(container, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError : false
+            });
+        }
+
+        const myMarkdown = `??!??`;
+        renderMarkdown(myMarkdown);
+    </script>
+</body>
+</html>

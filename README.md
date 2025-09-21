@@ -17,9 +17,10 @@
     "icon":"icon.png",
     "appName":"Your app name",
     "appNotice":"Your app notice"
+    "generationDate":"2025-09-21T04:48:19.127Z"
 }
 ```
-说明：`author` 需要指明作者姓名（可以是缩写、别名等），不接受不指明作者的文件，`ifUsePassword` 表明你是否希望你的作品被直接访问，`password` 则是说明作品的密码（如果上面设置需要密码），`icon` 这一栏如果使用的是字符则直接写字符即可，例如 `"icon":"😋"`，如果是一个图片链接需要指明链接，`appName` 关系到应用名称（白字），`appNotice` 关系到应用的提示（灰字）
+说明：`author` 需要指明作者姓名（可以是缩写、别名等），不接受不指明作者的文件，`ifUsePassword` 表明你是否希望你的作品被直接访问，`password` 则是说明作品的密码（如果上面设置需要密码），`icon` 这一栏如果使用的是字符则直接写字符即可，例如 `"icon":"😋"`，如果是一个图片链接需要指明链接，`appName` 关系到应用名称（白字），`appNotice` 关系到应用的提示（灰字），最后一个 `generationDate` 用于指明生成日期（这也是需要的）
 
 最后，最好还加入文件
 
