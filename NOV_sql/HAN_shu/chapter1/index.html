@@ -1,0 +1,187 @@
+
+                        <!DOCTYPE html>
+                        <html lang="en">
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>xmshrine</title>
+                            <style>
+                                body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: auto; padding: 20px; }
+                                h1, h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
+                            </style>
+                        </head>
+                        <body>
+                            <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown with KaTeX</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+
+    <style>
+        /* 基础页面和字体样式 */
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 内容容器 */
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 15px;
+            }
+        }
+
+        /* 标题样式 */
+        h1, h2, h3, h4, h5, h6 {
+            border-bottom: 1px solid #444444;
+            color: #ffffff;
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+        h1 { font-size: 2em; }
+        h2 { font-size: 1.5em; }
+        h3 { font-size: 1.25em; }
+        h4 { font-size: 1em; }
+        h5 { font-size: 0.875em; }
+        h6 { font-size: 0.85em; }
+
+        /* 链接和粗体 */
+        a { color: #8ab4f7; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        strong { color: #ffffff; }
+
+        /* 列表和引用 */
+        ul, ol { padding-left: 2em; }
+        blockquote {
+            border-left: 4px solid #555555;
+            color: #aaaaaa;
+            margin: 0;
+            padding: 0 1em;
+        }
+
+        /* 代码块和行内代码 */
+        pre {
+            background-color: #1a1a1a;
+            border-radius: 6px;
+            padding: 16px;
+            overflow: auto;
+        }
+        code {
+            background-color: #333333;
+            border-radius: 3px;
+            padding: 0.2em 0.4em;
+            font-family: 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+            color: #cccccc;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #cccccc;
+        }
+        
+        /* KaTeX 公式样式 */
+        .katex {
+            font-size: 1.2em; /* 稍微调大一些 */
+        }
+    </style>
+</head>
+<body>
+    <div class="markdown-body" id="markdown-container"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+    <script>
+        // 设置 marked.js 的代码高亮
+        marked.setOptions({
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            gfm: true,
+            breaks: true
+        });
+
+        // 渲染 Markdown 内容
+        function renderMarkdown(markdownContent) {
+            const container = document.getElementById('markdown-container');
+            
+            // 解决行间公式问题：在 Marked.js 解析之前，先找到并处理行间公式
+            const processedMarkdown = markdownContent.replace(/\$\$(.*?)\$\$/gs, (match) => {
+                // 将行间公式包裹在一个唯一的占位符中
+                // 这里的处理是将公式内容本身作为 HTML 标签，避免 Marked.js 干扰
+                return '$$' + match.substring(2, match.length - 2).trim() + '$$';
+            });
+
+            // 使用 Marked.js 解析其余的 Markdown
+            container.innerHTML = marked.parse(processedMarkdown);
+            
+            // 使用 KaTeX 的 auto-render 扩展来渲染数学公式
+            renderMathInElement(container, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError : false
+            });
+        }
+
+        const myMarkdown = `# 故事的开始
+九月初的耀华中学操场蒸腾着暑气，橡胶跑道在烈日下渗出淡淡的焦味。张舒涵把新生手册卷成筒状，机械地沿着梧桐树影的边际线来回踱步。树冠间漏下的光斑在她浅蓝色帆布鞋上明明灭灭，像一串摩尔斯电码，可惜她暂时还读不懂这些光暗交替里蕴含的讯息。
+## （一）
+足球撞上金属护栏网的瞬间，整个第四教学楼的玻璃幕墻都在震颤。张舒涵还没来得及抱头蹲下，就看见那个黑白相间的球体在离自己鼻尖三十公分处突然转向——它先是亲吻了物理实验室的空调外机，接着在宣传栏的金属包边上完成二次弹射，最终滚落到她脚边时，表面的六边形皮革已经沾满草屑。
+
+“同学！你.你没事吧？“带着汗味的声波比她先感知到少年的存在。逆光中，某
+个瘦长的身影正以百米冲刺的速度逼近，运动短裤下的小腿肌肉在跑动中绷出流畅的弧线。张舒涵注意到他右膝上贴着的卡通创可贴，在麦色皮肤上显得格外突兀。
+
+## （二）
+吴品秀刹住脚步时带起的风掀动了少女的刘海。他弯腰捡球的动作像极了足球运
+动员的庆功姿势，后颈处未擦净的汗珠顺着脊椎线滚进衣领。” 这破球今天第三次叛逃了，” 他屈指敲了敲足球内胆，” 上次它飞进食堂汤桶，上上次卡在女更衣室通风管...”
+
+张舒涵的视线掠过少年卷边的校牌绳。当看到” 高一（4）班吴品秀” 的字样时，钥匙圈上的小黄鸭挂件突然发出短促的尖叫——她这才发现自己无意识捏紧了拳头。
+
+## （三）
+蝉鸣织就的声浪里，梧桐叶在两人头顶沙沙作响。吴品秀用球衣下摆擦拭足球的动作突然顿住：” 你手机壳上那个... 是黎曼 $ζ$ 函数？” 没等她回答，他已经自问自答地摇头，” 不对不对，傅里叶变换的波形图？还是量子隧穿的概率云？”
+
+张舒涵低头看着自己网购的 ins 风手机壳，那些所谓” 高端理科图案” 此刻正在对方热切的目光下无所遁形。” 其实是随机生成的几何纹样，” 她听见自己干涩的声音，”卖家说这叫... 赛博蒸汽波？”
+
+## （四）
+
+暮色初降时，他们并排坐在操场看台第三阶。吴品秀正用树枝在地上画着歪扭的麦克斯韦方程组，而张舒涵手机里循环播放着《天体物理学入门》的有声书——这是她为融入新班级准备的” 学术伪装”。
+
+”你知道吗？” 少年突然用树枝戳了戳地上的积分符号，” 上周小考我选择题全对。”他压低声音的样子像在分享国家机密，” 因为监考老师的保温杯会反光。”
+
+远处传来冰柜开启的嗡鸣，小卖部的绿豆冰沙正在暮色里招摇。张舒涵望着少年随讲解飞舞的睫毛，突然发现他每次提到”傅里叶”时都会不自觉地摸耳垂。
+
+## （五）
+
+当晚 23:17，张舒涵的微信弹出新消息。点开是张糊成马赛克的照片：某本《量子宇宙简史》的扉页上，稚嫩的笔迹写着” 吴品秀六年级藏书”。紧接着跳出来的第二条消息是：” 这本我看了三十页！创纪录了！”
+
+她熄灭屏幕，看见黑暗里浮动的光斑在窗帘上重组。那些白天在鞋面上跳动的摩尔斯电码，此刻似乎正拼凑出某个混沌的公式——关于碰撞的初速度，关于抛物线的不确定性，关于两个质点在引力场中的轨迹交错。
+
+窗外的足球场沉睡着，而某个被遗忘在草丛里的足球，正默默等待下一场偏离计算轨道的飞行。`;
+        renderMarkdown(myMarkdown);
+    </script>
+</body>
+</html>
+                        </body>
+                        </html>
+                    
