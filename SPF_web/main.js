@@ -340,9 +340,6 @@ function SPF(pol) {
         pol = tmp[0];
         res = Polynomial.add(res, tmp[1]);
         nsnss += 1;
-        if (nsnss >20) {
-            break;
-        }
     }
     return res;
 }
