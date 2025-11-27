@@ -1,544 +1,377 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>更新日志</title>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.1.2/es5/tex-mml-chtml.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script type="text/javascript">
+    <script>
     MathJax = {
-        tex: {
-            inlineMath: [['$', '$'], ['\(', '\)']],
-            displayMath: [['$$', '$$'], ['\[', '\]']]
-        }
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
     };
     </script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>更新日志</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg-color: #000000;
+            --card-bg: rgba(28, 28, 30, 0.6);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #8E8E93;
+            --accent: #0A84FF;
         }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #000000;
-            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             line-height: 1.6;
-            overflow-x: hidden;
         }
 
+        /* 统一的导航栏 */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid var(--border-color);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .back-btn {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 16px;
+            display: flex; align-items: center;
+            padding: 8px 12px 8px 0;
+        }
+        .back-btn:active { opacity: 0.6; }
+        
+        .page-title {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            font-weight: 600; font-size: 17px;
+        }
+
+        /* 时间轴容器 */
         .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 0 20px;
-            min-height: 100vh;
+            padding: 40px 20px;
+            position: relative;
         }
 
-        .header {
-            position: sticky;
-            top: 0;
-            background-color: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 0.5px solid #333333;
-            z-index: 100;
-            padding: 10px 0;
-        }
-
-        .nav-bar {
-            display: flex;
-            align-items: center;
-            height: 44px;
-        }
-
-        .back-button {
-            background: none;
-            border: none;
-            color: #007AFF;
-            font-size: 17px;
-            font-weight: 400;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 8px 0;
-            transition: opacity 0.2s ease;
-        }
-
-        .back-button:hover {
-            opacity: 0.6;
-        }
-
-        .back-button:active {
-            opacity: 0.3;
-        }
-
-        .page-title {
+        /* 时间轴左侧线条 */
+        .container::before {
+            content: '';
             position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 17px;
-            font-weight: 600;
-            color: #ffffff;
+            left: 36px;
+            top: 60px;
+            bottom: 60px;
+            width: 2px;
+            background: rgba(255,255,255,0.1);
+            z-index: 0;
         }
 
-        .content {
-            padding: 30px 0 50px;
-        }
-
-        .changelog-item {
+        .version-item {
+            position: relative;
             margin-bottom: 40px;
-            background: rgba(28, 28, 30, 0.6);
+            padding-left: 40px;
+            opacity: 0;
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 时间轴圆点 */
+        .timeline-dot {
+            position: absolute;
+            left: 10px;
+            top: 24px;
+            width: 12px; height: 12px;
+            background: var(--bg-color);
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .version-card {
+            background: var(--card-bg);
+            border: 0.5px solid var(--border-color);
             border-radius: 16px;
             padding: 24px;
-            border: 0.5px solid #333333;
-            transition: transform 0.2s ease, background-color 0.2s ease;
+            transition: transform 0.2s;
+        }
+        .version-card:hover { background: rgba(44, 44, 46, 0.6); }
+
+        .v-header {
+            display: flex; justify-content: space-between; align-items: baseline;
+            margin-bottom: 16px; border-bottom: 0.5px solid rgba(255,255,255,0.05);
+            padding-bottom: 12px;
         }
 
-        .changelog-item:hover {
-            transform: translateY(-2px);
-            background: rgba(44, 44, 46, 0.6);
+        .v-num { font-size: 24px; font-weight: 700; color: var(--accent); font-family: monospace; }
+        .v-date { font-size: 13px; color: var(--text-secondary); }
+        
+        .tag {
+            font-size: 10px; padding: 3px 8px; border-radius: 10px;
+            text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;
+            margin-left: 8px; vertical-align: middle;
+        }
+        .tag.major { background: rgba(255, 59, 48, 0.2); color: #FF3B30; }
+        .tag.minor { background: rgba(255, 149, 0, 0.2); color: #FF9500; }
+        .tag.patch { background: rgba(52, 199, 89, 0.2); color: #34C759; }
+
+        .v-content h3 {
+            font-size: 15px; margin: 16px 0 8px; display: flex; align-items: center; gap: 6px;
+        }
+        .v-content h3:first-child { margin-top: 0; }
+        .v-content ul { list-style: none; padding-left: 4px; }
+        .v-content li {
+            position: relative; padding-left: 18px; margin-bottom: 6px;
+            color: rgba(255,255,255,0.85); font-size: 15px;
+        }
+        .v-content li::before {
+            content: '•'; position: absolute; left: 0; color: var(--text-secondary);
         }
 
-        .version-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+        .mjx-container { font-size: 110% !important; color: #fff !important; }
 
-        .version-number {
-            font-size: 28px;
-            font-weight: 700;
-            color: #007AFF;
-            text-shadow: 0 0 10px rgba(0, 122, 255, 0.3);
-        }
-
-        .version-date {
-            font-size: 15px;
-            color: #8E8E93;
-            font-weight: 500;
-        }
-
-        .version-type {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .version-type.major {
-            background-color: #FF3B30;
-            color: #ffffff;
-        }
-
-        .version-type.minor {
-            background-color: #FF9500;
-            color: #ffffff;
-        }
-
-        .version-type.patch {
-            background-color: #34C759;
-            color: #ffffff;
-        }
-
-        .changelog-content h3 {
-            font-size: 18px;
-            font-weight: 600;
-            color: #ffffff;
-            margin: 20px 0 12px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .changelog-content h3:first-child {
-            margin-top: 0;
-        }
-
-        .feature-icon {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-        }
-
-        .feature-icon.new {
-            background-color: #34C759;
-        }
-
-        .feature-icon.improved {
-            background-color: #007AFF;
-        }
-
-        .feature-icon.fixed {
-            background-color: #FF9500;
-        }
-
-        .changelog-content ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .changelog-content li {
-            position: relative;
-            padding: 8px 0 8px 24px;
-            color: #D1D1D6;
-            font-size: 16px;
-            line-height: 1.5;
-        }
-
-        .changelog-content li:before {
-            content: '•';
-            position: absolute;
-            left: 8px;
-            color: #007AFF;
-            font-weight: bold;
-        }
-
-        .highlight {
-            background: linear-gradient(90deg, #007AFF, #5856D6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 600;
-        }
-
-        /* 响应式设计 */
-        @media screen and (max-width: 768px) {
-            .container {
-                padding: 0 16px;
-            }
-
-            .changelog-item {
-                padding: 20px;
-                margin-bottom: 24px;
-            }
-
-            .version-number {
-                font-size: 24px;
-            }
-
-            .version-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-            }
-
-            .changelog-content h3 {
-                font-size: 16px;
-            }
-
-            .changelog-content li {
-                font-size: 15px;
-                padding: 6px 0 6px 20px;
-            }
-
-            .changelog-content li:before {
-                left: 6px;
-            }
-        }
-
-        @media screen and (max-width: 480px) {
-            .container {
-                padding: 0 12px;
-            }
-
-            .content {
-                padding: 20px 0 30px;
-            }
-
-            .changelog-item {
-                padding: 16px;
-                margin-bottom: 20px;
-                border-radius: 12px;
-            }
-
-            .version-number {
-                font-size: 22px;
-            }
-
-            .page-title {
-                font-size: 16px;
-            }
-
-            .back-button {
-                font-size: 16px;
-            }
-        }
-
-        /* 滚动条美化 */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.4);
-        }
-
-        /* 防止水平滚动 */
-        html, body {
-            overflow-x: hidden;
-            width: 100%;
+        @media (max-width: 600px) {
+            .container::before { left: 26px; }
+            .timeline-dot { left: 0px; }
+            .version-item { padding-left: 20px; }
+            .v-header { flex-direction: column; gap: 4px; }
         }
     </style>
 </head>
 <body>
+
+    <nav class="navbar">
+        <a href="index.html" class="back-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            返回首页
+        </a>
+        <div class="page-title">更新日志</div>
+    </nav>
+
     <div class="container">
-        <header class="header">
-            <div class="nav-bar">
-                <button class="back-button" onclick="window.location.href='index.html'">
-                    <span>‹</span> 返回
-                </button>
-                <h1 class="page-title">更新日志</h1>
+        
+        <!-- v1.13 -->
+        <div class="version-item" style="animation-delay: 0s">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.13</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年9月22日</span>
+                </div>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>加入了二创小说的模块，并更新了涵情脉脉第一章</li></ul>
+                </div>
             </div>
-        </header>
+        </div>
 
-        <main class="content">
-            <!-- v1.13 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.13</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年9月22日</div>
+        <!-- v1.12 -->
+        <div class="version-item" style="animation-delay: 0.05s">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.12</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年9月21日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>加入了二创小说的模块，并更新了涵情脉脉第一章</li>
-                    </ul>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>加入了生成展示 markdown（纯文本，不含其他资源）网页的功能</li></ul>
                 </div>
             </div>
-            <!-- v1.12 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.12</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年9月21日</div>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>加入了生成展示 markdown（纯文本，不含其他资源）网页的功能</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- v1.11 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.11</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月30日</div>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>加入了大西瓜魔改版，注意只适配手机屏幕，电脑屏幕会有显示异常</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- v1.10 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.10</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月28日</div>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>加入了 MC 资源包模块，添加了一个资源包供下载使用（包含 MCH）</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- v1.9 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.9</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月23日</div>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>加入了小蛋糕模块中的轨迹转 JSON 开发版，方便了轨迹的生成（注意：按比例的轨迹略有bug，后续可能修复）</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- v1.8 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.8</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月22日</div>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>加入了小蛋糕生成器（开发版），并将几个小蛋糕相关的工具整合到了一个页面里，添加了页面间的返回按钮</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- v1.7 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.7</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月21日</div>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>加入了小蛋糕生成器，现在你可以做你自己的蛋糕了</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- v1.6 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.6</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月8日</div>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>稍微改善了戳一戳的使用体验，虽然总体还是比较差（该项目之后不会再优化）</li>
-                    </ul>
-                </div>
-            </div>
+        </div>
 
-            <!-- v1.5 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.5</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月7日</div>
+        <!-- v1.11 -->
+        <div class="version-item" style="animation-delay: 0.1s">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.11</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月30日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>我不会贝斯项目中新增了一些音</li>
-                    </ul>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>加入了大西瓜魔改版，注意只适配手机屏幕，电脑屏幕会有显示异常</li></ul>
                 </div>
             </div>
-            
-            <!-- v1.4 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.4</div>
-                        <span class="version-type major">重大更新</span>
-                    </div>
-                    <div class="version-date">2025年8月7日</div>
+        </div>
+
+        <!-- v1.10 -->
+        <div class="version-item" style="animation-delay: 0.15s">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.10</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月28日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">🎉</span>重要功能</h3>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>加入了 MC 资源包模块，添加了一个资源包供下载使用（包含 MCH）</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.9 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.9</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月23日</span>
+                </div>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>加入了小蛋糕模块中的轨迹转 JSON 开发版，方便了轨迹的生成（注意：按比例的轨迹略有bug，后续可能修复）</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.8 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.8</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月22日</span>
+                </div>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>加入了小蛋糕生成器（开发版），并将几个小蛋糕相关的工具整合到了一个页面里，添加了页面间的返回按钮</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.7 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.7</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月21日</span>
+                </div>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>加入了小蛋糕生成器，现在你可以做你自己的蛋糕了</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.6 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.6</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月8日</span>
+                </div>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>稍微改善了戳一戳的使用体验，虽然总体还是比较差（该项目之后不会再优化）</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.5 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.5</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月7日</span>
+                </div>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>我不会贝斯项目中新增了一些音</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.4 Major -->
+        <div class="version-item">
+            <div class="timeline-dot" style="border-color: #FF3B30"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.4</span><span class="tag major">Major</span></div>
+                    <span class="v-date">2025年8月7日</span>
+                </div>
+                <div class="v-content">
+                    <h3>🎉 重要功能</h3>
                     <ul>
                         <li>通过 Web Audio API 解决了网页中音频加载延迟问题</li>
                         <li>另外暂时删除了戳一戳的内容，稍后会完成更新，重新使其可以使用</li>
                     </ul>
                 </div>
             </div>
+        </div>
 
-            <!-- v1.3 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.3</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月6日</div>
+        <!-- v1.3 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.3</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月6日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>新增了我不会弹贝斯项目，说明：该项目左上角的按钮可以调节是采用轻轻弹奏（ stop finger 模式）还是正常弹奏 （默认是正常弹奏-灰色，轻轻弹奏-蓝色），需要注意的是如果音频缺少正常/轻轻弹奏，那么无论按钮是否开启，都会依照仅有的那种音色播放</li>
-                    </ul>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>新增了我不会弹贝斯项目，说明：该项目左上角的按钮可以调节是采用轻轻弹奏（ stop finger 模式）还是正常弹奏 （默认是正常弹奏-灰色，轻轻弹奏-蓝色），需要注意的是如果音频缺少正常/轻轻弹奏，那么无论按钮是否开启，都会依照仅有的那种音色播放</li></ul>
                 </div>
             </div>
-            <!-- v1.2 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.2</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月6日</div>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>重制了戳一戳，增加了延迟调整功能（适量调整利于游玩体验）</li>
-                    </ul>
-                </div>
-            </div>
-             <!-- v1.1 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.1</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年8月5日</div>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>应 MCH 要求增加了小蛋糕模块，创意均来自 MCH，造成的后果也均由 MCH 承担</li>
-                    </ul>
-                </div>
-            </div>
+        </div>
 
-            <!-- v1.0 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">1.0</div>
-                        <span class="version-type major">重大更新</span>
-                    </div>
-                    <div class="version-date">2025年8月1日</div>
+        <!-- v1.2 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.2</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月6日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">🎉</span>重要功能</h3>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>重制了戳一戳，增加了延迟调整功能（适量调整利于游玩体验）</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.1 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.1</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年8月5日</span>
+                </div>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>应 MCH 要求增加了小蛋糕模块，创意均来自 MCH，造成的后果也均由 MCH 承担</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.0 Major -->
+        <div class="version-item">
+            <div class="timeline-dot" style="border-color: #FF3B30"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v1.0</span><span class="tag major">Release</span></div>
+                    <span class="v-date">2025年8月1日</span>
+                </div>
+                <div class="v-content">
+                    <h3>🎉 全新版本</h3>
                     <ul>
                         <li>将 SPF.py 移植到 SPF.js 上，使多项式分解可以在网页中进行</li>
                         <li>增加了网页对 $\mathrm{LaTex}$ 代码的支持，下面是一个案例</li>
@@ -546,41 +379,35 @@
                     </ul>
                 </div>
             </div>
+        </div>
 
-            <!-- v0.7 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">0.7</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年7月31日</div>
+        <!-- v0.7 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v0.7</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年7月31日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>补全了戳一戳的铺面 (打开时需要静置一段时间至网页加载完毕，防止音乐文件丢失)</li>
-                    </ul>
-                </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon fixed">🔧</span>问题修复</h3>
-                    <ul>
-                        <li>(关于戳一戳) 针对例如 Safari 等部分浏览器在移动端时网页被遮挡时，点击隐藏工具栏或类似按钮解决此问题</li>
-                    </ul>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>补全了戳一戳的铺面 (打开时需要静置一段时间至网页加载完毕，防止音乐文件丢失)</li></ul>
+                    <h3>🔧 问题修复</h3>
+                    <ul><li>(关于戳一戳) 针对例如 Safari 等部分浏览器在移动端时网页被遮挡时，点击隐藏工具栏或类似按钮解决此问题</li></ul>
                 </div>
             </div>
+        </div>
 
-            <!-- v0.6 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">0.6</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年7月30日</div>
+        <!-- v0.6 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v0.6</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年7月30日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
                     <ul>
                         <li>改进了模块图标中选择图片时的显示效果</li>
                         <li>加入了戳一戳项目 (by MCH) (未完成 试验中)</li>
@@ -588,130 +415,90 @@
                     </ul>
                 </div>
             </div>
+        </div>
 
-            <!-- v0.5 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">0.5</div>
-                        <span class="version-type patch">补丁</span>
-                    </div>
-                    <div class="version-date">2025年7月30日</div>
+        <!-- v0.5 -->
+        <div class="version-item">
+            <div class="timeline-dot" style="border-color: #34C759"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v0.5</span><span class="tag patch">Patch</span></div>
+                    <span class="v-date">2025年7月30日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon fixed">🔧</span>问题修复</h3>
-                    <ul>
-                        <li>补全了曼波丁真中贴图缺失</li>
-                    </ul>
+                <div class="v-content">
+                    <h3>🔧 问题修复</h3>
+                    <ul><li>补全了曼波丁真中贴图缺失</li></ul>
                 </div>
             </div>
+        </div>
 
-            <!-- v0.4 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">0.4</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年7月30日</div>
+        <!-- v0.4 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v0.4</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年7月30日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
-                    <ul>
-                        <li>加入了丁真曼波项目</li>
-                    </ul>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
+                    <ul><li>加入了丁真曼波项目</li></ul>
                 </div>
             </div>
+        </div>
 
-            <!-- v0.3 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">0.3</div>
-                        <span class="version-type patch">补丁</span>
-                    </div>
-                    <div class="version-date">2025年7月29日</div>
+        <!-- v0.3 -->
+        <div class="version-item">
+            <div class="timeline-dot" style="border-color: #34C759"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v0.3</span><span class="tag patch">Patch</span></div>
+                    <span class="v-date">2025年7月29日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon fixed">🔧</span>问题修复</h3>
-                    <ul>
-                        <li>修复了手机端摸一摸项目点按不到按钮的问题</li>
-                    </ul>
+                <div class="v-content">
+                    <h3>🔧 问题修复</h3>
+                    <ul><li>修复了手机端摸一摸项目点按不到按钮的问题</li></ul>
                 </div>
             </div>
+        </div>
 
-            <!-- v0.2 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">0.2</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年7月29日</div>
+        <!-- v0.2 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v0.2</span><span class="tag minor">Feature</span></div>
+                    <span class="v-date">2025年7月29日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">✨</span>新功能</h3>
+                <div class="v-content">
+                    <h3>✨ 新功能</h3>
                     <ul>
                         <li>加入了摸一摸项目</li>
                         <li>优化了打人项目中部分贴图</li>
                     </ul>
                 </div>
             </div>
+        </div>
 
-            <!-- v0.1 -->
-            <div class="changelog-item">
-                <div class="version-header">
-                    <div>
-                        <div class="version-number">0.1</div>
-                        <span class="version-type minor">功能</span>
-                    </div>
-                    <div class="version-date">2025年7月29日</div>
+        <!-- v0.1 -->
+        <div class="version-item">
+            <div class="timeline-dot"></div>
+            <div class="version-card">
+                <div class="v-header">
+                    <div><span class="v-num">v0.1</span><span class="tag minor">Init</span></div>
+                    <span class="v-date">2025年7月29日</span>
                 </div>
-                <div class="changelog-content">
-                    <h3><span class="feature-icon new">🎉</span>全新版本</h3>
+                <div class="v-content">
+                    <h3>🎉 全新版本</h3>
                     <ul>
                         <li>更新了菜单页面</li>
                         <li>解决了只有一个项目的问题</li>
                     </ul>
                 </div>
             </div>
-        </main>
+        </div>
+
     </div>
 
-    <script>
-        // 防止水平滚动
-        document.addEventListener('touchmove', function(e) {
-            if (e.touches.length > 1) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-
-        // 平滑滚动效果
-        document.documentElement.style.scrollBehavior = 'smooth';
-
-        // 页面加载动画
-        window.addEventListener('load', function() {
-            const items = document.querySelectorAll('.changelog-item');
-            items.forEach((item, index) => {
-                item.style.opacity = '0';
-                item.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    item.style.transition = 'all 0.6s ease';
-                    item.style.opacity = '1';
-                    item.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
-        });
-
-        // 返回按钮点击反馈
-        document.querySelector('.back-button').addEventListener('touchstart', function() {
-            this.style.transform = 'scale(0.95)';
-        });
-
-        document.querySelector('.back-button').addEventListener('touchend', function() {
-            this.style.transform = 'scale(1)';
-        });
-    </script>
 </body>
 </html>
-
