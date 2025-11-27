@@ -1,173 +1,430 @@
-
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第二章 初秋的网格</title>
-    <style>
-        body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: auto; padding: 20px; }
-        h1, h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
-    </style>
-</head>
-<body>
-    <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>第二章 初秋的网格</title>
-    
+
+    <!-- 1. 引入 KaTeX (数学公式) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <!-- 2. 引入 Marked (Markdown 解析) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
-        /* 基础页面和字体样式 */
+        /* --- iOS Future Dark Theme --- */
+        :root {
+            --bg-color: #000000;
+            --text-primary: #F2F2F7;
+            --text-secondary: #8E8E93;
+            --text-reading: #D1D1D6; /* 降低对比度，护眼 */
+            --accent: #0A84FF;       /* iOS Blue */
+            --glass-panel: rgba(28, 28, 30, 0.75);
+            --border-light: rgba(255, 255, 255, 0.12);
+            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            --safe-area-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
         body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-reading);
+            font-family: var(--font-stack);
             margin: 0;
             padding: 0;
+            line-height: 1.8;
+            font-size: 19px;
+            overflow-x: hidden;
         }
 
-        /* 内容容器 */
-        .markdown-body {
-            box-sizing: border-box;
-            min-width: 200px;
-            max-width: 980px;
+        /* --- Header (极简，自动隐藏) --- */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .header-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            opacity: 0.8;
+        }
+
+        /* --- Main Content --- */
+        main {
+            max-width: 700px;
             margin: 0 auto;
-            padding: 45px;
+            padding: 80px 24px 120px; /* 底部留出控制条空间 */
+            min-height: 100vh;
         }
 
-        @media (max-width: 767px) {
-            .markdown-body {
-                padding: 15px;
-            }
-        }
-
-        /* 标题样式 */
-        h1, h2, h3, h4, h5, h6 {
-            border-bottom: 1px solid #444444;
-            color: #ffffff;
-            margin-top: 24px;
-            margin-bottom: 16px;
-        }
-        h1 { font-size: 2em; }
+        /* Markdown Styles */
+        h1, h2, h3 { color: var(--text-primary); font-weight: 700; letter-spacing: -0.5px; margin-top: 2em; }
+        h1 { font-size: 2em; border-bottom: 1px solid var(--border-light); padding-bottom: 0.3em; }
         h2 { font-size: 1.5em; }
-        h3 { font-size: 1.25em; }
-        h4 { font-size: 1em; }
-        h5 { font-size: 0.875em; }
-        h6 { font-size: 0.85em; }
-
-        /* 链接和粗体 */
-        a { color: #8ab4f7; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        strong { color: #ffffff; }
-
-        /* 列表和引用 */
-        ul, ol { padding-left: 2em; }
-        blockquote {
-            border-left: 4px solid #555555;
-            color: #aaaaaa;
-            margin: 0;
-            padding: 0 1em;
-        }
-
-        /* 代码块和行内代码 */
+        p { margin-bottom: 1.5em; text-align: justify; }
+        
+        /* Math Formula Scroll */
+        .katex-display { overflow-x: auto; padding: 10px 0; }
+        
+        /* Code Blocks */
         pre {
-            background-color: #1a1a1a;
-            border-radius: 6px;
+            background: #1C1C1E;
+            border-radius: 14px;
             padding: 16px;
-            overflow: auto;
+            overflow-x: auto;
+            border: 1px solid var(--border-light);
         }
-        code {
-            background-color: #333333;
-            border-radius: 3px;
-            padding: 0.2em 0.4em;
-            font-family: 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-            color: #cccccc;
+
+        /* --- Floating Control Bar (The "Dynamic Island" Scrubber) --- */
+        .control-bar {
+            position: fixed;
+            bottom: calc(20px + var(--safe-area-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            height: 50px;
+            background: rgba(35, 35, 35, 0.85);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-radius: 25px;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 200;
+            transition: opacity 0.3s, transform 0.3s;
         }
-        pre code {
-            background-color: transparent;
-            padding: 0;
-            color: #cccccc;
+
+        /* 隐藏状态 */
+        .control-bar.hidden {
+            opacity: 0.3;
+            transform: translateX(-50%) translateY(10px) scale(0.95);
+            pointer-events: none; /* 防止误触 */
+        }
+        /* 触摸或者滚动结束时显示 */
+        .control-bar:hover, .control-bar.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        /* Custom Range Slider (Scrubber) */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            height: 100%;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* Slider Track */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            border: none;
+        }
+
+        /* Slider Thumb (Handle) */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            margin-top: -8px; /* Center text vertically */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]:active::-webkit-slider-thumb {
+            transform: scale(1.3);
+            background: var(--text-primary);
+        }
+
+        .page-info {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--text-primary);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
         }
         
-        /* KaTeX 公式样式 */
-        .katex {
-            font-size: 1.2em; /* 稍微调大一些 */
+        .control-bar:active .page-info {
+            opacity: 1;
         }
+
     </style>
 </head>
 <body>
-    <div class="markdown-body" id="markdown-container"></div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+    <header id="header">
+        <div class="header-title" id="book-title">Reading</div>
+    </header>
+
+    <main id="content">
+        <!-- 内容将被 JS 渲染到这里 -->
+    </main>
+
+    <!-- 底部控制条 -->
+    <div class="control-bar" id="control-bar">
+        <!-- 显示百分比提示 -->
+        <div class="page-info" id="page-info">0%</div>
+        <!-- 进度滑块 -->
+        <input type="range" id="scrubber" min="0" max="100" value="0" step="0.1">
+    </div>
+
+    <!-- ========================================== -->
+    <!--     请将你的 Markdown 内容粘贴在下面       -->
+    <!-- ========================================== -->
+<script id="raw-markdown" type="text/plain">
+# 第二章 初秋的网格
+九月的蝉鸣在晨雾中洇开，张舒涵站在教学楼天台的铁网前，看薄雾在操场上织出半透明的茧。她数着第三棵梧桐树摇晃的次数，直到早读铃刺破寂静——这是转学第三天，她仍在寻找融入这个时空的坐标点。
+
+## 晨光裂变（07:10-07:30）
+储物柜的金属门映出扭曲的人影。吴品秀正用马克笔在柜门内侧绘制星轨图，脚下散落着《时间简史》和半包浪味仙。当张舒涵经过时，他忽然转身举起球：” 看！流浪者三号的暗物质涂层！”
+
+足球表面的金漆在晨光中流淌，那些歪扭的螺旋纹路像被孩童揉皱的银河系。张舒涵后退半步，后背抵上冰凉的消防栓。他的运动袜一只卷到脚踝，另一只滑落鞋跟，露出晒黑与未晒黑的皮肤分界线。
+
+”昨晚我用夜光漆重涂了...” 他的解说被值周老师的呵斥截断。足球滚进女厕所的瞬间，张舒涵看见他耳后新添的擦伤正在结痂，像枚小小的月相图。
+
+## 语文课：隐喻的坍缩（08:00-08:45）
+粉笔灰在丁达尔效应中悬浮成星云。穿墨绿色旗袍的教师正在解析《荷塘月色》，她的珍珠耳坠随讲解节奏轻晃，在黑板投下颤抖的光斑。
+
+”吴同学，请赏析’泻’字的精妙之处。” 突如其来的点名惊醒了后排的涂鸦者。吴品秀蹭地站起，膝盖撞翻课桌里的《天体物理入门》，书页间飘落张画满箭头的足球战术图。
+
+”就像禁区外的电梯球”他在空中划出陡峭的抛物线，” 月光是守门员扑救的轨
+迹，荷花是前锋变向的假动作......” 全班的哄笑声中，张舒涵注意到他手背的旧伤疤正在渗血，血珠沿着掌纹流向小指。
+
+教师捏碎半截粉笔：” 放学后把课文里的通感句抄五遍。” 粉笔灰落在少年凌乱的发梢，像初雪降临荒原。
+
+## 课间：混沌初现（08:45-09:00）
+
+走廊的声浪冲刷着储物柜。吴品秀正用望远镜观察操场东南角的球门，镜筒上贴
+着” 虫洞观测站” 的便签。当张舒涵经过时，他忽然拽住她的袖口：” 帮个忙？”
+
+镜片残留着他的体温。放大二十倍的视野里，晨练的体育老师正在系鞋带，鞋带缠绕的方式酷似 DNA 双螺旋。” 记录流浪者三号的逃逸速度！” 他往她手里塞了块秒表，自己用粉笔在墙面推演轨道方程。
+
+五秒后，足球化作白光掠过镜头。张舒涵的耳膜捕捉到球网震颤的闷响，而墙面的公式正好得出 $v = \sqrt{2gh}$。他欢呼着拍打栏杆，震落的铁锈如星尘洒满她的肩头。
+
+## 体育课：动力系统（09:10-10:00）
+塑胶草皮蒸腾着刺鼻的气息。吴品秀带球突进的轨迹呈现分形特征，每个假动作都制造出新的可能性分支。张舒涵坐在梧桐树突起的根系上，看他的身影如何将经典力学与量子理论缝合——起脚时的角动量守恒，空气阻力下的混沌扰动，还有落地时激起的草屑构成的庞加莱截面。
+
+当” 流浪者三号” 第 N 次突破场域边界，朝音乐教室的玻璃幕墙飞去时，张舒涵的鞋尖无意识地在沙地上画出奇异吸引子。那个麦色身影翻越护栏的姿势，让她想起昨夜维基百科里的量子隧穿动画。
+
+## 音乐课：驻波干涉（10:10-11:00）
+立式钢琴的共鸣箱吞吐着巴赫的平均律。被放逐到打击乐组的少年，正用保温杯敲击欧冠主题曲的节奏型。教师皱眉走近时，他突然宣称：” 这是四维时空的拍子投影！”
+
+张舒涵的指尖悬在铝板琴上方，始终与他的节拍保持 $\frac{\pi}{2}$ 相位差。当《欢乐颂》的旋律响起时，她发现他随着节奏用鞋尖点地，帆布鞋侧面的涂鸦正是昨日足球上的螺旋纹样。
+
+某个瞬间，两人的目光在音符的间隙相遇。他耳后的结痂在逆光中泛着琥珀色，像枚被封存的远古昆虫。
+
+## 数学课：概率云（11:10-12:00）
+三角函数坐标系笼罩整个教室。吴品秀将练习册竖成屏风，正用荧光笔绘制英超
+夺冠概率云图。随堂测验发卷时，他突然撕下膝盖的创可贴，露出下面用圆珠笔写的 $\cos{\frac{\pi}{3}} = 0.5$。
+
+张舒涵把答题卡往过道方向偏移 3.2 厘米——这个距离刚好构成视线通道，又不触发监控的运动感知算法。她数着他橡皮落地的次数，发现每次错误选项都对应着足球史上的著名误判。
+
+第三次橡皮弹跳时，他在桌角画了个被积分符号压垮的哭脸小人。空调出风口的白噪音中，粉笔灰正缓缓沉降在他们之间的过道上。
+
+## 午休：相空间漫游（12:00-13:30）
+食堂的糖醋排骨在餐盘里进行随机游走。张舒涵在泔水桶旁拾获的校园卡上，证件照里的男孩正对镜头做鬼脸，背景里褪色的巴西国旗像宇宙微波背景辐射的残影。
+
+穿过篮球场时，她看见吴品秀用薯片袋折纸飞机，机翼上挤满潦草的洛伦兹方程。当纸飞机在吊扇制造的湍流中分岔时，她注意到他每件 T 恤的后领都绣着不同的化学符号——今天是碳-14 的标识。
+
+”伯努利原理的局限性实证！” 他对着卡在灯链上的飞机拍照，闪光灯在张舒涵的视网膜留下青色残像。归还校园卡时，她的指尖擦过他的掌心，触感像掠过带电的云层。
+
+## 英语课：语用场畸变（14:00-14:45）
+” 运动精神” 的课题讨论演变成足球裁判手势语义场分析。吴品秀用马克笔在白板画出量子化的越位线，却在解释动态判罚时突然语塞。” 就像...” 他的目光扫过教室，突然指向后排，” 就像观察者效应引起的波函数坍缩！”
+
+张舒涵站起来用 Received Pronunciation 分析视觉暂留现象，余光瞥见他在白板边
+缘画了只吞吃边线的卡通黑洞。当她提到” 视网膜成像延迟 0.1 秒” 时，他正用笔帽戳手背的结痂，血珠在麦色皮肤上凝成红移星系。
+
+教师的高跟鞋敲击着狭义相对论的节奏，粉笔灰在阳光中演绎布朗运动。
+## 课间：涌现现象（14:45-15:00）
+自动贩卖机的蓝光吞噬着硬币。吴品秀弯腰取出冰镇可乐时，后颈的汗珠沿着脊椎沟滚落，形成黎曼流形上的测地线。张舒涵的矿泉水瓶在掌心凝结露珠，气泡上升的速率与晨间足球的抛物线存在隐式关联。
+
+他们同时伸手去捡旋转的硬币。指尖相距 0.7 厘米时，预备铃撕裂空气。硬币持续旋转了 2.3 秒才倒下，朝上的菊花图案在夕照中泛着铜绿。
+## 信息技术：递归深渊（15:10-16:00）
+机房的荧光将人脸漂成青灰色。吴品秀的屏幕同时运行着足球游戏、暗物质模拟和 Steam 创意工坊。当教师走近时，他火速切换的 CAD 图纸上，足球场正在进行引力波辐射测试。
+
+突然的死机让主机发出超新星爆发般的轰鸣。张舒涵从蓝屏倒影中看见他抓狂敲
+击键盘的手背，淡青色血管如宇宙大尺度纤维状结构。重启瞬间的光污染里，两人的虹膜短暂记录下彼此的像素矩阵。
+
+”我在模拟流浪者三号的时空曲率...” 他的辩解消散在机箱风扇的嗡鸣中。张舒涵的 Python 程序正在生成曼德博集合，分形图案与他的足球轨迹惊人相似。
+## 物理实验，退相干之物（16:10-17:00）
+示波器的绿光画出量子纠缠的舞蹈。吴品秀用电磁铁吸附回形针组成 4-4-2 阵型，当讲解到洛伦兹力时突然压低声音：” 昨天的反弹轨迹...” 他在草稿纸画出多重世界解释，” 每个分叉都是平行宇宙的射门结果。”
+
+张舒涵调整信号发生器的指尖微颤，屏幕上的正弦波突然坍缩成方波。谎称设备故障时，她感觉耳后的碎发被实验台小风扇吹起——就像昨日足球掠过时的空气湍流。他试图用磁铁吸起她散落的发卡，金属与黑发形成暂时的束缚态。实验室的钟摆完成第 42 次全振动时，夕阳正将两人的影子钉在墙上。
+## 历史课：时空皱缩（17:10-18:00）
+二战地图在幕布上螺旋展开。当讲到中途岛战役的月光因素时，后排突然亮起查看潮汐表的手机微光。张舒涵的荧光笔在” 珊瑚海” 三字上晕出日冕，同时感知到抽屉里手机的震动——班级群新增了匿名文件《古航海术中的混沌理论》。
+
+抬头瞬间，她撞见他用历史书遮挡手机的侧脸。阳光穿透纸页，将睫毛的阴影投在课桌上，像加密的宇宙微波背景辐射图。
+## 黄昏：吸引子之歌（18:30-19:00）
+值日生的拖把在走廊画出潮湿的曼德博集。张舒涵返回教室取遗忘的水杯时，发现窗台多了个扭蛋机。投入印着欧拉公式的硬币，透明球体弹出用电阻丝拗成的迷你球门，底座铭刻着：
+$$\text{流浪者三号轨道矫正装置}\cdot\text{测试版 02}$$
+$$\int \vec{F}\cdot \mathrm{d}\vec{r}=\Delta E_k$$
+暮色将方程式溶解在空气里。远处足球场传来贝氏弧线的破空声，声波在空荡走廊演化成索尔维会议的低语。
+## 深夜：量子纠缠（22:45-23:30）
+台灯光锥边缘，手机屏幕突然泛起引力波般的涟漪。陌生号码传来模糊照片：某页《果壳中的宇宙》被咖啡渍晕染，空白处画着踢碎希格斯场的校服小人。紧接着是串二进制信息：
+```
+01100110 01110101 01110100 01100010 01101111 01101100 00100000 00111101
+00100000 01100011 01101111 01110011 01101101 01101111 01110011
+```
+解码后显示”football = cosmos”。张舒涵走到窗边，看见对面楼层某扇窗户泛着相同的冷光。当她举起手机拍摄虚空中不存在的暗物质晕时，闪光灯惊飞了栖在电线上的家雀。两个光点在混沌的夜色里形成暂时相干，又各自退入黑暗的视界深处。
+</script>
+    <!-- ========================================== -->
 
     <script>
-        // 设置 marked.js 的代码高亮
-        marked.setOptions({
-            highlight: function(code, lang) {
-                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                return hljs.highlight(code, { language }).value;
-            },
-            gfm: true,
-            breaks: true
-        });
-
-        // 渲染 Markdown 内容
-        function renderMarkdown(markdownContent) {
-            const container = document.getElementById('markdown-container');
+        // 1. 初始化渲染
+        document.addEventListener('DOMContentLoaded', () => {
+            const rawMd = document.getElementById('raw-markdown').textContent;
+            const contentDiv = document.getElementById('content');
             
-            // 解决行间公式问题：在 Marked.js 解析之前，先找到并处理行间公式
-            const processedMarkdown = markdownContent.replace(/\$\$(.*?)\$\$/gs, (match) => {
-                // 将行间公式包裹在一个唯一的占位符中
-                // 这里的处理是将公式内容本身作为 HTML 标签，避免 Marked.js 干扰
-                return '$$' + match.substring(2, match.length - 2).trim() + '$$';
-            });
+            // 提取标题
+            const lines = rawMd.trim().split('\n');
+            if(lines.length > 0 && lines[0].startsWith('#')) {
+                const title = lines[0].replace(/#+\s*/, '');
+                document.getElementById('book-title').innerText = title;
+                document.title = title;
+            }
 
-            // 使用 Marked.js 解析其余的 Markdown
-            container.innerHTML = marked.parse(processedMarkdown);
-            
-            // 使用 KaTeX 的 auto-render 扩展来渲染数学公式
-            renderMathInElement(container, {
+            // 解析 Markdown
+            contentDiv.innerHTML = marked.parse(rawMd);
+
+            // 渲染 MathTeX
+            renderMathInElement(contentDiv, {
                 delimiters: [
                     {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false}
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
                 ],
                 throwOnError : false
             });
+        });
+
+        // 2. 交互逻辑：进度条与滚动
+        const scrubber = document.getElementById('scrubber');
+        const controlBar = document.getElementById('control-bar');
+        const header = document.getElementById('header');
+        const pageInfo = document.getElementById('page-info');
+        let isDragging = false;
+        let scrollTimeout;
+
+        // 计算最大滚动距离
+        function getMaxScroll() {
+            return document.documentElement.scrollHeight - window.innerHeight;
         }
 
-        // 使用 fetch API 获取文件内容
-        fetch('data.md')
-        .then(response => {
-            // 检查响应是否成功
-            if (!response.ok) {
-            throw new Error('网络请求失败');
+        // 监听页面滚动 -> 更新进度条
+        window.addEventListener('scroll', () => {
+            if (!isDragging) {
+                const max = getMaxScroll();
+                const current = window.scrollY;
+                const percentage = (current / max) * 100;
+                scrubber.value = percentage;
+                updatePageInfo(percentage);
             }
-            // 将响应内容解析为文本
-            return response.text();
-        })
-        .then(markdownContent => {
-            // 将获取到的内容赋值给变量 myMarkdown
-            const myMarkdown = markdownContent;
-            console.log(myMarkdown);
-            renderMarkdown(myMarkdown);
-            // 在这里你可以对 myMarkdown 变量进行进一步操作
-        })
-        .catch(error => {
-            // 处理请求过程中可能出现的错误
-            console.error('获取文件时发生错误:', error);
+
+            // 滚动时隐藏/显示 Header 和 ControlBar
+            handleUIVisibility();
         });
+
+        // 监听进度条拖动 -> 更新页面位置
+        scrubber.addEventListener('input', (e) => {
+            isDragging = true;
+            const percentage = e.target.value;
+            const max = getMaxScroll();
+            const targetY = (percentage / 100) * max;
+            
+            window.scrollTo(0, targetY);
+            updatePageInfo(percentage);
+            
+            // 拖动时保持 UI 显示
+            showUI();
+        });
+
+        scrubber.addEventListener('change', () => {
+            isDragging = false;
+        });
+
+        // 触摸/鼠标交互优化
+        scrubber.addEventListener('touchstart', () => { isDragging = true; showUI(); });
+        scrubber.addEventListener('touchend', () => { isDragging = false; });
+
+        function updatePageInfo(val) {
+            pageInfo.innerText = Math.round(val) + "%";
+        }
+
+        // UI 自动隐藏逻辑 (沉浸式体验)
+        let lastScrollY = window.scrollY;
+        
+        function handleUIVisibility() {
+            const currentScrollY = window.scrollY;
+            
+            // 向下滚动 且 不在顶部 -> 隐藏 Header
+            if (currentScrollY > lastScrollY && currentScrollY > 50) {
+                header.style.transform = 'translateY(-100%)';
+            } else {
+                header.style.transform = 'translateY(0)';
+            }
+
+            // 滚动时让进度条半透明，停止滚动后恢复
+            controlBar.classList.add('hidden');
+            controlBar.classList.remove('active');
+            
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                controlBar.classList.remove('hidden');
+                controlBar.classList.add('active');
+            }, 600); // 停止滚动 0.6秒后显示控制条
+
+            lastScrollY = currentScrollY;
+        }
+
+        function showUI() {
+            controlBar.classList.remove('hidden');
+            controlBar.classList.add('active');
+            header.style.transform = 'translateY(0)';
+            clearTimeout(scrollTimeout);
+        }
+
+        // 点击页面任意位置唤醒 UI
+        document.addEventListener('click', (e) => {
+            // 如果点击的不是控制条本身
+            if (!e.target.closest('.control-bar')) {
+                showUI();
+            }
+        });
+
     </script>
 </body>
 </html>
-                        </body>
-                        </html>
-                    
