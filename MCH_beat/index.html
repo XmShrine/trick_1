@@ -2,35 +2,99 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>砸一砸 MCH 😋</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MCH 暴打模拟器</title>
     <style>
+        :root {
+            --primary-color: #ff4757;
+            --secondary-color: #2f3542;
+            --bg-color: #f1f2f6;
+            --card-bg: #ffffff;
+        }
+
         body {
             touch-action: manipulation;
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #ffffff 0%, #f6fff0 100%);
-            font-family: 'Arial', sans-serif;
+            padding: 0;
+            background: radial-gradient(circle at center, #dfe4ea 0%, #ced6e0 100%);
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             min-height: 100vh;
-            color: rgb(0, 0, 0);
+            overflow: hidden; /* 防止震动出现滚动条 */
+            user-select: none; /* 防止双击选中文字 */
+            -webkit-user-select: none;
         }
 
-        .game-container {
+        /* 屏幕震动容器 */
+        #game-shaker {
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            transition: transform 0.05s;
+        }
+
+        .title {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+            letter-spacing: 2px;
+            z-index: 10;
+        }
+
+        .stats-board {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 40px;
+            z-index: 10;
+        }
+
+        .stat-box {
+            background: var(--card-bg);
+            padding: 10px 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            border-bottom: 4px solid #eccc68;
+            min-width: 100px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #747d8c;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--secondary-color);
+        }
+
+        #comboCount {
+            color: var(--primary-color);
+        }
+
+        .game-area {
             position: relative;
-            margin-top: 50px;
+            cursor: pointer;
+            /* 增大点击区域 */
+            padding: 20px; 
         }
 
         .person-container {
             position: relative;
-            width: 300px;
-            height: 300px;
-            margin: 50px 0;
+            width: 280px;
+            height: 280px;
+            transition: transform 0.1s;
         }
 
         .person {
@@ -38,181 +102,299 @@
             height: 100%;
             border-radius: 50%;
             object-fit: cover;
-            border: 5px solid white;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            transition: all 0.1s ease;
+            border: 8px solid white;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            background-color: #fff;
+            position: relative;
+            z-index: 1;
+            transition: filter 0.1s;
         }
 
+        /* 受击状态 */
         .person.hit {
-            transform: scale(0.9) translateY(8px);
-            filter: brightness(0.6) saturate(1.5) hue-rotate(10deg);
-            box-shadow: 0 8px 25px rgba(255,0,0,0.4);
-            transition: all 0.1s ease-out;
+            filter: brightness(0.7) sepia(0.5) hue-rotate(-30deg) saturate(2);
+            border-color: #ff6b81;
         }
 
-        .person.shaking {
-            animation: shake 0.2s ease-in-out;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0) scale(0.9) translateY(8px); }
-            25% { transform: translateX(-3px) scale(0.9) translateY(8px); }
-            75% { transform: translateX(3px) scale(0.9) translateY(8px); }
-        }
-
+        /* 锤子 */
         .hammer {
             position: absolute;
-            top: -80px;
-            left: 50%;
-            transform: translateX(-50%) rotate(-10deg);
-            font-size: 60px;
-            transform-origin: 80% 100%;
-            filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.3));
-            transition: all 0.15s ease-out;
+            top: -60px;
+            right: -40px;
+            width: 180px; /* 调整锤子大小 */
+            height: auto;
+            z-index: 5;
+            transform-origin: 100% 100%; /* 以右下角为轴心 */
+            transform: rotate(10deg);
+            pointer-events: none;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(5px 10px 10px rgba(0,0,0,0.3));
         }
 
+        /* 锤子打击动画 */
         .hammer.smash {
-            top: 30px;
-            transform: translateX(-50%) rotate(45deg) scale(1.1);
-            transition: all 0.1s ease-in;
+            transform: rotate(-60deg) scale(0.9);
+            transition: transform 0.05s ease-in;
         }
 
-        .counter {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 20px 40px;
-            border-radius: 50px;
+        /* 浮动伤害文字 */
+        .floating-text {
+            position: absolute;
+            font-weight: 900;
             font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: var(--primary-color);
+            pointer-events: none;
+            text-shadow: 2px 2px 0 #fff, -1px -1px 0 #fff;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 20;
+            white-space: nowrap;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            20% { transform: translate(-50%, -100%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -250%) scale(1); opacity: 0; }
+        }
+
+        /* 闪光层 */
+        .flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 99;
+            transition: opacity 0.05s;
         }
 
         .click-btn {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            margin-top: 50px;
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
             color: white;
             border: none;
-            padding: 20px 60px;
-            font-size: 28px;
-            font-weight: bold;
+            padding: 18px 80px;
+            font-size: 24px;
+            font-weight: 800;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 8px 25px rgba(238, 90, 36, 0.4);
-            transition: all 0.2s ease;
-            margin-top: 50px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .click-btn:hover {
-            background: linear-gradient(45deg, #ff5252, #d84315);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(238, 90, 36, 0.6);
+            box-shadow: 0 10px 25px rgba(255, 71, 87, 0.4);
+            transition: all 0.1s;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
         }
 
         .click-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 5px 15px rgba(238, 90, 36, 0.4);
+            transform: scale(0.95);
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3);
         }
 
-        .title {
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-align: center;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .impact-effect {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,255,0,0.9) 0%, rgba(255,100,0,0.6) 30%, transparent 70%);
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .impact-effect.show {
-            animation: impact 0.25s ease-out;
-        }
-
-        @keyframes impact {
-            0% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(0.3);
-            }
-            50% {
-                opacity: 0.8;
-                transform: translate(-50%, -50%) scale(1.2);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(2.5);
-            }
+        /* 提示语 */
+        .hint {
+            margin-top: 15px;
+            color: #a4b0be;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <div class="title">砸一砸 MCH 😋</div>
-    
-    <div class="counter">
-        被砸了 <span id="clickCount">0</span> 次
-    </div>
 
-    <div class="game-container">
-        <div class="person-container">
-            <img src="osou.png" class="hammer" id="hammer">
-            <img src="sour.JPG" 
-                 alt="Person" class="person" id="person">
-            <div class="impact-effect" id="impactEffect"></div>
+    <div class="flash-overlay" id="flash"></div>
+
+    <div id="game-shaker">
+        <div class="title">💥 砸一砸 MCH 💥</div>
+        
+        <div class="stats-board">
+            <div class="stat-box">
+                <div class="stat-label">总被砸次数</div>
+                <div class="stat-value" id="totalCount">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">当前连击</div>
+                <div class="stat-value" id="comboCount">0</div>
+            </div>
         </div>
-    </div>
 
-    <button class="click-btn" id="clickBtn" onclick="smash()">使劲砸</button>
+        <div class="game-area" id="hitArea" onclick="handleSmash(event)">
+            <div class="person-container" id="personContainer">
+                <!-- 这里的 osou.png 和 sour.JPG 是你的原文件名 -->
+                <img src="osou.png" class="hammer" id="hammer" alt="Hammer">
+                <img src="sour.JPG" class="person" id="person" alt="Target">
+            </div>
+        </div>
+
+        <button class="click-btn" onclick="handleSmash(event, true)">使劲砸!</button>
+        <div class="hint">提示: 点击图片、按钮或按空格键均可</div>
+    </div>
 
     <script>
-        let clickCount = 0;
+        // --- 游戏状态 ---
+        let totalCount = parseInt(localStorage.getItem('mch_smash_count')) || 0;
+        let comboCount = 0;
+        let comboTimer = null;
         
-        function smash() {
-            clickCount++;
-            document.getElementById('clickCount').textContent = clickCount;
-            
-            const hammer = document.getElementById('hammer');
-            const person = document.getElementById('person');
-            const impactEffect = document.getElementById('impactEffect');
-            
-            // 锤子砸下动画 - 先快速砸下
-            hammer.classList.add('smash');
-            
-            // 延迟添加人物反馈效果，模拟撞击时机
-            setTimeout(() => {
-                person.classList.add('hit');
-                person.classList.add('shaking');
-                impactEffect.classList.add('show');
-            }, 80);
-            
-            // 复位动画
-            setTimeout(() => {
-                hammer.classList.remove('smash');
-            }, 150);
-            
-            setTimeout(() => {
-                person.classList.remove('hit');
-                person.classList.remove('shaking');
-                impactEffect.classList.remove('show');
-            }, 300);
+        // DOM 元素
+        const els = {
+            total: document.getElementById('totalCount'),
+            combo: document.getElementById('comboCount'),
+            hammer: document.getElementById('hammer'),
+            person: document.getElementById('person'),
+            container: document.getElementById('personContainer'),
+            shaker: document.getElementById('game-shaker'),
+            flash: document.getElementById('flash'),
+            area: document.getElementById('hitArea')
+        };
+
+        // 初始化显示
+        els.total.textContent = totalCount;
+
+        // --- 核心逻辑 ---
+        function handleSmash(e, fromButton = false) {
+            // 防止事件冒泡导致触发两次
+            if(e) e.stopPropagation();
+
+            updateStats();
+            playAudio();
+            visualEffects(e, fromButton);
         }
 
-        // 添加一些趣味音效提示
-        function playSound() {
-            // 如果需要音效，可以在这里添加
-            console.log('砸！次数:', clickCount);
+        function updateStats() {
+            totalCount++;
+            comboCount++;
+            
+            // 更新 UI
+            els.total.textContent = totalCount;
+            els.combo.textContent = comboCount;
+            
+            // 本地存储
+            localStorage.setItem('mch_smash_count', totalCount);
+
+            // 连击重置逻辑
+            clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                comboCount = 0;
+                els.combo.textContent = 0;
+            }, 1000); // 1秒不点连击中断
         }
+
+        function visualEffects(e, fromButton) {
+            // 1. 锤子动画 (先复位再添加class，保证每次都能触发)
+            els.hammer.classList.remove('smash');
+            void els.hammer.offsetWidth; // 强制重绘
+            els.hammer.classList.add('smash');
+
+            // 2. 人物受击动画 (随机位移和旋转)
+            const randomX = (Math.random() - 0.5) * 30;
+            const randomY = (Math.random() - 0.5) * 30;
+            const randomRot = (Math.random() - 0.5) * 20;
+            
+            els.person.classList.add('hit');
+            els.container.style.transform = `translate(${randomX}px, ${randomY + 10}px) rotate(${randomRot}deg) scale(0.95)`;
+
+            // 3. 屏幕震动
+            els.shaker.style.transform = `translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`;
+
+            // 4. 闪白
+            els.flash.style.opacity = '0.3';
+
+            // 5. 浮动文字
+            // 如果是按钮点击，位置在图片中心；如果是点击图片，位置在鼠标位置
+            let x, y;
+            if (fromButton || !e || e.type === 'keydown') {
+                const rect = els.container.getBoundingClientRect();
+                x = rect.left + rect.width / 2;
+                y = rect.top + rect.height / 2;
+            } else {
+                x = e.clientX;
+                y = e.clientY;
+            }
+            createFloatingText(x, y);
+
+            // --- 恢复 ---
+            setTimeout(() => {
+                els.person.classList.remove('hit');
+                els.container.style.transform = 'translate(0, 0) rotate(0) scale(1)';
+                els.shaker.style.transform = 'translate(0, 0)';
+                els.flash.style.opacity = '0';
+            }, 100);
+        }
+
+        // --- 浮动文字系统 ---
+        const texts = ["BONK!", "SMASH!", "痛!", "啊!", "CRIT!", "BANG!"];
+        const colors = ["#ff4757", "#2ed573", "#ffa502", "#1e90ff"];
+
+        function createFloatingText(x, y) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            
+            // 随机文字和颜色
+            const text = texts[Math.floor(Math.random() * texts.length)];
+            el.textContent = comboCount > 5 ? `${text} x${comboCount}` : text;
+            el.style.color = colors[Math.floor(Math.random() * colors.length)];
+            
+            // 随机微小偏移
+            const offsetX = (Math.random() - 0.5) * 40;
+            el.style.left = `${x + offsetX}px`;
+            el.style.top = `${y}px`;
+            
+            // 字体大小随连击变大
+            const scale = Math.min(1.5, 1 + comboCount * 0.05);
+            el.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
+            document.body.appendChild(el);
+
+            // 动画结束后删除
+            setTimeout(() => {
+                el.remove();
+            }, 800);
+        }
+
+        // --- 简易合成音效系统 (不需要mp3文件) ---
+        // 使用 Web Audio API 生成类似 "咚" 的打击声
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playAudio() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            // 随机音高，让打击感不单调
+            const randomPitch = 100 + Math.random() * 50; 
+            
+            oscillator.type = 'square'; // 方波声音更有打击感 (8-bit风格)
+            // 也可以改成 'sine' (圆润) 或 'sawtooth' (尖锐)
+            
+            oscillator.frequency.setValueAtTime(randomPitch, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.15);
+        }
+
+        // --- 键盘支持 ---
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                e.preventDefault(); // 防止滚动
+                handleSmash(e, true);
+                // 给按钮加一个按下的效果
+                document.querySelector('.click-btn').style.transform = 'scale(0.95)';
+                setTimeout(() => document.querySelector('.click-btn').style.transform = '', 100);
+            }
+        });
+
     </script>
 </body>
 </html>
