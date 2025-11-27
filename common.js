@@ -26,8 +26,7 @@ function injectModalHTML() {
             <input type="" 
                    id="passwordInput" 
                    class="pass-input" 
-                   placeholder="请输入密码" 
-                   inputmode="numeric" 
+                   placeholder="请输入密码"  
                    name="access_token_field"
                    autocomplete="off"
                    readonly
