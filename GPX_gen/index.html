@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Elegant GPX Creator</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        :root {
+            --primary-color: #007AFF;
+            --danger-color: #FF3B30;
+            --success-color: #34C759;
+            --text-color: #1d1d1f;
+            --panel-bg: rgba(255, 255, 255, 0.85);
+            --input-bg: rgba(0, 0, 0, 0.05);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12);
+            --radius: 16px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --text-color: #f5f5f7;
+                --panel-bg: rgba(30, 30, 30, 0.85);
+                --input-bg: rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif; overflow: hidden; }
+
+        /* Map Layer */
+        #map { height: 100%; width: 100%; z-index: 1; }
+
+        /* Floating Control Panel */
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        /* Minimized State for Mobile */
+        .control-panel.minimized {
+            transform: translateY(calc(100% - 60px));
+        }
+
+        h2 { margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: var(--text-color); letter-spacing: -0.5px; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-row { display: flex; gap: 10px; }
+        
+        label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-color); opacity: 0.6; }
+        
+        input {
+            background: var(--input-bg);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-color);
+            font-size: 14px;
+            width: 100%;
+            outline: none;
+            transition: box-shadow 0.2s;
+            box-sizing: border-box;
+        }
+        
+        input:focus { box-shadow: 0 0 0 2px var(--primary-color); }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 8px; }
+        
+        button {
+            flex: 1;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        
+        button:active { transform: scale(0.98); opacity: 0.8; }
+        
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-danger { background: rgba(255, 59, 48, 0.15); color: var(--danger-color); }
+        .btn-secondary { background: var(--input-bg); color: var(--text-color); }
+        .btn-success { background: var(--success-color); color: white; }
+
+        .stats { font-size: 13px; color: var(--text-color); opacity: 0.8; margin-top: 4px; display: flex; justify-content: space-between;}
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .control-panel {
+                top: auto; bottom: 0; left: 0; right: 0;
+                width: auto;
+                border-radius: 20px 20px 0 0;
+                padding-bottom: 40px; /* Safe area */
+            }
+        }
+        
+        /* Loading Overlay */
+        #loader {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.3); z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-weight: 600;
+            backdrop-filter: blur(5px);
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        #loader.show { opacity: 1; pointer-events: all; }
+
+    </style>
+</head>
+<body>
+
+<!-- Map Container -->
+<div id="map"></div>
+
+<!-- UI Panel -->
+<div class="control-panel">
+    <h2>轨迹生成器</h2>
+    
+    <div class="input-group">
+        <label>移动速度 (km/h)</label>
+        <input type="number" id="speed" value="60" placeholder="例如 60">
+    </div>
+
+    <div class="input-group">
+        <label>坐标偏移 (Lat / Lon)</label>
+        <div class="input-row">
+            <input type="number" id="offsetLat" placeholder="纬度偏移" step="any" value="0">
+            <input type="number" id="offsetLon" placeholder="经度偏移" step="any" value="0">
+        </div>
+    </div>
+
+    <div class="stats">
+        <span id="pointCount">节点: 0</span>
+        <span id="totalDist">距离: 0 km</span>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn-secondary" onclick="undoLast()">撤销</button>
+        <button class="btn-danger" onclick="clearMap()">清空</button>
+    </div>
+    
+    <div class="btn-row">
+        <button class="btn-success" onclick="copyGPX()">复制</button>
+        <button class="btn-primary" onclick="downloadGPX()">下载 GPX</button>
+    </div>
+</div>
+
+<!-- Loader -->
+<div id="loader">处理中...</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+    // 1. 初始化地图
+    // 默认定位到北京，实际使用可改为自动定位
+    const map = L.map('map', { zoomControl: false }).setView([39.9042, 116.4074], 13);
+    
+    // 使用 OpenStreetMap 高清瓦片
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(map);
+
+    // 将缩放控件移到右上角，避免遮挡面板
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // 2. 状态管理
+    let waypoints = []; // 存储用户点击的原始坐标点
+    let polyline = null; // 地图上的连线对象
+    let markers = []; // 地图上的点标记
+
+    // 3. 地图交互
+    map.on('click', function(e) {
+        addPoint(e.latlng);
+    });
+
+    function addPoint(latlng) {
+        waypoints.push(latlng);
+        
+        // 添加标记
+        const marker = L.circleMarker(latlng, {
+            radius: 6,
+            fillColor: "#007AFF",
+            color: "#fff",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 1
+        }).addTo(map);
+        markers.push(marker);
+
+        // 绘制/更新线条
+        drawPath();
+        updateStats();
+    }
+
+    function drawPath() {
+        if (polyline) {
+            map.removeLayer(polyline);
+        }
+        if (waypoints.length > 0) {
+            polyline = L.polyline(waypoints, {
+                color: '#007AFF',
+                weight: 4,
+                opacity: 0.7,
+                smoothFactor: 1
+            }).addTo(map);
+        }
+    }
+
+    function undoLast() {
+        if (waypoints.length === 0) return;
+        waypoints.pop();
+        map.removeLayer(markers.pop());
+        drawPath();
+        updateStats();
+    }
+
+    function clearMap() {
+        waypoints = [];
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+        if (polyline) map.removeLayer(polyline);
+        polyline = null;
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('pointCount').innerText = `关键点: ${waypoints.length}`;
+        let dist = 0;
+        for (let i = 0; i < waypoints.length - 1; i++) {
+            dist += waypoints[i].distanceTo(waypoints[i+1]);
+        }
+        document.getElementById('totalDist').innerText = `距离: ${(dist / 1000).toFixed(2)} km`;
+    }
+
+    // 4. 核心算法：生成 GPX
+    function generateGPXContent() {
+        if (waypoints.length < 2) {
+            alert("请至少在地图上绘制两个点");
+            return null;
+        }
+
+        const speedKmH = parseFloat(document.getElementById('speed').value) || 60;
+        const speedMS = speedKmH / 3.6; // 转换为 米/秒
+        
+        const offsetLat = parseFloat(document.getElementById('offsetLat').value) || 0;
+        const offsetLon = parseFloat(document.getElementById('offsetLon').value) || 0;
+
+        let gpxBody = '';
+        let currentTime = new Date(); // 起始时间
+        
+        // 模拟时间步长（秒）- 为了平滑，我们假设每1秒生成一个点
+        const timeStep = 1; 
+
+        // 遍历每一段路径
+        for (let i = 0; i < waypoints.length - 1; i++) {
+            const p1 = waypoints[i];
+            const p2 = waypoints[i+1];
+            
+            const dist = p1.distanceTo(p2); // 米
+            const duration = dist / speedMS; // 该段路程需要的总秒数
+            const steps = Math.ceil(duration / timeStep); // 需要插入多少个点
+
+            for (let step = 0; step <= steps; step++) {
+                // 计算当前插值比例 (0 到 1)
+                const t = step / steps;
+                
+                // 线性插值计算坐标
+                const lat = p1.lat + (p2.lat - p1.lat) * t;
+                const lng = p1.lng + (p2.lng - p1.lng) * t;
+
+                // 应用偏移量
+                const finalLat = lat + offsetLat;
+                const finalLon = lng + offsetLon;
+                
+                // 时间推移
+                // 注意：这里我们只在第一段的起点写入时间，后续累加。
+                // 如果是最后一段的最后一点，循环会覆盖到下一段的起点，需去重。
+                // 简单处理：除了最后一个总点，其他段不包含终点（由下一段起点覆盖），
+                // 但为了简单和连贯，我们在这里生成所有点，虽然会有微小重叠通常不影响模拟。
+                // 更严谨的做法是只在最后一段包含 step == steps。
+                
+                if (i < waypoints.length - 2 && step === steps) continue; 
+
+                // 格式化时间 ISO 8601
+                const timeString = currentTime.toISOString(); 
+
+                gpxBody += `    <wpt lat="${finalLat.toFixed(8)}" lon="${finalLon.toFixed(8)}">\n`;
+                gpxBody += `        <name>SIM-${i}-${step}</name>\n`;
+                // Xcode 读取顺序点，时间标签可选，加上更逼真
+                // gpxBody += `        <time>${timeString}</time>\n`; 
+                gpxBody += `    </wpt>\n`;
+
+                // 增加时间
+                currentTime.setSeconds(currentTime.getSeconds() + timeStep);
+            }
+        }
+
+        return `<?xml version="1.0"?>
+<gpx version="1.1" creator="ElegantGPX">
+    <!-- 
+    Speed: ${speedKmH} km/h
+    Offset: Lat ${offsetLat}, Lon ${offsetLon}
+    -->
+${gpxBody}
+</gpx>`;
+    }
+
+    // 5. 导出功能
+    function downloadGPX() {
+        showLoader();
+        setTimeout(() => {
+            const content = generateGPXContent();
+            if (!content) { hideLoader(); return; }
+
+            const blob = new Blob([content], { type: "application/gpx+xml" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `route_${new Date().getTime()}.gpx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            hideLoader();
+        }, 300);
+    }
+
+    function copyGPX() {
+        const content = generateGPXContent();
+        if (!content) return;
+
+        navigator.clipboard.writeText(content).then(() => {
+            const btn = document.querySelector('.btn-success');
+            const originalText = btn.innerText;
+            btn.innerText = "已复制";
+            setTimeout(() => btn.innerText = originalText, 2000);
+        }).catch(err => {
+            alert("复制失败: " + err);
+        });
+    }
+
+    function showLoader() { document.getElementById('loader').classList.add('show'); }
+    function hideLoader() { document.getElementById('loader').classList.remove('show'); }
+
+</script>
+</body>
+</html>
