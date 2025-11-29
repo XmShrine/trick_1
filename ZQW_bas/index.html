@@ -2,225 +2,426 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我不会贝斯</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>我不会弹贝斯</title>
     <style>
+        :root {
+            --bg-wood: #2a231d;
+            --bg-metal: #1a1a1a;
+            --led-off: #333;
+            --led-on: #00ff00;
+        }
+
         body {
-            touch-action: manipulation;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f5f5f7; /* 设置网页背景色为浅灰色 */
+            /* 允许横向滚动(仅在手机端指板区域生效)，禁止缩放 */
+            touch-action: pan-x pan-y; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-wood);
+            /* 深色木纹背景 */
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
             margin: 0;
-            padding: 0;
+            padding: 20px 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            color: #ddd;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        .header {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
+        /* --- 启动遮罩 --- */
+        #start-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            backdrop-filter: blur(8px); cursor: pointer;
         }
-
-        #toggleButton {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: #e5e5e5;
-            border: none;
-            cursor: pointer;
-            outline: none;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        #start-btn {
+            padding: 20px 60px; font-size: 24px;
+            background: #cfaa6e; color: #2a231d;
+            border: 2px solid #fff; border-radius: 8px; font-weight: bold;
+            box-shadow: 0 0 30px #cfaa6e; animation: pulse 1.5s infinite;
         }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
-        #toggleButton.active {
-            background-color: #007aff;
+        /* --- 顶部面板: Amp Head --- */
+        .amp-head {
+            width: 95%; max-width: 1000px;
+            background: var(--bg-metal);
+            border: 4px solid #444; border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; position: relative;
+            background-image: linear-gradient(180deg, #222 0%, #111 100%);
         }
+        /* 装饰螺丝 */
+        .amp-head::after { content: "+"; position: absolute; top: 5px; right: 5px; color: #555; font-size: 20px; }
+        .amp-head::before { content: "+"; position: absolute; top: 5px; left: 5px; color: #555; font-size: 20px; }
 
-        #toggleButton .icon {
-            width: 20px;
-            height: 20px;
-            background-color: #666;
-            border-radius: 50%;
-            transition: background-color 0.3s ease;
+        .source-img-frame {
+            height: 100px; width: 100px;
+            border: 3px solid #666; border-radius: 4px;
+            background-color: #d0d0d0;
+            background-image: radial-gradient(#b0b0b0 15%, transparent 16%);
+            background-size: 4px 4px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; position: relative;
+            transition: border-color 0.1s, box-shadow 0.1s;
         }
-
-        #toggleButton.active .icon {
-            background-color: #fff;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-            padding: 20px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .image-container {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 50px 0;
+        .source-img-frame.active {
+            border-color: #fff; box-shadow: 0 0 20px rgba(255, 255, 255, 0.6), inset 0 0 5px rgba(0,0,0,0.5);
         }
 
         .main-image {
-            max-width: 50%; /* 将图片的最大宽度设置为容器的 50% */
-            height: auto;
-            display: block;
+            max-width: 90%; max-height: 90%; object-fit: contain;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); transform-origin: center bottom; will-change: transform;
+        }
+        @keyframes speaker-beat {
+            0% { transform: scale(1); } 15% { transform: scale(1.15) translateY(-2px); } 100% { transform: scale(1); }
+        }
+        .main-image.thumping { animation: speaker-beat 0.12s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        .switch-container { display: flex; flex-direction: column; align-items: center; margin-right: 10px; }
+        .switch-label {
+            font-size: 10px; font-weight: bold; color: #aaa; text-transform: uppercase; margin-bottom: 5px;
+            background: #000; padding: 2px 4px; border: 1px solid #333;
+        }
+        .metal-switch {
+            appearance: none; width: 40px; height: 60px; background: #111; border-radius: 4px; position: relative; cursor: pointer;
+            box-shadow: inset 0 0 5px #000; border: 2px solid #555;
+        }
+        .metal-switch::after {
+            content: ""; position: absolute; width: 32px; height: 26px;
+            background: linear-gradient(to bottom, #ddd, #999, #666); border-radius: 2px; left: 2px; top: 2px;
+            transition: top 0.15s; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .metal-switch:checked::after { top: 28px; background: linear-gradient(to bottom, #999, #666, #444); }
+        .led-indicator {
+            width: 8px; height: 8px; border-radius: 50%; background-color: var(--led-off);
+            margin-top: 8px; box-shadow: inset 0 0 2px #000; border: 1px solid #000; transition: 0.2s;
+        }
+        .led-indicator.on { background-color: #00bfff; box-shadow: 0 0 8px #00bfff; }
+
+        /* ========================================= */
+        /*  指板区域 - 响应式核心 CSS                */
+        /* ========================================= */
+        
+        .fretboard-container {
+            background: #25201b;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative;
+            border: 4px solid #111;
+            /* 玫瑰木指板纹理 */
+            background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 15px);
         }
 
         .button-group {
-            width: 100%;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 20px;
-            gap: 10px; /* 按钮之间的间距 */
+            position: relative; z-index: 1;
         }
 
-        .apple-button {
-            flex-grow: 1;
-            padding: 15px 25px;
-            border-radius: 12px;
-            border: none;
-            color: #fff;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-align: center;
-            min-width: 100px;
-        }
-
-        .apple-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        .string-column {
+            display: flex; flex-direction: column; gap: 15px; align-items: center; 
+            position: relative; padding: 15px 5px;
+            background: rgba(0,0,0,0.2); 
         }
         
-        .btn-blue { background-color: #007aff; }
-        .btn-green { background-color: #34c759; }
-        .btn-red { background-color: #ff3b30; }
-        .btn-purple { background-color: #af52de; }
-        .btn-yellow { background-color: #d6bd00; }
-        .btn-black { background-color: #000000; }
-        .btn-grey { background-color: #818181; }
+        /* 模拟琴弦 (贯穿线条) */
+        .string-column::before {
+            content: ''; position: absolute; top: 0; bottom: 0; width: 3px; /* 琴弦粗细 */
+            background: linear-gradient(to right, #666, #ddd, #555); /* 金属光泽 */
+            z-index: -1; box-shadow: 1px 0 4px rgba(0,0,0,0.9);
+        }
+
+        /* 按钮样式 */
+        .bass-btn {
+            width: 55px; height: 55px;
+            border-radius: 50%; border: none;
+            color: #fff; font-size: 16px; font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 5px 8px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.3);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            background-color: #333;
+            -webkit-touch-callout: none;
+            transition: transform 0.05s;
+        }
+        .bass-btn:active { transform: scale(0.9); box-shadow: inset 0 5px 10px rgba(0,0,0,0.7); }
+
+        /* ---------------------------------- */
+        /*  💻 电脑端 / 宽屏模式 (默认样式)    */
+        /* ---------------------------------- */
+        @media (min-width: 769px) {
+            .fretboard-container {
+                width: 95%; max-width: 1000px; /* 限制最大宽度 */
+                border-radius: 10px;
+                padding: 20px;
+                margin: 0 auto; /* 居中 */
+            }
+
+            .button-group {
+                display: grid;
+                /* 7根琴弦并排，自动平分宽度 */
+                grid-template-columns: repeat(7, 1fr); 
+                gap: 20px;
+            }
+
+            .string-column {
+                border-radius: 50px; /* 电脑上做成细长的指板条 */
+            }
+        }
+
+        /* ---------------------------------- */
+        /*  📱 手机端 / 窄屏模式 (< 768px)    */
+        /* ---------------------------------- */
+        @media (max-width: 768px) {
+            .fretboard-container {
+                width: 100%;
+                border-left: none; border-right: none;
+                padding: 10px 0;
+                
+                /* 启用横向滚动 */
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .fretboard-container::-webkit-scrollbar { display: none; }
+
+            .button-group {
+                display: flex; /* 改为 Flex，横向排列 */
+                width: max-content; /* 宽度由内容撑开 */
+                gap: 10px;
+                padding: 0 15px;
+            }
+
+            .string-column {
+                min-width: 65px; /* 保证每列不被压缩 */
+                border-radius: 8px;
+            }
+            
+            .amp-head {
+                width: 100%; border-radius: 0; border-left: none; border-right: none;
+            }
+            
+            .metal-switch { height: 50px; }
+            .source-img-frame { width: 80px; height: 80px; }
+        }
+
+        /* 按钮颜色 */
+        .btn-blue { background: radial-gradient(circle at 30% 30%, #007aff, #005bb5); border: 2px solid #005bb5; }
+        .btn-green { background: radial-gradient(circle at 30% 30%, #34c759, #248a3d); border: 2px solid #248a3d; }
+        .btn-red { background: radial-gradient(circle at 30% 30%, #ff3b30, #b02a22); border: 2px solid #b02a22; }
+        .btn-yellow { background: radial-gradient(circle at 30% 30%, #ffcc00, #b28f00); border: 2px solid #b28f00; color: #222; text-shadow:none; }
+        .btn-purple { background: radial-gradient(circle at 30% 30%, #af52de, #7a399b); border: 2px solid #7a399b; }
+        .btn-black { background: radial-gradient(circle at 30% 30%, #444, #111); border: 2px solid #000; }
+        .btn-grey { background: radial-gradient(circle at 30% 30%, #8e8e93, #636366); border: 2px solid #48484a; }
+
+        /* 加载条 */
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 4px; z-index: 2000; }
+        #progress-bar { height: 100%; width: 0%; background: #00ff00; box-shadow: 0 0 10px #00ff00; transition: width 0.1s; }
+        #status-text { position: fixed; bottom: 5px; right: 5px; color: #666; font-family: monospace; font-size: 10px; z-index: 1000; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <button id="toggleButton" aria-label="Toggle Stop">
-            <div class="icon"></div>
-        </button>
+
+    <div id="start-overlay" onclick="startAudioEngine()">
+        <div id="start-btn">CONNECT</div>
+        <p style="color:#aaa; margin-top:20px; font-size:14px;">Tap to Initialize Amp</p>
     </div>
 
-    <div class="container">
-        <div class="image-container">
-            <img class="main-image" src="source.png" alt="Main Image">
+    <div id="loading-overlay"><div id="progress-bar"></div></div>
+    <div id="status-text">Standby</div>
+
+    <div class="amp-head">
+        <div class="source-img-frame" id="speakerFrame">
+            <img class="main-image" id="speakerCone" src="source.png" alt="Bass">
         </div>
-
-        <div class="button-group" id="button-group">
-            <button class="apple-button btn-blue" onclick="generate('e1')">E1</button>
-            <button class="apple-button btn-blue" onclick="generate('e2')">E2</button>
-            <button class="apple-button btn-blue" onclick="generate('e3')">E3</button>
-            <button class="apple-button btn-blue" onclick="generate('e4')">E4</button>
-
-            <button class="apple-button btn-green" onclick="generate('f1')">F1</button>
-            <button class="apple-button btn-green" onclick="generate('f2')">F2</button>
-            <button class="apple-button btn-green" onclick="generate('f3')">F3</button>
-            <button class="apple-button btn-green" onclick="generate('f4')">F4</button>
-
-            <button class="apple-button btn-red" onclick="generate('d2')">D2</button>
-            <button class="apple-button btn-red" onclick="generate('d3')">D3</button>
-            <button class="apple-button btn-red" onclick="generate('d4')">D4</button>
-
-            <button class="apple-button btn-yellow" onclick="generate('c2')">C2</button>
-            <button class="apple-button btn-yellow" onclick="generate('c3')">C3</button>
-            <button class="apple-button btn-yellow" onclick="generate('c4')">C4</button>
-
-            <button class="apple-button btn-purple" onclick="generate('b1')">B1</button>
-            <button class="apple-button btn-purple" onclick="generate('b2')">B2</button>
-            <button class="apple-button btn-purple" onclick="generate('b3')">B3</button>
-
-            <button class="apple-button btn-black" onclick="generate('g1')">G1</button>
-            <button class="apple-button btn-black" onclick="generate('g2')">G2</button>
-            <button class="apple-button btn-black" onclick="generate('g3')">G3</button>
-
-            <button class="apple-button btn-grey" onclick="generate('a1')">A1</button>
-            <button class="apple-button btn-grey" onclick="generate('a2')">A2</button>
-            <button class="apple-button btn-grey" onclick="generate('a3')">A3</button>
+        
+        <div class="switch-container">
+            <div class="switch-label">Mute</div>
+            <input type="checkbox" id="stopToggle" class="metal-switch">
+            <div id="stopLed" class="led-indicator"></div>
         </div>
     </div>
-    <script type="text/javascript" src="../playAudio.js"></script>
-    <script type="text/javascript" src="../webLogger.js"></script>
+
+    <div class="fretboard-container">
+        <div class="button-group">
+            <!-- 电脑端自动网格排列，手机端自动横向排列 -->
+            <div class="string-column">
+                <button class="bass-btn btn-blue" onpointerdown="playNote('e1')">E1</button>
+                <button class="bass-btn btn-blue" onpointerdown="playNote('e2')">E2</button>
+                <button class="bass-btn btn-blue" onpointerdown="playNote('e3')">E3</button>
+                <button class="bass-btn btn-blue" onpointerdown="playNote('e4')">E4</button>
+            </div>
+            <div class="string-column">
+                <button class="bass-btn btn-green" onpointerdown="playNote('f1')">F1</button>
+                <button class="bass-btn btn-green" onpointerdown="playNote('f2')">F2</button>
+                <button class="bass-btn btn-green" onpointerdown="playNote('f3')">F3</button>
+                <button class="bass-btn btn-green" onpointerdown="playNote('f4')">F4</button>
+            </div>
+            <div class="string-column">
+                <button class="bass-btn btn-black" onpointerdown="playNote('g1')">G1</button>
+                <button class="bass-btn btn-black" onpointerdown="playNote('g2')">G2</button>
+                <button class="bass-btn btn-black" onpointerdown="playNote('g3')">G3</button>
+            </div>
+             <div class="string-column">
+                <button class="bass-btn btn-grey" onpointerdown="playNote('a1')">A1</button>
+                <button class="bass-btn btn-grey" onpointerdown="playNote('a2')">A2</button>
+                <button class="bass-btn btn-grey" onpointerdown="playNote('a3')">A3</button>
+            </div>
+            <div class="string-column">
+                <button class="bass-btn btn-purple" onpointerdown="playNote('b1')">B1</button>
+                <button class="bass-btn btn-purple" onpointerdown="playNote('b2')">B2</button>
+                <button class="bass-btn btn-purple" onpointerdown="playNote('b3')">B3</button>
+            </div>
+            <div class="string-column">
+                <button class="bass-btn btn-yellow" onpointerdown="playNote('c2')">C2</button>
+                <button class="bass-btn btn-yellow" onpointerdown="playNote('c3')">C3</button>
+                <button class="bass-btn btn-yellow" onpointerdown="playNote('c4')">C4</button>
+            </div>
+            <div class="string-column">
+                <button class="bass-btn btn-red" onpointerdown="playNote('d2')">D2</button>
+                <button class="bass-btn btn-red" onpointerdown="playNote('d3')">D3</button>
+                <button class="bass-btn btn-red" onpointerdown="playNote('d4')">D4</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        let stopMod = 0;
-        let dataDic = {e1:[1,1], e2:[1,1], e3:[1,1], e4:[1,1], f1:[1,1], f2:[1,1], f3:[1,1], f4:[1,1],
-            d2:[1,1], d3:[1,1], d4:[1,1], c2:[1,1], c3:[1,1], c4:[1,1],
-            b1:[1,1], b2:[1,1], b3:[1,1], g1:[1,1], g2:[1,1], g3:[1,1],
+        const dataDic = {
+            e1:[1,1], e2:[1,1], e3:[1,1], e4:[1,1], 
+            f1:[1,1], f2:[1,1], f3:[1,1], f4:[1,1],
+            d2:[1,1], d3:[1,1], d4:[1,1], 
+            c2:[1,1], c3:[1,1], c4:[1,1],
+            b1:[1,1], b2:[1,1], b3:[1,1], 
+            g1:[1,1], g2:[1,1], g3:[1,1],
             a1:[1,1], a2:[1,1], a3:[1,1]
         };
-        const toggleButton = document.getElementById('toggleButton');
-        toggleButton.addEventListener('click', function() {
+
+        let audioCtx;
+        const audioBuffers = {};
+        let stopMod = 0; 
+        let totalFiles = 0;
+        let loadedFiles = 0;
+
+        const speakerImg = document.getElementById('speakerCone');
+        const speakerFrame = document.getElementById('speakerFrame');
+
+        function startAudioEngine() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            document.getElementById('start-overlay').style.opacity = '0';
+            setTimeout(() => { document.getElementById('start-overlay').style.display = 'none'; }, 500);
+
+            initLoader();
+        }
+
+        async function loadSound(key, type) {
+            const fileName = type === 'normal' 
+                ? `now_audio/__pjcohen__standup_bass_normal_${key}.wav`
+                : `now_audio/__pjcohen__standup_bass_stop_finger_${key}.wav`;
+            const bufferKey = `${key}_${type}`;
+
+            try {
+                const response = await fetch(fileName);
+                if (!response.ok) throw new Error("HTTP error");
+                const arrayBuffer = await response.arrayBuffer();
+                const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                audioBuffers[bufferKey] = decodedBuffer;
+            } catch (e) { } finally {
+                loadedFiles++;
+                updateUIProgress();
+            }
+        }
+
+        function playBuffer(bufferKey) {
+            if (!audioCtx) return;
+            const buffer = audioBuffers[bufferKey];
+            if (buffer) {
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.start(0);
+                triggerSpeakerEffect();
+            }
+        }
+
+        function triggerSpeakerEffect() {
+            speakerImg.classList.remove('thumping');
+            speakerFrame.classList.remove('active');
+            void speakerImg.offsetWidth; 
+            speakerImg.classList.add('thumping');
+            speakerFrame.classList.add('active');
+            setTimeout(() => {
+                speakerImg.classList.remove('thumping');
+                speakerFrame.classList.remove('active');
+            }, 100);
+        }
+
+        function playNote(key) {
+            if (navigator.vibrate) navigator.vibrate(15); 
+            if (!audioCtx) return; 
+
+            const config = dataDic[key];
+            if (!config) return;
+
             if (stopMod === 0) {
+                if (config[0] === 1) playBuffer(`${key}_normal`);
+                else if (config[1] === 1) playBuffer(`${key}_stop`);
+            } else {
+                if (config[1] === 1) playBuffer(`${key}_stop`);
+                else if (config[0] === 1) playBuffer(`${key}_normal`);
+            }
+        }
+
+        function initLoader() {
+            document.getElementById('status-text').innerText = "Loading...";
+            for (let k in dataDic) {
+                if (dataDic[k][0]) totalFiles++;
+                if (dataDic[k][1]) totalFiles++;
+            }
+            for (let k in dataDic) {
+                if (dataDic[k][0]) loadSound(k, 'normal');
+                if (dataDic[k][1]) loadSound(k, 'stop');
+            }
+        }
+
+        function updateUIProgress() {
+            const percent = (loadedFiles / totalFiles) * 100;
+            document.getElementById('progress-bar').style.width = percent + "%";
+            
+            if (loadedFiles >= totalFiles) {
+                setTimeout(() => {
+                    document.getElementById('loading-overlay').style.opacity = '0';
+                    document.getElementById('status-text').innerText = "READY";
+                    document.getElementById('status-text').style.color = "#00ff00";
+                }, 500);
+            }
+        }
+
+        const toggleBtn = document.getElementById('stopToggle');
+        const led = document.getElementById('stopLed');
+
+        toggleBtn.addEventListener('change', function() {
+            if (this.checked) {
                 stopMod = 1;
-                this.classList.add('active');
-                console.log('stopMod is now 1');
+                led.classList.add('on');
             } else {
                 stopMod = 0;
-                this.classList.remove('active');
-                console.log('stopMod is now 0');
+                led.classList.remove('on');
             }
         });
-        function generate(src) {
-            if (stopMod == 0) {
-                if (dataDic[src][0]==1) {
-                    playAudio(`now_audio/__pjcohen__standup_bass_normal_${src}.wav`);
-                } else if (dataDic[src][1]==1) {
-                    playAudio(`now_audio/__pjcohen__standup_bass_stop_finger_${src}.wav`);
-                }
-            } else {
-                if (dataDic[src][1]==1) {
-                    playAudio(`now_audio/__pjcohen__standup_bass_stop_finger_${src}.wav`);
-                } else if (dataDic[src][0]==1) {
-                    playAudio(`now_audio/__pjcohen__standup_bass_normal_${src}.wav`);
-                } 
-            }
-        }
-        var temp = 0;
-        showInfoOverlay("正在载入音频中...", "top-right");
-        for (var i in dataDic) {
-            if (dataDic[i][0]==1) {
-                temp += 1;
-                loadAudio(`now_audio/__pjcohen__standup_bass_normal_${i}.wav`);
-            }
-            if (dataDic[i][1]==1) {
-                temp += 1;
-                loadAudio(`now_audio/__pjcohen__standup_bass_stop_finger_${i}.wav`);
-            }
-        }
-        // 监测音频是否加载完成
-        const monitorInterval = setInterval(() => {
-            if (temp === loadTime) {
-                // 条件满足，执行 action()
-                hideInfoOverlay();
-                showInfoOverlay("音频加载完成", "top-right");
-                setTimeout(()=>{hideInfoOverlay()}, 1000); 
-                // 退出监测，清除定时器
-                clearInterval(monitorInterval);
-                console.log("监测已退出。");
-            }
-        }, 2000); // 每 100 毫秒检查一次
+
+        document.addEventListener('dblclick', function(event) {
+            event.preventDefault();
+        }, { passive: false });
+
     </script>
 </body>
 </html>
