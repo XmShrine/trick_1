@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Xcode GPX Builder</title>
+    <title>GPX Builder Pro</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
@@ -13,11 +13,10 @@
             --shadow: 0 4px 24px rgba(0,0,0,0.12);
         }
 
-        body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif; overflow: hidden; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif; overflow: hidden; touch-action: none; /* 关键：禁止全局默认触摸动作 */ }
 
         #map { width: 100%; height: 100%; z-index: 1; cursor: crosshair; }
 
-        /* 面板样式调整 */
         .panel {
             position: absolute;
             top: 20px; left: 20px;
@@ -32,7 +31,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            max-height: 90vh;
+            max-height: 80vh;
             overflow-y: auto;
             border: 1px solid rgba(0,0,0,0.1);
         }
@@ -46,10 +45,9 @@
             width: 100%; border: none; background: transparent; padding: 4px 0; font-size: 15px; outline: none; font-weight: 500; font-family: monospace;
         }
         
-        /* 模式切换器 */
         .segment-control { display: flex; background: rgba(118, 118, 128, 0.12); border-radius: 8px; padding: 2px; }
         .segment-opt {
-            flex: 1; text-align: center; padding: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border-radius: 6px; color: #000; transition: all 0.2s;
+            flex: 1; text-align: center; padding: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border-radius: 6px; color: #000; transition: all 0.2s;
         }
         .segment-opt.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-weight: 600; }
 
@@ -57,18 +55,18 @@
 
         .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
         button {
-            border: none; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s;
+            border: none; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; -webkit-tap-highlight-color: transparent;
         }
         .btn-primary { background: var(--ios-blue); color: #fff; }
         .btn-danger { background: rgba(255, 59, 48, 0.15); color: #FF3B30; }
         .btn-outline { background: rgba(0,0,0,0.05); color: #000; }
-        button:active { opacity: 0.6; }
+        button:active { opacity: 0.6; transform: scale(0.98); }
 
         #toast {
             position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
             background: rgba(30, 30, 30, 0.9); color: white; padding: 12px 24px; border-radius: 30px;
             font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 2000;
-            backdrop-filter: blur(10px); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
         }
 
         @media (max-width: 600px) {
@@ -85,20 +83,20 @@
 
 <div class="panel">
     <h2>
-        Xcode GPX Generator
+        GPX 生成器
         <span style="font-size:11px; color:#888; font-weight:400" id="status">Ready</span>
     </h2>
 
     <!-- 模式选择 -->
     <div class="segment-control">
-        <div class="segment-opt active" onclick="setMode('point')">📍 点按</div>
-        <div class="segment-opt" onclick="setMode('draw')">✏️ 涂鸦</div>
+        <div class="segment-opt active" onclick="setMode('point')">📍 点按模式</div>
+        <div class="segment-opt" onclick="setMode('draw')">✏️ 涂鸦模式</div>
     </div>
 
     <!-- 速度设置 -->
     <div class="control-group">
         <span class="control-label">速度 Speed (km/h)</span>
-        <input type="number" id="speedInput" value="60" oninput="recalculatePreview()">
+        <input type="number" id="speedInput" value="40" oninput="recalculatePreview()">
     </div>
 
     <!-- 偏移量 -->
@@ -128,54 +126,51 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     // --- 1. 初始化 ---
-    const map = L.map('map', { zoomControl: false }).setView([39.1044, 117.1621], 15); // 默认定位到你示例中的位置
+    const map = L.map('map', { zoomControl: false }).setView([39.1044, 117.1621], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-    // 状态变量
-    let rawPath = []; // 用户交互产生的原始点
+    let rawPath = [];
     let mode = 'point'; 
     let isDrawing = false;
     
-    // 图层
-    let rawPolyline = L.polyline([], { color: '#8E8E93', weight: 2, dashArray: '4, 8' }).addTo(map); // 虚线显示原始路径
-    let previewLayer = L.layerGroup().addTo(map); // 蓝点显示插值后的路径
+    let rawPolyline = L.polyline([], { color: '#8E8E93', weight: 2, dashArray: '4, 8' }).addTo(map);
+    let previewLayer = L.layerGroup().addTo(map);
 
-    // --- 2. 交互逻辑 ---
+    // --- 2. 交互逻辑 (修复移动端) ---
     
+    const mapContainer = map.getContainer();
+
     function setMode(newMode) {
         mode = newMode;
         document.querySelectorAll('.segment-opt').forEach(el => el.classList.remove('active'));
         event.target.classList.add('active');
         
         if (mode === 'draw') {
+            // 关键：涂鸦模式下，禁止地图拖拽，否则手指移动会变成拖动地图而不是画线
             map.dragging.disable();
-            document.getElementById('status').innerText = "按住拖动绘制";
-            map.getContainer().style.cursor = "crosshair";
+            document.getElementById('status').innerText = "手指拖动绘制轨迹";
         } else {
+            // 点按模式，恢复地图拖拽
             map.dragging.enable();
-            document.getElementById('status').innerText = "点击添加点";
-            map.getContainer().style.cursor = "default";
+            document.getElementById('status').innerText = "点击添加关键点";
         }
     }
 
-    map.on('mousedown touchstart', (e) => {
+    // --- 桌面端鼠标事件 ---
+    map.on('mousedown', (e) => {
         if (mode === 'draw') {
             isDrawing = true;
             addRawPoint(e.latlng);
         }
     });
 
-    map.on('mousemove touchmove', (e) => {
+    map.on('mousemove', (e) => {
         if (mode === 'draw' && isDrawing) {
-            // 节流，防止点过于密集
-            const lastPt = rawPath[rawPath.length - 1];
-            if (!lastPt || e.latlng.distanceTo(lastPt) > 10) { 
-                addRawPoint(e.latlng);
-            }
+            throttleAddPoint(e.latlng);
         }
     });
 
-    map.on('mouseup touchend', () => {
+    map.on('mouseup', () => {
         if (mode === 'draw') {
             isDrawing = false;
             recalculatePreview();
@@ -189,30 +184,70 @@
         }
     });
 
+    // --- 移动端触摸事件 (关键修复) ---
+    // Leaflet 的 map.on('mousemove') 在手机拖拽时不会连续触发
+    // 必须使用原生 DOM 事件监听，并阻止默认行为
+
+    mapContainer.addEventListener('touchstart', (e) => {
+        if (mode === 'draw') {
+            isDrawing = true;
+            // 获取触摸点坐标并转换为地图坐标
+            const touch = e.touches[0];
+            const latlng = map.mouseEventToLatLng(touch);
+            addRawPoint(latlng);
+        }
+    }, { passive: false }); // passive: false 允许我们阻止默认滚动
+
+    mapContainer.addEventListener('touchmove', (e) => {
+        if (mode === 'draw' && isDrawing) {
+            // 阻止屏幕滚动/回弹
+            e.preventDefault(); 
+            
+            const touch = e.touches[0];
+            const latlng = map.mouseEventToLatLng(touch);
+            throttleAddPoint(latlng);
+        }
+    }, { passive: false });
+
+    mapContainer.addEventListener('touchend', (e) => {
+        if (mode === 'draw') {
+            isDrawing = false;
+            recalculatePreview();
+        }
+    });
+
+
     function addRawPoint(latlng) {
         rawPath.push(latlng);
         rawPolyline.setLatLngs(rawPath);
+    }
+
+    // 节流函数：避免画线时点过于密集（每隔 5 米记录一个原始点）
+    function throttleAddPoint(latlng) {
+        const lastPt = rawPath[rawPath.length - 1];
+        if (!lastPt || map.distance(latlng, lastPt) > 5) {
+            addRawPoint(latlng);
+        }
     }
 
     // --- 3. 核心算法：速度重采样 ---
     function generateResampledPoints() {
         if (rawPath.length < 2) return [];
 
-        const speedKmH = parseFloat(document.getElementById('speedInput').value) || 60;
+        const speedKmH = parseFloat(document.getElementById('speedInput').value) || 40;
         const speedMS = speedKmH / 3.6; 
-        const interval = 1.0; // 每1秒生成一个 wpt
+        const interval = 1.0; 
         const stepDistance = speedMS * interval;
 
         let resultPoints = [];
         let accumulatedDist = 0;
         
-        // 起点
         resultPoints.push(rawPath[0]);
 
         for (let i = 0; i < rawPath.length - 1; i++) {
             let p1 = rawPath[i];
             let p2 = rawPath[i + 1];
-            let segmentDist = p1.distanceTo(p2);
+            let segmentDist = map.distance(p1, p2); // 使用 Leaflet 内置测距
             
             let currentSegmentPos = 0;
 
@@ -224,7 +259,6 @@
                     currentSegmentPos += distToNextSample;
                     let ratio = currentSegmentPos / segmentDist;
                     
-                    // 线性插值
                     let newLat = p1.lat + (p2.lat - p1.lat) * ratio;
                     let newLng = p1.lng + (p2.lng - p1.lng) * ratio;
                     
@@ -236,9 +270,6 @@
                 }
             }
         }
-        
-        // 确保终点被包含（可选，Xcode通常只要中间过程）
-        // resultPoints.push(rawPath[rawPath.length-1]);
         
         return resultPoints;
     }
@@ -252,12 +283,12 @@
         
         // 更新统计
         let totalDist = 0;
-        for(let i=0; i<rawPath.length-1; i++) totalDist += rawPath[i].distanceTo(rawPath[i+1]);
+        for(let i=0; i<rawPath.length-1; i++) totalDist += map.distance(rawPath[i], rawPath[i+1]);
         document.getElementById('statDist').innerText = `${(totalDist/1000).toFixed(2)} km`;
-        document.getElementById('statPoints').innerText = `${points.length} wpts`;
+        document.getElementById('statPoints').innerText = `${points.length} pts`;
 
         // 绘制预览点
-        const drawLimit = 300; 
+        const drawLimit = 200; 
         const step = Math.ceil(points.length / drawLimit);
 
         points.forEach((pt, index) => {
@@ -283,17 +314,15 @@
         const offsetLat = parseFloat(document.getElementById('offsetLat').value) || 0;
         const offsetLon = parseFloat(document.getElementById('offsetLon').value) || 0;
 
-        // 【关键修改】使用你提供的格式 <wpt>
         let xml = `<?xml version="1.0"?>
 <gpx version="1.1" creator="Xcode">
     <!--
-    这个文件定义了模拟的定位轨迹。
-    Xcode会按顺序读取这些点，并根据运行设置来模拟速度。
-    Generated by GPX Builder
+    Xcode GPX Track
+    Speed: ${document.getElementById('speedInput').value} km/h
     -->\n`;
 
         points.forEach((pt, index) => {
-            let lat = (pt.lat + offsetLat).toFixed(8); // Xcode 喜欢高精度
+            let lat = (pt.lat + offsetLat).toFixed(8); 
             let lon = (pt.lng + offsetLon).toFixed(8);
             
             xml += `    <wpt lat="${lat}" lon="${lon}">
@@ -308,11 +337,20 @@
     function copyGPX() {
         const xml = getFinalXML();
         if(xml) {
-            navigator.clipboard.writeText(xml).then(() => {
+            // 移动端复制兼容性处理
+            const textArea = document.createElement("textarea");
+            textArea.value = xml;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
                 const toast = document.getElementById('toast');
                 toast.style.opacity = 1;
                 setTimeout(() => toast.style.opacity = 0, 2000);
-            });
+            } catch (err) {
+                alert('复制失败，请点击“下载”');
+            }
+            document.body.removeChild(textArea);
         }
     }
 
@@ -343,7 +381,7 @@
         rawPolyline.setLatLngs([]);
         previewLayer.clearLayers();
         document.getElementById('statDist').innerText = "0.00 km";
-        document.getElementById('statPoints').innerText = "0 points";
+        document.getElementById('statPoints').innerText = "0 pts";
     }
 
 </script>
