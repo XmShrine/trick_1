@@ -2,468 +2,697 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全屏 Canvas 游戏</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Neon Rhythm: Overdrive</title>
     <style>
+        /* --- 字体与核心样式 --- */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        :root {
+            --primary: #0ff;
+            --secondary: #f0f;
+            --bg-dark: #050505;
+            --grid-color: rgba(0, 243, 255, 0.15);
+            --font-main: 'Orbitron', sans-serif;
+        }
+
         body, html {
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            color: #fff;
-            font-family: Arial, sans-serif;
-        }
-        canvas {
-            display: block;
-            background-color: #111;
-        }
-        #endScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: var(--font-main);
+            color: #fff;
+            touch-action: none; 
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* --- 动态背景层 --- */
+        #bgLayer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #000 0%, #1a0b2e 100%);
+            z-index: 0;
+            perspective: 800px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .grid-plane {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            left: -50%;
+            top: -50%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: rotateX(60deg);
+            animation: gridMove 2s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: rotateX(60deg) translateY(0); }
+            100% { transform: rotateX(60deg) translateY(50px); }
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 5;
+        }
+
+        /* --- UI 层 --- */
+        #uiLayer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        #hud {
+            position: absolute;
+            top: max(15px, env(safe-area-inset-top));
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .score-box {
+            text-align: right;
+            text-shadow: 0 0 10px var(--primary);
+        }
+        .score-label { font-size: 10px; color: #888; letter-spacing: 2px; }
+        .score-value { font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+
+        /* 系统状态指示器 */
+        .system-status {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 10px;
+            color: var(--primary);
+            opacity: 0.5;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .beat-dot {
+            width: 8px; height: 8px; background: var(--primary); border-radius: 50%;
+            box-shadow: 0 0 5px var(--primary);
+        }
+
+        .combo-box {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            text-align: center;
+            opacity: 0;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .combo-box.active { opacity: 1; transform: translateX(-50%) scale(1.2); }
+        .combo-num {
+            font-size: 56px;
+            font-weight: 900;
+            line-height: 1;
+            background: linear-gradient(180deg, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-style: italic;
+        }
+        .combo-text { font-size: 14px; color: var(--secondary); font-weight: 700; letter-spacing: 4px; }
+
+        /* 底部进度条 */
+        #progressContainer {
+            position: fixed;
+            bottom: 0; left: 0; width: 100%; height: 6px; /* 加厚一点 */
+            background: rgba(255,255,255,0.1);
+            z-index: 20;
+            pointer-events: none;
+        }
+        #progressBar {
+            height: 100%; width: 0;
+            background: var(--primary);
+            box-shadow: 0 0 15px var(--primary);
+            transition: width 0.1s linear; /* 平滑过渡 */
+        }
+
+        /* --- 覆盖层 (开始/结算) --- */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            z-index: 100;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
-            z-index: 100;
-            display: none; /* 默认隐藏 */
+            
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.5s ease;
         }
-        #endScreen h1 {
-            font-size: 72px;
-            margin: 0;
+
+        .overlay.hidden { 
+            opacity: 0; 
+            visibility: hidden; 
+            transition: opacity 0.5s ease, visibility 0s 0.5s; /* 关键：延迟隐藏 */
+            pointer-events: none;
         }
-        #endScreen p {
-            font-size: 24px;
-            margin: 20px 0;
-        }
-        #endScreen button {
+
+        .btn-glitch {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
             padding: 15px 40px;
-            font-size: 24px;
+            font-size: 20px;
+            font-family: var(--font-main);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
             cursor: pointer;
-            border: 2px solid #fff;
-            background-color: transparent;
-            color: #fff;
-            border-radius: 5px;
-            transition: background-color 0.3s;
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
         }
-        #endScreen button:hover {
-            background-color: #fff;
-            color: #111;
+        .btn-glitch:hover, .btn-glitch:active {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 30px var(--primary);
         }
-        #progressBarContainer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background-color: #555;
-            z-index: 99;
+        .loading-text { margin-top: 20px; font-size: 12px; color: #888; }
+
+        .result-panel {
+            background: rgba(20, 20, 25, 0.9);
+            border: 1px solid var(--secondary);
+            padding: 40px;
+            border-radius: 4px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(188, 19, 254, 0.2);
+            transform: translateY(20px);
+            transition: 0.5s;
         }
-        #progressBar {
-            height: 100%;
-            width: 0;
-            background-color: #fff;
-            transition: width 0.1s linear;
-        }
+        .grade { font-size: 100px; font-weight: 900; margin: 0; color: #ffd700; text-shadow: 0 0 20px gold; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }
+        .stat p { margin: 5px 0; font-weight: bold; }
+        .stat span { font-size: 12px; color: #aaa; }
+
     </style>
 </head>
 <body>
+    <div id="bgLayer">
+        <div class="grid-plane"></div>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
-    
-    <div id="endScreen">
-        <h1><span id="finalScore">0</span> / <span id="finalTotalScore">0</span></h1>
-        <p>Miss:<span id="missNum">0</span>  Good:<span id="goodNum">0</span>  Perfect:<span id="perfectNum">0</span></p>
-        <button id="restartButton">重新开始</button>
+
+    <div id="uiLayer">
+        <div id="hud">
+            <div class="score-box">
+                <div class="score-value" id="scoreDisplay">000000</div>
+                <div class="score-label">SCORE</div>
+            </div>
+        </div>
+        
+        <div class="combo-box" id="comboContainer">
+            <div class="combo-num" id="comboNum">0</div>
+            <div class="combo-text">COMBO</div>
+        </div>
+
+        <div class="system-status">
+            <div class="beat-dot" id="beatDot"></div>
+            <span id="systemText">SYSTEM ONLINE</span>
+        </div>
     </div>
 
-    <div id="progressBarContainer">
-        <div id="progressBar"></div>
+    <div id="progressContainer"><div id="progressBar"></div></div>
+
+    <div id="startScreen" class="overlay">
+        <h1 style="font-size: 40px; margin-bottom: 40px; text-shadow: 4px 0 var(--secondary);">NEON RHYTHM</h1>
+        <button id="startBtn" class="btn-glitch" disabled>LOADING...</button>
+        <div class="loading-text" id="statusText">正在预加载音频资源...</div>
     </div>
 
-    <script type="text/javascript" src="../playAudio.js"></script>
-    <script type="text/javascript" src="../webLogger.js"></script>
+    <div id="endScreen" class="overlay hidden">
+        <div class="result-panel">
+            <h1 class="grade" id="finalGrade">S</h1>
+            <h2 id="finalScoreText">000000</h2>
+            <div class="stats">
+                <div class="stat"><span style="color:#0f0">PERFECT</span><p id="statPerfect">0</p></div>
+                <div class="stat"><span style="color:#0ff">GOOD</span><p id="statGood">0</p></div>
+                <div class="stat"><span style="color:#f05">MISS</span><p id="statMiss">0</p></div>
+            </div>
+            <button id="restartBtn" class="btn-glitch">RETRY</button>
+        </div>
+    </div>
 
     <script>
-        class Ball {
-            constructor(x, y, spawnTime, duringTime, radius, imageUrl, demo = "", fontSize = 24, score = 0) {
-                this.x = x;
-                this.y = y;
-                this.spawnTime = spawnTime;
-                this.duringTime = duringTime;
-                this.r = radius; 
-                this.imageUrl = imageUrl;
-                this.demo = demo;
-                this.fontSize = fontSize;
-                this.score = score;
-                
-                this.image = new Image();
-                this.image.src = imageUrl;
-                this.isImageLoaded = false;
-                this.image.onload = () => {
-                    this.isImageLoaded = true;
-                };
+        // ==========================================
+        // 核心配置
+        // ==========================================
+        const CONFIG = {
+            musicUrl: 'audio.m4a', 
+            hitSfxUrl: 'push.m4a', 
+            imgUrl: 'source.jpeg',
+            gameDuration: 88000,
+            noteRadius: 55,        
+            approachTime: 800,
+            perfectWin: 60,
+            goodWin: 200,
+        };
 
-                this.ringRadius = 100;
-                this.ringAlpha = 1;
-                this.startTime = 0;
-                this.isMerging = false;
-                this.isSpawned = false;
+        // 谱面数据：添加了一个 1500ms 的热身音符，防止开场空白太久
+        const NOTE_TIMINGS = [1500, 3919,4878,7056,8623,10000,10950,11654,13188,14001,14837,16748,17800,19017,19532,20591,21803,22646,23949,24991,25860,27074,28365,30069,31312,32593,33789,34839,35914,36977,37969,39137,40328,41524,42473,43317,43976,44522,45285,46049,46962,47916,48729,49565,50296,51111,52138,52978,53586,54170,54957,55758,56598,57741,58665,59452,60353,61226,62057,62970,63964,64941,65902,66866,67709,68608,69486,70500,71359,72177,73003,73835,74710,75660,76498,77274,78191,78976,79949,80703,81704,82503,83227,84045,84774,85640,86390];
 
-                this.isHit = false;
-                this.clickTime = 0;
-                
-                // 关键修改：在初始化时计算完成时间
-                this.mergeCompleteTime = this.spawnTime + this.duringTime;
-                this.isTimedOut = false;
-                this.timeoutDuration = 200;
-                
-                this.gapTime = 0;
-            }
-
-            draw(ctx) {
-                if (this.isHit || this.isTimedOut || !this.isSpawned) return;
-
-                if (this.isImageLoaded) {
-                    ctx.save(); 
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-                    ctx.closePath();
-                    ctx.clip(); 
-                    ctx.globalAlpha = 0.7;
-                    ctx.drawImage(
-                        this.image, 
-                        this.x - this.r, 
-                        this.y - this.r, 
-                        this.r * 2, 
-                        this.r * 2
-                    );
-                    ctx.restore(); 
-                } else {
-                    ctx.fillStyle = '#999';
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-
-                if (this.demo) {
-                    ctx.fillStyle = '#fff';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.font = `${this.fontSize}px Arial`;
-                    ctx.fillText(this.demo, this.x, this.y);
-                }
-
-                if (this.isMerging) {
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${this.ringAlpha})`;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.ringRadius, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-            }
+        // ==========================================
+        // 音频系统
+        // ==========================================
+        const AudioSys = {
+            ctx: null,
+            bgmBuffer: null,
+            sfxBuffer: null,
+            bgmSource: null,
+            startTime: 0,
             
-            merge() {
-                this.isMerging = true;
-                this.startTime = performance.now();
-                this.ringRadius = 100;
-                this.ringAlpha = 1;
-                this.isTimedOut = false;
-                this.isSpawned = true;
-            }
+            async init() {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+                await Promise.all([
+                    this.loadBuffer(CONFIG.musicUrl).then(b => this.bgmBuffer = b),
+                    this.loadBuffer(CONFIG.hitSfxUrl).then(b => this.sfxBuffer = b)
+                ]);
+            },
 
-            update(currentTime) {
-                if (this.isHit || this.isTimedOut) return;
+            async loadBuffer(url) {
+                try {
+                    const response = await fetch(url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    return await this.ctx.decodeAudioData(arrayBuffer);
+                } catch (e) {
+                    console.error("Audio Load Error:", e);
+                    return null;
+                }
+            },
+
+            playBGM() {
+                if (!this.bgmBuffer) return;
+                if (this.bgmSource) try { this.bgmSource.stop(); } catch(e){}
                 
-                if (this.isMerging) {
-                    const elapsedTime = currentTime - this.startTime;
-                    const progress = Math.min(elapsedTime / this.duringTime, 1);
-                    
-                    const startRadius = 100;
-                    const endRadius = this.r;
-                    this.ringRadius = startRadius - (startRadius - endRadius) * progress;
+                this.bgmSource = this.ctx.createBufferSource();
+                this.bgmSource.buffer = this.bgmBuffer;
+                this.bgmSource.connect(this.ctx.destination);
+                
+                // 立即播放
+                this.bgmSource.start(0);
+                
+                // 关键修正：确保 currentTime 是最新的
+                this.startTime = this.ctx.currentTime;
+            },
 
-                    // 这里不再需要更新 this.mergeCompleteTime
-                    // 当进度达到1时，结束收缩
-                    if (progress >= 1) {
-                        this.isMerging = false;
-                    }
-                } else if (this.isSpawned) {
-                    // 使用预计算的 mergeCompleteTime 来判断是否超时
-                    const gameTime = currentTime - gameStartTime;
-                    if (gameTime - this.mergeCompleteTime > this.timeoutDuration) {
-                        this.isTimedOut = true;
-                        this.oneTimeFeedback(game, true);
-                    }
-                }
-            }
-            
-            getScore(gapTime) {
-                if (gapTime <= 50) {
-                    perfectNum += 1;
-                    return { text: 'Perfect', color: '#00ff00', score: this.score };
-                } else if (gapTime <= 250) {
-                    goodNum += 1;
-                    return { text: 'Good', color: '#ffff00', score: this.score * 0.8 };
-                } else {
-                    missNum += 1;
-                    return { text: 'Miss', color: '#ff0000', score: 0 };
-                }
-            }
+            playSFX() {
+                if (!this.sfxBuffer) return;
+                const source = this.ctx.createBufferSource();
+                source.buffer = this.sfxBuffer;
+                const gain = this.ctx.createGain();
+                gain.gain.value = 0.6; 
+                source.connect(gain);
+                gain.connect(this.ctx.destination);
+                source.start(0);
+            },
 
-            oneTimeFeedback(game, isTimeout = false) {
-                let result;
-                if (isTimeout) {
-                    missNum += 1;
-                    result = { text: 'Miss', color: '#ff0000', score: 0 };
-                } else {
-                    // 使用预计算的 mergeCompleteTime 来计算 gapTime
-                    const actualClickTime = this.clickTime - gameStartTime;
-                    this.gapTime = Math.abs(actualClickTime - this.mergeCompleteTime);
-                    result = this.getScore(this.gapTime);
-                }
-                game.setFeedback(result.text, result.color);
-                game.updateScore(result.score);
+            getCurrentTime() {
+                if (!this.startTime) return 0;
+                // 转为毫秒
+                return (this.ctx.currentTime - this.startTime) * 1000;
             }
-        }
-        
-        // // --- 外部函数（无需实现） ---
-        // let loadTime = 0;
-        // let audio = new Audio();
-        // function loadAudio(src) {
-        //     console.log(`开始加载音频: ${src}`);
-        //     loadTime = 2;
-        //     audio.src = src;
-        //     audio.addEventListener('canplaythrough', () => {
-        //         loadTime = 1;
-        //         console.log(`音频加载完成!`);
-        //     });
-        //     audio.load();
-        // }
-        // function playAudio() {
-        //     if (audio && audio.src) {
-        //         audio.play();
-        //     }
-        // }
-        // function stopAudio() {
-        //     if (audio && audio.src) {
-        //         audio.pause();
-        //         audio.currentTime = 0;
-        //     }
-        // }
-        
-        // --- 游戏主程序 ---
-        var missNum = 0;
-        var goodNum = 0;
-        var perfectNum = 0; 
+        };
+
+        // ==========================================
+        // 游戏逻辑
+        // ==========================================
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const endScreen = document.getElementById('endScreen');
-        const finalScoreSpan = document.getElementById('finalScore');
-        const finalTotalScoreSpan = document.getElementById('finalTotalScore');
-        const restartButton = document.getElementById('restartButton');
-        const progressBar = document.getElementById('progressBar');
         
-        let balls = [];
-        let gameStartTime = 0;
-        let isGameStarted = false;
-        let animationFrameId = null;
-        
-        const totalPossibleScore = 100000;
-        let currentScore = 0;
-        let totalScore = 0;
-        
-        const clickMap = [3919,4878,7056,8623,10000,10950,11654,13188,14001,14837,16748,17800,19017,19532,20591,21803,22646,23949,24991,25860,27074,28365,30069,31312,32593,33789,34839,35914,36977,37969,39137,40328,41524,42473,43317,43976,44522,45285,46049,46962,47916,48729,49565,50296,51111,52138,52978,53586,54170,54957,55758,56598,57741,58665,59452,60353,61226,62057,62970,63964,64941,65902,66866,67709,68608,69486,70500,71359,72177,73003,73835,74710,75660,76498,77274,78191,78976,79949,80703,81704,82503,83227,84045,84774,85640,86390];
-        // const audioSrc = ['audio.m4a'];
-        const duringTime = 800;
-        const fixedRadius = 50;
-        const fixedImageUrl = 'source.jpeg';
-        const fixedFontSize = 24;
-        const gameLen = 88000; // 游戏时长，单位ms
+        let gameState = {
+            isPlaying: false,
+            score: 0,
+            combo: 0,
+            perfect: 0, good: 0, miss: 0,
+            maxScore: 1000000,
+            balls: [],
+            particles: []
+        };
 
-        let scoreText = '';
-        let scoreColor = '#fff';
-        let scoreDisplayTime = 0;
-        const scoreDisplayDuration = 500;
+        const noteImage = new Image();
+        noteImage.src = CONFIG.imgUrl;
 
-        function setFeedback(text, color) {
-            scoreText = text;
-            scoreColor = color;
-            scoreDisplayTime = performance.now();
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.04 + 0.02;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.life -= this.decay;
+                return this.life > 0;
+            }
+            draw(ctx) {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(this.x, this.y, 4, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha = 1;
+            }
         }
 
-        function updateScore(scoreToAdd) {
-            currentScore += scoreToAdd;
-        }
+        class Ball {
+            constructor(spawnTime) {
+                this.spawnTime = spawnTime;
+                this.appearTime = spawnTime - CONFIG.approachTime;
+                
+                const margin = 70;
+                this.x = margin + Math.random() * (canvas.width - margin*2);
+                this.y = 120 + Math.random() * (canvas.height - 150 - margin);
+                
+                this.r = CONFIG.noteRadius;
+                this.state = 'active'; 
+                this.hitAnimScale = 1;
+                this.processed = false;
+            }
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            initBalls();
-        }
-
-        function getRandomPosition(balls, radius, margin = 20) {
-            let x, y;
-            let isValid = false;
-            const maxAttempts = 100;
-
-            for (let i = 0; i < maxAttempts; i++) {
-                x = Math.random() * (canvas.width - 2 * radius - 2 * margin) + radius + margin;
-                y = Math.random() * (canvas.height - 2 * radius - 2 * margin) + radius + margin;
-                isValid = true;
-
-                for (const ball of balls) {
-                    const distance = Math.sqrt((x - ball.x)**2 + (y - ball.y)**2);
-                    if (distance < (radius + ball.r + margin * 2)) {
-                        isValid = false;
-                        break;
-                    }
+            draw(ctx, currentTime) {
+                if (this.state === 'hit') {
+                    this.hitAnimScale += 0.15;
+                    const alpha = Math.max(0, 1 - (this.hitAnimScale - 1) * 2);
+                    ctx.globalAlpha = alpha;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.r * this.hitAnimScale, 0, Math.PI*2);
+                    ctx.fillStyle = '#fff';
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    return this.hitAnimScale < 2.0; 
                 }
-                if (isValid) break;
+
+                // 如果还没到出现时间，或者已经Miss了，不画
+                if (currentTime < this.appearTime || this.state === 'miss') return false;
+
+                const progress = (currentTime - this.appearTime) / CONFIG.approachTime;
+                
+                // 绘制本体
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+                ctx.clip();
+                if (noteImage.complete) {
+                    ctx.drawImage(noteImage, this.x-this.r, this.y-this.r, this.r*2, this.r*2);
+                } else {
+                    ctx.fillStyle = '#333'; ctx.fill();
+                }
+                
+                // 高光
+                const grad = ctx.createRadialGradient(this.x, this.y, this.r*0.2, this.x, this.y, this.r);
+                grad.addColorStop(0, 'rgba(255,255,255,0.2)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+                ctx.fillStyle = grad; ctx.fill();
+                
+                // 边框
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.restore();
+
+                // 缩圈
+                if (progress <= 1.05) { 
+                    const ringR = this.r + (100 * (1 - Math.min(progress, 1)));
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, ringR, 0, Math.PI*2);
+                    const alpha = Math.min(progress * 2, 1);
+                    ctx.strokeStyle = `rgba(0, 243, 255, ${alpha})`;
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                }
+                return true;
             }
-            return { x, y };
         }
 
-        function initBalls() {
-            balls = [];
-            const ballsInGame = clickMap.filter(time => time <= gameLen);
-            const scorePerBall = totalPossibleScore / ballsInGame.length;
-            totalScore = totalPossibleScore;
-            
-            ballsInGame.forEach(spawnTime => {
-                const { x, y } = getRandomPosition(balls, fixedRadius);
+        // --- 主控逻辑 ---
 
-                const newBall = new Ball(
-                    x, 
-                    y, 
-                    spawnTime, // Fixed
-                    duringTime, 
-                    fixedRadius, 
-                    fixedImageUrl, 
-                    'Tap', 
-                    fixedFontSize,
-                    scorePerBall
-                );
-                balls.push(newBall);
-            });
-        }
-        
-        function endGame() {
-            cancelAnimationFrame(animationFrameId);
-            // stopAudio(audioSrc[0]);
+        function initGame() {
+            gameState.score = 0;
+            gameState.combo = 0;
+            gameState.perfect = 0; 
+            gameState.good = 0; 
+            gameState.miss = 0;
+            gameState.particles = [];
             
-            document.getElementById('missNum').textContent = missNum;
-            document.getElementById('goodNum').textContent = goodNum;
-            document.getElementById('perfectNum').textContent = perfectNum;
-            finalScoreSpan.textContent = Math.floor(currentScore);
-            finalTotalScoreSpan.textContent = totalScore;
-            endScreen.style.display = 'flex';
+            gameState.balls = NOTE_TIMINGS
+                .filter(t => t < CONFIG.gameDuration)
+                .map(t => new Ball(t));
+                
+            updateUI();
         }
 
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        function startGame() {
+            if (gameState.isPlaying) return; 
 
-        function gameLoop(timestamp) {
-            if (!isGameStarted) {
-            //     showInfoOverlay("正在载入音频中...", "top-right");
-            //     if (loadTime < audioSrc.length) {
-            //         animationFrameId = requestAnimationFrame(gameLoop);
-            //         return;
-            //     }
-            //     hideInfoOverlay();
-            //     showInfoOverlay("音频加载完成", "top-right");
-            //     setTimeout(()=>{hideInfoOverlay()}, 1000); // 改动区域
-                startGame();
-            }
+            initGame();
+            gameState.isPlaying = true;
             
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('systemText').innerText = "AUDIO SYNCED";
+            
+            AudioSys.playBGM();
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!gameState.isPlaying) return;
+
+            const now = AudioSys.getCurrentTime();
+
+            // 1. 清屏
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const gameTime = timestamp - gameStartTime;
 
-            const progress = Math.min(gameTime / gameLen, 1);
-            progressBar.style.width = `${progress * 100}%`;
+            // 2. 更新进度条 (防止 NaN)
+            const safeNow = Math.max(0, now);
+            const prog = Math.min(safeNow / CONFIG.gameDuration, 1);
+            document.getElementById('progressBar').style.width = `${prog * 100}%`;
 
-            if (gameTime >= gameLen) {
+            // 3. 心跳指示器 (证明 Loop 在跑)
+            const beat = Math.sin(now / 200) * 0.5 + 0.5;
+            document.getElementById('beatDot').style.opacity = beat;
+
+            // 4. 结束检测
+            if (now > CONFIG.gameDuration + 1500) {
                 endGame();
                 return;
             }
 
-            balls = balls.filter(ball => !ball.isHit && !ball.isTimedOut);
-
-            balls.forEach(ball => {
-                if (gameTime >= ball.spawnTime && !ball.isSpawned) {
-                    ball.merge();
+            // 5. 绘制音符
+            gameState.balls.forEach(ball => {
+                if (ball.processed) {
+                    ball.draw(ctx, now); 
+                    return;
                 }
-                if (ball.isSpawned) {
-                    ball.update(timestamp);
+                if (now > ball.spawnTime + CONFIG.goodWin) {
+                    triggerMiss(ball);
+                } else {
+                    ball.draw(ctx, now);
                 }
-                ball.draw(ctx);
             });
+
+            // 6. 绘制粒子
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                if (!gameState.particles[i].update()) {
+                    gameState.particles.splice(i, 1);
+                } else {
+                    gameState.particles[i].draw(ctx);
+                }
+            }
+
+            drawFeedback(ctx);
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleInput(x, y) {
+            const now = AudioSys.getCurrentTime();
             
+            let candidates = gameState.balls.filter(b => 
+                !b.processed && 
+                Math.abs(now - b.spawnTime) <= CONFIG.goodWin
+            );
+
+            let hitBall = null;
+            for (let ball of candidates) {
+                const dist = Math.sqrt((x - ball.x)**2 + (y - ball.y)**2);
+                if (dist < ball.r * 1.4) { 
+                    hitBall = ball;
+                    break; 
+                }
+            }
+
+            if (hitBall) {
+                const diff = Math.abs(now - hitBall.spawnTime);
+                let score = 0, text = '', color = '';
+
+                if (diff <= CONFIG.perfectWin) {
+                    score = 100; text = 'PERFECT'; color = '#00ff00';
+                    gameState.perfect++;
+                } else {
+                    score = 50; text = 'GOOD'; color = '#00f3ff';
+                    gameState.good++;
+                }
+
+                hitBall.state = 'hit';
+                hitBall.processed = true;
+                
+                AudioSys.playSFX();
+                spawnParticles(hitBall.x, hitBall.y, color);
+                
+                gameState.combo++;
+                const baseScore = gameState.maxScore / gameState.balls.length;
+                gameState.score += (score === 100 ? baseScore : baseScore * 0.6);
+                
+                showFeedback(text, color);
+                updateUI();
+            }
+        }
+
+        function triggerMiss(ball) {
+            ball.state = 'miss';
+            ball.processed = true;
+            gameState.miss++;
+            gameState.combo = 0;
+            showFeedback('MISS', '#ff0055');
+            updateUI();
+        }
+
+        // --- UI & FX ---
+
+        function spawnParticles(x, y, color) {
+            for(let i=0; i<12; i++) {
+                gameState.particles.push(new Particle(x, y, color));
+            }
+        }
+
+        let feedbackData = { text: '', color: '', scale: 1, alpha: 0 };
+        function showFeedback(text, color) {
+            feedbackData = { text, color, scale: 0.5, alpha: 1 };
+            const comboEl = document.getElementById('comboContainer');
+            if (gameState.combo > 1 && text !== 'MISS') {
+                comboEl.classList.add('active');
+                comboEl.style.transform = 'translateX(-50%) scale(1.3)';
+                setTimeout(() => comboEl.style.transform = 'translateX(-50%) scale(1)', 50);
+            } else {
+                comboEl.classList.remove('active');
+            }
+        }
+
+        function drawFeedback(ctx) {
+            if (feedbackData.alpha <= 0.01) return;
             ctx.save();
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 24px Arial';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-            ctx.fillText(`${Math.floor(currentScore)} / ${totalScore}`, 20, 20);
+            ctx.translate(canvas.width/2, canvas.height/2);
+            feedbackData.scale += (1.2 - feedbackData.scale) * 0.2;
+            feedbackData.alpha *= 0.92;
+            ctx.scale(feedbackData.scale, feedbackData.scale);
+            ctx.globalAlpha = feedbackData.alpha;
+            ctx.font = '900 50px "Orbitron"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = feedbackData.color;
+            ctx.shadowColor = feedbackData.color;
+            ctx.shadowBlur = 20;
+            ctx.fillText(feedbackData.text, 0, 0);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#fff';
+            ctx.strokeText(feedbackData.text, 0, 0);
             ctx.restore();
+        }
 
-            if (scoreText) {
-                ctx.save();
-                ctx.fillStyle = scoreColor;
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'right';
-                ctx.textBaseline = 'bottom';
-                ctx.fillText(scoreText, canvas.width - 20, canvas.height - 20);
-                ctx.restore();
+        function updateUI() {
+            document.getElementById('scoreDisplay').innerText = Math.floor(gameState.score).toString().padStart(6, '0');
+            document.getElementById('comboNum').innerText = gameState.combo;
+        }
 
-                if (timestamp - scoreDisplayTime > scoreDisplayDuration) {
-                    scoreText = '';
-                }
-            }
+        function endGame() {
+            gameState.isPlaying = false;
+            const ratio = gameState.score / gameState.maxScore;
+            let rank = 'D';
+            if (ratio > 0.95) rank = 'S';
+            else if (ratio > 0.9) rank = 'A';
+            else if (ratio > 0.8) rank = 'B';
+            else if (ratio > 0.7) rank = 'C';
+
+            document.getElementById('finalGrade').innerText = rank;
+            document.getElementById('finalScoreText').innerText = Math.floor(gameState.score).toString().padStart(6, '0');
+            document.getElementById('statPerfect').innerText = gameState.perfect;
+            document.getElementById('statGood').innerText = gameState.good;
+            document.getElementById('statMiss').innerText = gameState.miss;
             
-            animationFrameId = requestAnimationFrame(gameLoop);
+            document.getElementById('endScreen').classList.remove('hidden');
         }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // --- 事件监听 ---
         
-        const game = {
-            setFeedback: setFeedback,
-            updateScore: updateScore
-        };
-        
-        function startGame() {
-            if (!isGameStarted) {
-                isGameStarted = true;
-                // playAudio(audioSrc[0]);
-                gameStartTime = performance.now();
-                console.log(gameStartTime);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                handleInput(t.clientX, t.clientY);
             }
-        }
-        
-        // for (var i=0; i<audioSrc.length; i++) {
-        //     loadAudio(audioSrc[i]);
-        // }
-        animationFrameId = requestAnimationFrame(gameLoop);
+        }, { passive: false });
 
-        canvas.addEventListener('click', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
-
-            balls.forEach(ball => {
-                if (!ball.isHit && !ball.isTimedOut && performance.now()+gameStartTime>=ball.spawnTime) { // 一切 Bug 的来源：不判断点按时Ball是否已经开始加载
-                    const distance = Math.sqrt((clickX - ball.x)**2 + (clickY - ball.y)**2);
-                    if (distance < ball.r) {
-                        ball.clickTime = performance.now();
-                        ball.oneTimeFeedback(game);
-                        ball.isHit = true;
-                    }
-                }
-            });
+        canvas.addEventListener('mousedown', (e) => {
+            handleInput(e.clientX, e.clientY);
         });
 
-        restartButton.addEventListener('click', () => {
-            location.reload();
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const statusText = document.getElementById('statusText');
+
+        window.onload = async () => {
+            resize();
+            window.addEventListener('resize', resize);
+            await AudioSys.init();
+            
+            if (AudioSys.bgmBuffer) {
+                startBtn.removeAttribute('disabled');
+                startBtn.innerText = "START GAME";
+                statusText.innerText = "READY // AUDIO LOADED";
+            }
+        };
+
+        // 关键修复：Async + Await 确保音频上下文就绪
+        startBtn.addEventListener('click', async () => {
+            startBtn.innerText = "STARTING...";
+            if (AudioSys.ctx.state === 'suspended') {
+                await AudioSys.ctx.resume();
+            }
+            startGame();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            document.getElementById('endScreen').classList.add('hidden');
+            setTimeout(() => startGame(), 100);
         });
     </script>
 </body>
