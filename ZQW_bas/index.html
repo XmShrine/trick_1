@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>我不会弹贝斯</title>
+    <title>Bass Simulator Ultimate</title>
     <style>
         :root {
             --bg-wood: #2a231d;
@@ -13,24 +13,17 @@
         }
 
         body {
-            /* 允许横向滚动(仅在手机端指板区域生效)，禁止缩放 */
             touch-action: pan-x pan-y; 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-wood);
-            /* 深色木纹背景 */
             background-image: 
                 linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
             background-size: 20px 20px;
-            margin: 0;
-            padding: 20px 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            color: #ddd;
-            user-select: none;
-            -webkit-user-select: none;
+            margin: 0; padding: 20px 0;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; color: #ddd;
+            user-select: none; -webkit-user-select: none;
         }
 
         /* --- 启动遮罩 --- */
@@ -48,18 +41,15 @@
         }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
-        /* --- 顶部面板: Amp Head --- */
+        /* --- 顶部面板 --- */
         .amp-head {
             width: 95%; max-width: 1000px;
-            background: var(--bg-metal);
-            border: 4px solid #444; border-radius: 6px;
-            padding: 15px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+            background: var(--bg-metal); border: 4px solid #444; border-radius: 6px;
+            padding: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.6);
             display: flex; align-items: center; justify-content: space-between;
             margin-bottom: 20px; position: relative;
             background-image: linear-gradient(180deg, #222 0%, #111 100%);
         }
-        /* 装饰螺丝 */
         .amp-head::after { content: "+"; position: absolute; top: 5px; right: 5px; color: #555; font-size: 20px; }
         .amp-head::before { content: "+"; position: absolute; top: 5px; left: 5px; color: #555; font-size: 20px; }
 
@@ -108,110 +98,50 @@
         }
         .led-indicator.on { background-color: #00bfff; box-shadow: 0 0 8px #00bfff; }
 
-        /* ========================================= */
-        /*  指板区域 - 响应式核心 CSS                */
-        /* ========================================= */
-        
+        /* --- 指板区域 --- */
         .fretboard-container {
-            background: #25201b;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-            position: relative;
-            border: 4px solid #111;
-            /* 玫瑰木指板纹理 */
+            background: #25201b; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative; border: 4px solid #111;
             background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 15px);
         }
-
-        .button-group {
-            position: relative; z-index: 1;
-        }
-
+        .button-group { position: relative; z-index: 1; }
         .string-column {
             display: flex; flex-direction: column; gap: 15px; align-items: center; 
-            position: relative; padding: 15px 5px;
-            background: rgba(0,0,0,0.2); 
+            position: relative; padding: 15px 5px; background: rgba(0,0,0,0.2); 
         }
-        
-        /* 模拟琴弦 (贯穿线条) */
         .string-column::before {
-            content: ''; position: absolute; top: 0; bottom: 0; width: 3px; /* 琴弦粗细 */
-            background: linear-gradient(to right, #666, #ddd, #555); /* 金属光泽 */
+            content: ''; position: absolute; top: 0; bottom: 0; width: 3px;
+            background: linear-gradient(to right, #666, #ddd, #555);
             z-index: -1; box-shadow: 1px 0 4px rgba(0,0,0,0.9);
         }
-
-        /* 按钮样式 */
         .bass-btn {
-            width: 55px; height: 55px;
-            border-radius: 50%; border: none;
-            color: #fff; font-size: 16px; font-weight: 900;
-            cursor: pointer;
+            width: 55px; height: 55px; border-radius: 50%; border: none;
+            color: #fff; font-size: 16px; font-weight: 900; cursor: pointer;
             box-shadow: 0 5px 8px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.3);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-            background-color: #333;
-            -webkit-touch-callout: none;
-            transition: transform 0.05s;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8); background-color: #333;
+            -webkit-touch-callout: none; transition: transform 0.05s;
         }
         .bass-btn:active { transform: scale(0.9); box-shadow: inset 0 5px 10px rgba(0,0,0,0.7); }
 
-        /* ---------------------------------- */
-        /*  💻 电脑端 / 宽屏模式 (默认样式)    */
-        /* ---------------------------------- */
+        /* --- 响应式布局 --- */
         @media (min-width: 769px) {
-            .fretboard-container {
-                width: 95%; max-width: 1000px; /* 限制最大宽度 */
-                border-radius: 10px;
-                padding: 20px;
-                margin: 0 auto; /* 居中 */
-            }
-
-            .button-group {
-                display: grid;
-                /* 7根琴弦并排，自动平分宽度 */
-                grid-template-columns: repeat(7, 1fr); 
-                gap: 20px;
-            }
-
-            .string-column {
-                border-radius: 50px; /* 电脑上做成细长的指板条 */
-            }
+            .fretboard-container { width: 95%; max-width: 1000px; border-radius: 10px; padding: 20px; margin: 0 auto; }
+            .button-group { display: grid; grid-template-columns: repeat(7, 1fr); gap: 20px; }
+            .string-column { border-radius: 50px; }
         }
-
-        /* ---------------------------------- */
-        /*  📱 手机端 / 窄屏模式 (< 768px)    */
-        /* ---------------------------------- */
         @media (max-width: 768px) {
             .fretboard-container {
-                width: 100%;
-                border-left: none; border-right: none;
-                padding: 10px 0;
-                
-                /* 启用横向滚动 */
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
+                width: 100%; border-left: none; border-right: none; padding: 10px 0;
+                overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
             }
             .fretboard-container::-webkit-scrollbar { display: none; }
-
-            .button-group {
-                display: flex; /* 改为 Flex，横向排列 */
-                width: max-content; /* 宽度由内容撑开 */
-                gap: 10px;
-                padding: 0 15px;
-            }
-
-            .string-column {
-                min-width: 65px; /* 保证每列不被压缩 */
-                border-radius: 8px;
-            }
-            
-            .amp-head {
-                width: 100%; border-radius: 0; border-left: none; border-right: none;
-            }
-            
+            .button-group { display: flex; width: max-content; gap: 10px; padding: 0 15px; }
+            .string-column { min-width: 65px; border-radius: 8px; }
+            .amp-head { width: 100%; border-radius: 0; border-left: none; border-right: none; }
             .metal-switch { height: 50px; }
             .source-img-frame { width: 80px; height: 80px; }
         }
 
-        /* 按钮颜色 */
         .btn-blue { background: radial-gradient(circle at 30% 30%, #007aff, #005bb5); border: 2px solid #005bb5; }
         .btn-green { background: radial-gradient(circle at 30% 30%, #34c759, #248a3d); border: 2px solid #248a3d; }
         .btn-red { background: radial-gradient(circle at 30% 30%, #ff3b30, #b02a22); border: 2px solid #b02a22; }
@@ -220,7 +150,6 @@
         .btn-black { background: radial-gradient(circle at 30% 30%, #444, #111); border: 2px solid #000; }
         .btn-grey { background: radial-gradient(circle at 30% 30%, #8e8e93, #636366); border: 2px solid #48484a; }
 
-        /* 加载条 */
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 4px; z-index: 2000; }
         #progress-bar { height: 100%; width: 0%; background: #00ff00; box-shadow: 0 0 10px #00ff00; transition: width 0.1s; }
         #status-text { position: fixed; bottom: 5px; right: 5px; color: #666; font-family: monospace; font-size: 10px; z-index: 1000; }
@@ -250,7 +179,6 @@
 
     <div class="fretboard-container">
         <div class="button-group">
-            <!-- 电脑端自动网格排列，手机端自动横向排列 -->
             <div class="string-column">
                 <button class="bass-btn btn-blue" onpointerdown="playNote('e1')">E1</button>
                 <button class="bass-btn btn-blue" onpointerdown="playNote('e2')">E2</button>
@@ -308,16 +236,28 @@
         let totalFiles = 0;
         let loadedFiles = 0;
 
+        // 关键修改：用于存储正在播放的音频节点，防止垃圾回收
+        const activeSources = [];
+
         const speakerImg = document.getElementById('speakerCone');
         const speakerFrame = document.getElementById('speakerFrame');
 
         function startAudioEngine() {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
+            
+            // 移动端 Safari 需要在用户交互中 Resume
             if (audioCtx.state === 'suspended') audioCtx.resume();
             
             document.getElementById('start-overlay').style.opacity = '0';
             setTimeout(() => { document.getElementById('start-overlay').style.display = 'none'; }, 500);
+
+            // 定时检查 AudioContext 状态，防止后台挂起
+            setInterval(() => {
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }, 1000);
 
             initLoader();
         }
@@ -334,7 +274,8 @@
                 const arrayBuffer = await response.arrayBuffer();
                 const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                 audioBuffers[bufferKey] = decodedBuffer;
-            } catch (e) { } finally {
+            } catch (e) {
+            } finally {
                 loadedFiles++;
                 updateUIProgress();
             }
@@ -349,6 +290,17 @@
                 source.connect(audioCtx.destination);
                 source.start(0);
                 triggerSpeakerEffect();
+
+                // 关键修改：将 source 存入数组，防止被 GC
+                activeSources.push(source);
+                
+                // 播放结束后清理数组
+                source.onended = function() {
+                    const index = activeSources.indexOf(source);
+                    if (index > -1) {
+                        activeSources.splice(index, 1);
+                    }
+                };
             }
         }
 
