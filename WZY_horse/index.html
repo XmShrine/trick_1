@@ -2,236 +2,436 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>曼波丁真</title>
+    <!-- 关键：禁止缩放，适配刘海屏 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>曼波播放器 98 Mobile</title>
     <style>
+        /* --- 核心设置 --- */
+        @font-face { font-family: 'Pixel'; src: local('Tahoma'), local('Verdana'), sans-serif; }
+        
+        * { 
+            box-sizing: border-box; 
+            user-select: none; 
+            -webkit-user-select: none; 
+            -webkit-tap-highlight-color: transparent; /* 去除点击高亮块 */
+        }
+        
         body {
-            touch-action: manipulation;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #c0c0c0 0%, #808080 100%);
-            font-family: 'MS Sans Serif', sans-serif;
-            min-height: 100vh;
+            margin: 0; padding: 0;
+            background-color: #008080; /* Win95 Teal */
+            font-family: 'Pixel', 'MS Sans Serif', sans-serif;
+            height: 100vh; width: 100vw;
+            overflow: hidden; /* 禁止 body 滚动，只允许窗口内部滚动 */
             position: relative;
         }
-        
-        /* 复古窗口样式 */
+
+        /* --- 动画：窗口震动 --- */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        .window-shake { animation: shake 0.5s; animation-iteration-count: infinite; }
+
+        /* --- 彩蛋：蓝屏死机 --- */
+        #bsod {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000082; color: #fff; font-family: 'Courier New', monospace;
+            padding: 20px; z-index: 9999; font-size: 14px; line-height: 1.4;
+            overflow-y: auto;
+        }
+
+        /* --- 主窗口 --- */
         .window {
-            background: #c0c0c0;
-            border: 2px outset #c0c0c0;
-            margin: 20px auto;
-            max-width: 800px;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+            position: absolute;
+            background-color: #c0c0c0;
+            width: 400px; /* 默认宽度 */
+            max-width: 95vw; /* 移动端最大宽度 */
+            max-height: 80vh; /* 防止超出一屏 */
+            box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #000000, inset 2px 2px #ffffff, inset -2px -2px #808080;
+            padding: 3px;
+            display: flex; flex-direction: column;
+            z-index: 100;
+            /* 阴影增加立体感 */
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.5); 
+        }
+
+        .window.maximized {
+            width: 100% !important; height: calc(100% - 35px) !important; /* 留出任务栏 */
+            top: 0 !important; left: 0 !important; max-height: none; max-width: none;
+            z-index: 900;
         }
         
+        .window.minimized { display: none; }
+
+        /* --- 标题栏 --- */
         .title-bar {
-            background: linear-gradient(90deg, #000080 0%, #000040 100%);
-            color: white;
-            padding: 4px 8px;
-            font-size: 11px;
-            font-weight: bold;
-            border-bottom: 1px solid #808080;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            background: linear-gradient(90deg, #000080, #1084d0);
+            padding: 4px 5px; min-height: 28px; /* 加高以便触控 */
+            display: flex; justify-content: space-between; align-items: center;
+            touch-action: none; /* 关键：禁止浏览器默认拖动行为 */
         }
-        
-        .window-controls {
-            display: flex;
-            gap: 2px;
-        }
+        .title-bar-text { color: white; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .title-bar-controls { display: flex; gap: 4px; }
         
         .control-btn {
-            width: 16px;
-            height: 14px;
-            border: 1px outset #c0c0c0;
-            background: #c0c0c0;
-            font-size: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
+            width: 22px; height: 20px; /* 加大按钮 */
+            background: #c0c0c0; border: none;
+            box-shadow: inset 1px 1px #ffffff, inset -1px -1px #000000, inset -2px -2px #808080;
+            font-size: 12px; line-height: 1; font-weight: bold; display: flex; justify-content: center; align-items: center;
         }
-        
-        .control-btn:active {
-            border: 1px inset #c0c0c0;
-        }
-        
-        .content {
-            padding: 20px;
-            text-align: center;
-        }
-        
-        h1 {
-            font-size: 24px;
-            color: #000080;
-            margin: 0 0 20px 0;
-            text-shadow: 1px 1px 0px #ffffff;
-            font-weight: bold;
-        }
-        
-        .image-container {
-            margin: 20px 0;
-            border: 2px inset #c0c0c0;
-            padding: 10px;
-            display: inline-block;
-            background: #c0c0c0;
-        }
-        
-        .main-image {
-            max-width: 300px;
-            max-height: 300px;
-            border: 1px solid #808080;
-            background: transparent;
-        }
-        
-        .button-container {
-            margin-top: 30px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .audio-btn {
-            background: linear-gradient(135deg, #c0c0c0 0%, #808080 100%);
-            border: 2px outset #c0c0c0;
-            padding: 8px 16px;
-            font-family: 'MS Sans Serif', sans-serif;
-            font-size: 11px;
-            font-weight: bold;
-            color: #000000;
-            cursor: pointer;
-            min-width: 80px;
-            text-shadow: 1px 1px 0px #ffffff;
-            transition: none;
-        }
-        
-        .audio-btn:hover {
-            background: linear-gradient(135deg, #d0d0d0 0%, #909090 100%);
-        }
-        
-        .audio-btn:active {
-            border: 2px inset #c0c0c0;
-            background: linear-gradient(135deg, #a0a0a0 0%, #808080 100%);
-            text-shadow: none;
-        }
-        
+        .control-btn:active { box-shadow: inset 1px 1px #000000, inset 2px 2px #808080; }
 
+        /* --- 菜单栏 --- */
+        .menu-bar { display: flex; padding: 4px 6px; font-size: 14px; margin-bottom: 2px; }
+        .menu-item { margin-right: 15px; padding: 2px; } 
+        .menu-item:active { background: #000080; color: white; } /* 移动端触摸反馈 */
+        .menu-item span { text-decoration: underline; }
         
-        /* 左下角固定图片 */
-        .fixed-corner-image {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100px;
-            height: 100px;
-            z-index: 1000;
-            border: 2px outset #c0c0c0;
-            background: #c0c0c0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: #808080;
-            font-family: 'MS Sans Serif', sans-serif;
+        /* --- 内容区域 --- */
+        .window-body { 
+            padding: 10px; flex-grow: 1; 
+            overflow-y: auto; /* 允许内容过多时滚动 */
+            -webkit-overflow-scrolling: touch; /* iOS 惯性滚动 */
         }
+
+        .sunken-panel {
+            border: 2px solid; border-color: #808080 #fff #fff #808080;
+            background: #fff; padding: 2px; margin-bottom: 15px; display: flex; justify-content: center;
+            min-height: 150px; align-items: center;
+        }
+        .main-image { max-width: 100%; height: auto; max-height: 200px; image-rendering: pixelated; pointer-events: none; }
+
+        .button-group {
+            border: 1px solid #808080; border-radius: 2px; position: relative; padding: 15px 10px 10px; margin-top: 10px;
+        }
+        .group-label { position: absolute; top: -8px; left: 8px; background: #c0c0c0; padding: 0 4px; font-size: 12px; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .win95-btn {
+            font-family: 'Pixel', sans-serif; font-size: 13px; background: #c0c0c0; padding: 10px 5px; /* 加大点击区域 */
+            border: none; box-shadow: inset 1px 1px #ffffff, inset -1px -1px #000000, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .win95-btn:active, .win95-btn.playing { 
+            box-shadow: inset 1px 1px #000000, inset 2px 2px #808080; 
+            background: #d4d4d4; /* 按下稍微变色 */
+            transform: translateY(1px); /* 物理位移 */
+        }
+
+        /* --- 底部任务栏 --- */
+        .taskbar {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 35px; /* 加高 */
+            background: #c0c0c0; border-top: 2px solid #fff;
+            display: flex; align-items: center; padding: 2px; z-index: 1000;
+            box-shadow: inset 0 1px 0 #fff;
+        }
+        .start-btn {
+            display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 28px;
+            background: #c0c0c0; border: none;
+            box-shadow: inset 1px 1px #fff, inset -1px -1px #000, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
+            font-weight: bold; font-size: 13px; margin-left: 2px;
+        }
+        .start-btn:active { box-shadow: inset 1px 1px #000, inset 2px 2px #808080; padding-top: 6px; padding-left: 10px; }
         
-        /* 滚动条样式 */
-        ::-webkit-scrollbar {
-            width: 16px;
-        }
+        .taskbar-divider { width: 2px; height: 24px; border-left: 1px solid #808080; border-right: 1px solid #fff; margin: 0 6px; }
         
-        ::-webkit-scrollbar-track {
-            background: #c0c0c0;
-            border: 1px inset #c0c0c0;
+        .task-item {
+            flex-grow: 1; max-width: 150px; height: 28px; background: #c0c0c0;
+            display: flex; align-items: center; padding-left: 5px; font-size: 12px; font-weight: bold;
+            box-shadow: inset 1px 1px #000, inset 2px 2px #808080; background: #e0e0e0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
+
+        .tray-area {
+            margin-left: auto; border: 1px solid; border-color: #808080 #fff #fff #808080;
+            padding: 0 6px; height: 28px; display: flex; align-items: center; font-size: 12px;
+        }
+
+        /* --- 桌面图标 --- */
+        .desktop-icon {
+            position: absolute; top: 20px; left: 20px;
+            width: 80px; text-align: center; color: white; font-size: 12px; 
+            z-index: 1;
+            /* 移动端触摸优化 */
+            padding: 10px; 
+        }
+        .desktop-icon img { width: 36px; height: 36px; margin-bottom: 4px; pointer-events: none; }
+        .desktop-icon span { padding: 2px; text-shadow: 1px 1px #000; pointer-events: none; }
         
-        ::-webkit-scrollbar-thumb {
-            background: #808080;
-            border: 1px outset #c0c0c0;
+        /* 选中状态 */
+        .desktop-icon.selected span { background: #000080; border: 1px dotted #ffff00; }
+        .desktop-icon.selected img { filter: brightness(0.7) sepia(1) hue-rotate(180deg); }
+
+        /* --- 移动端特定的 CSS 调整 --- */
+        @media (max-width: 600px) {
+            .window {
+                /* 默认不居中，靠上放，防止被键盘或底部栏遮挡 */
+                left: 5% !important; top: 5% !important; width: 90% !important;
+            }
+            .desktop-icon {
+                top: auto; bottom: 50px; left: 10px; /* 放到下面 */
+            }
+            #bsod { font-size: 12px; padding: 10px; }
         }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #606060;
-        }
-        
-        /* 状态栏 */
-        .status-bar {
-            background: #c0c0c0;
-            border-top: 1px solid #808080;
-            padding: 4px 8px;
-            font-size: 10px;
-            color: #000000;
-            display: flex;
-            justify-content: space-between;
-        }
+
     </style>
 </head>
 <body>
-    <!-- 左下角固定图片位置 -->
-    <div class="fixed-corner-image">
-        <span><img src="ymjn.png" width="100" height="100"></span>
+
+    <!-- 蓝屏彩蛋 (点击任意处恢复) -->
+    <div id="bsod" onclick="location.reload()">
+        <p>A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36.</p>
+        <p>Current application will be terminated.</p>
+        <br>
+        <p>* Press any key to terminate the current application.</p>
+        <p>* Press CTRL+ALT+DEL again to restart your computer.</p>
+        <br>
+        <p style="text-align: center; margin-top: 50px;">Press any key to continue _</p>
     </div>
-    
-    <div class="window">
-        <div class="title-bar">
-            <span>曼波丁真 - 音频播放器</span>
-            <div class="window-controls">
-                <div class="control-btn">_</div>
-                <div class="control-btn">□</div>
-                <div class="control-btn">×</div>
+
+    <!-- 桌面图标 (自定义触摸事件实现双击) -->
+    <div class="desktop-icon" id="myComp" 
+         onclick="handleIconTap()" >
+        <img src="ymjn.png" alt="Icon" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">
+        <br><span>我的丁真</span>
+    </div>
+
+    <!-- 主窗口 -->
+    <div class="window" id="mainWindow">
+        <!-- 拖拽手柄 -->
+        <div class="title-bar" id="dragHandle">
+            <div class="title-bar-text">
+                <img src="DJ.png" style="width:16px; height:16px; background:#fff; margin-right:6px;" onerror="this.style.display='none'">
+                <span>曼波播放器 Mobile</span>
+            </div>
+            <div class="title-bar-controls">
+                <button class="control-btn" onclick="minimizeWindow()">_</button>
+                <button class="control-btn" onclick="maximizeWindow()">□</button>
+                <button class="control-btn" onclick="closeWindow()">×</button>
             </div>
         </div>
-        
-        <div class="content">
-            <h1>曼波丁真</h1>
-            
-            <div class="image-container">
-                <div class="main-image" style="width: 300px; height: 200px; display: flex; align-items: center; justify-content: center; color: #808080; font-size: 12px;">
-                    <img src="DJ.png" width="250" height="300">
+
+        <div class="menu-bar">
+            <div class="menu-item" onclick="alert('File Menu')"><span>F</span>ile</div>
+            <div class="menu-item"><span>E</span>dit</div>
+            <div class="menu-item" onclick="alert('Help!')"><span>H</span>elp</div>
+        </div>
+
+        <div class="window-body">
+            <div class="sunken-panel">
+                <img src="DJ.png" class="main-image" alt="DJ Mambo" onerror="this.parentElement.innerText='[Image Not Found]'">
+            </div>
+
+            <div class="button-group">
+                <span class="group-label">Soundboard</span>
+                <div class="btn-grid">
+                    <button class="win95-btn" onclick="playAudio('hajimi.m4a', this)">😺 Hajimi</button>
+                    <button class="win95-btn" onclick="playAudio('omajilimanbo.m4a', this)">💃 Manbo</button>
+                    <!-- 震动彩蛋 -->
+                    <button class="win95-btn" onclick="playAudio('wow.m4a', this, true)">😯 Wow!</button>
+                    <button class="win95-btn" onclick="playAudio('aminosi.m4a', this, true)">🤬 Aminos</button>
                 </div>
             </div>
-            
-            <div class="button-container" id="buttonContainer">
-                <button class="audio-btn" onclick="playAudio('hajimi.m4a')">哈吉米</button>
-                <button class="audio-btn" onclick="playAudio('omajilimanbo.m4a')">噢嘛吉利曼波</button>
-                <button class="audio-btn" onclick="playAudio('wow.m4a')">哇哦</button>
-                <button class="audio-btn" onclick="playAudio('aminosi.m4a')">阿米诺斯</button>
-            </div>
         </div>
-        
-        <div class="status-bar">
-            <span>就绪</span>
-            <span id="playingCount">播放中: Unknow</span>
+
+        <div class="status-bar" style="margin-top: 4px; display: flex; gap: 2px; font-size: 11px;">
+            <div style="flex-grow:1; background:#c0c0c0; border:1px inset #fff; padding:2px;" id="statusText">Ready</div>
         </div>
     </div>
-    
-    <!-- 音频元素容器 -->
-    <div id="audioContainer"></div>
-    
-    <script type="text/javascript" src="../playAudio.js"></script>
+
+    <!-- 任务栏 -->
+    <div class="taskbar">
+        <button class="start-btn" onclick="alert('Start Menu')">
+            <img src="https://win98icons.alexmeub.com/icons/png/windows-0.png" width="16" height="16" style="margin-right:2px;"> 
+            Start
+        </button>
+        <div class="taskbar-divider"></div>
+        <div class="task-item" id="taskbarItem" onclick="restoreWindow()">
+            <img src="DJ.png" width="14" height="14" style="margin-right:4px;" onerror="this.style.display='none'">
+            曼波播放器...
+        </div>
+        <div class="tray-area">
+            <img src="https://win98icons.alexmeub.com/icons/png/loudspeaker_rays-0.png" width="16" height="16" style="margin-right:4px;">
+            <span id="clock">12:00</span>
+        </div>
+    </div>
 
     <script>
-        
-        // 添加新按钮的函数（方便后续扩展）
-        function addAudioButton(audioId, buttonText) {
-            const container = document.getElementById('buttonContainer');
-            const button = document.createElement('button');
-            button.className = 'audio-btn';
-            button.textContent = buttonText;
-            button.onclick = function() { playAudio(audioId, this); };
-            container.appendChild(button);
+        // ==========================================
+        //  1. 初始化逻辑 (自适应屏幕)
+        // ==========================================
+        const win = document.getElementById('mainWindow');
+
+        window.onload = function() {
+            // 简单的居中/定位逻辑
+            // 移动端主要靠 CSS 的 top: 5% left: 5% 生效
+            // 桌面端简单居中
+            if (window.innerWidth > 600) {
+                win.style.left = (window.innerWidth - 400) / 2 + 'px';
+                win.style.top = '100px';
+            }
+            updateClock();
+        };
+
+        // ==========================================
+        //  2. 模拟双击 (Mobile Friendly)
+        // ==========================================
+        let lastTap = 0;
+        function handleIconTap() {
+            const now = new Date().getTime();
+            const tapLen = now - lastTap;
+            const icon = document.getElementById('myComp');
+            
+            // 选中效果
+            icon.classList.add('selected');
+            setTimeout(() => icon.classList.remove('selected'), 1000); // 1秒后自动取消选中
+
+            // 双击判定 (500ms 内两次点击)
+            if (tapLen < 500 && tapLen > 0) {
+                document.getElementById('bsod').style.display = 'block';
+            }
+            lastTap = now;
+        }
+
+        // ==========================================
+        //  3. 音频核心
+        // ==========================================
+        function playAudio(filename, btn, shake = false) {
+            const audio = new Audio(filename);
+            const status = document.getElementById('statusText');
+            
+            status.innerText = 'Playing: ' + filename;
+            if (btn) btn.classList.add('playing');
+            
+            if (shake) {
+                win.classList.add('window-shake');
+                if (navigator.vibrate) navigator.vibrate(200); // 手机震动反馈
+                setTimeout(() => win.classList.remove('window-shake'), 500);
+            }
+
+            audio.play().then(() => {
+                audio.onended = () => {
+                   if (btn) btn.classList.remove('playing');
+                   if (status.innerText.includes(filename)) status.innerText = 'Ready';
+                };
+            }).catch(e => {
+                status.innerText = 'Error: File Not Found';
+                console.error(e);
+                if (btn) btn.classList.remove('playing');
+            });
+            
+            // 视觉回弹
+            setTimeout(() => { if(btn) btn.classList.remove('playing'); }, 200);
+        }
+
+        // ==========================================
+        //  4. 窗口系统
+        // ==========================================
+        let isMaximized = false;
+        let oldStyle = {};
+
+        function maximizeWindow() {
+            if (isMaximized) {
+                // 还原
+                win.classList.remove('maximized');
+                win.style.left = oldStyle.left;
+                win.style.top = oldStyle.top;
+                win.style.width = oldStyle.width;
+            } else {
+                // 最大化
+                oldStyle.left = win.style.left;
+                oldStyle.top = win.style.top;
+                oldStyle.width = win.style.width;
+                win.classList.add('maximized');
+            }
+            isMaximized = !isMaximized;
+        }
+
+        function minimizeWindow() {
+            win.style.display = 'none';
+            const tbItem = document.getElementById('taskbarItem');
+            tbItem.style.background = '#c0c0c0';
+            tbItem.style.boxShadow = 'inset 1px 1px #fff, inset -1px -1px #000'; // 凸起
+        }
+
+        function restoreWindow() {
+            if (win.style.display === 'none') {
+                win.style.display = 'flex';
+                const tbItem = document.getElementById('taskbarItem');
+                tbItem.style.background = '#e0e0e0';
+                tbItem.style.boxShadow = 'inset 1px 1px #000, inset 2px 2px #808080'; // 凹陷
+            } else {
+                minimizeWindow(); // 如果开着，点击任务栏则最小化
+            }
         }
         
-        // 示例：添加新按钮
-        // addAudioButton('audio6', '音频 6');
-        
-        loadAudio('hajimi.m4a');
-        loadAudio('omajilimanbo.m4a');
-        loadAudio('wow.m4a');
-        loadAudio('aminosi.m4a');
+        function closeWindow() {
+            win.style.display = 'none';
+            document.getElementById('taskbarItem').style.display = 'none';
+        }
+
+        // ==========================================
+        //  5. 拖拽逻辑 (触控优化)
+        // ==========================================
+        const handle = document.getElementById('dragHandle');
+        let isDragging = false, startX, startY, initialLeft, initialTop;
+
+        handle.addEventListener('mousedown', startDrag);
+        handle.addEventListener('touchstart', startDrag, {passive: false});
+
+        function startDrag(e) {
+            if (isMaximized) return;
+            // 手机端：阻止默认事件防止页面随窗口滚动
+            if (e.cancelable) e.preventDefault();
+            
+            isDragging = true;
+            const evt = e.touches ? e.touches[0] : e;
+            startX = evt.clientX;
+            startY = evt.clientY;
+            initialLeft = win.offsetLeft;
+            initialTop = win.offsetTop;
+
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag, {passive: false});
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            if (e.cancelable) e.preventDefault(); // 关键：拖动时禁止页面卷动
+            
+            const evt = e.touches ? e.touches[0] : e;
+            const dx = evt.clientX - startX;
+            const dy = evt.clientY - startY;
+            
+            win.style.left = (initialLeft + dx) + 'px';
+            win.style.top = (initialTop + dy) + 'px';
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('touchmove', drag);
+        }
+
+        // ==========================================
+        //  6. 时钟
+        // ==========================================
+        function updateClock() {
+            const now = new Date();
+            let h = now.getHours();
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12; h = h ? h : 12; 
+            document.getElementById('clock').innerText = `${h}:${m} ${ampm}`;
+        }
+        setInterval(updateClock, 1000);
     </script>
 </body>
 </html>
