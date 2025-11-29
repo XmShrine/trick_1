@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Rhythm Game Beat Mapper</title>
+    <style>
+        body { background: #111; color: #0ff; font-family: monospace; text-align: center; padding-top: 50px; }
+        #output { width: 80%; height: 200px; background: #000; color: #0f0; border: 1px solid #0ff; margin-top: 20px; font-size: 14px; padding: 10px; }
+        button { padding: 15px 30px; font-size: 20px; background: #0ff; border: none; cursor: pointer; font-weight: bold; }
+        .instruction { color: #aaa; margin: 20px; font-size: 18px; }
+        #flash { width: 50px; height: 50px; background: #333; margin: 20px auto; border-radius: 50%; }
+        #flash.active { background: #f0f; box-shadow: 0 0 20px #f0f; transform: scale(1.2); }
+    </style>
+</head>
+<body>
+    <h1>简易打谱工具</h1>
+    <p class="instruction">1. 点击 START 开始播放音乐<br>2. 跟着节奏按 <b>[空格键]</b> 或 <b>[点击屏幕]</b><br>3. 结束后复制下方的数组</p>
+    
+    <button id="startBtn">START MUSIC</button>
+    <div id="flash"></div>
+    <div id="count">已记录: 0 个音符</div>
+    
+    <textarea id="output" placeholder="生成的数组会显示在这里..."></textarea>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let buffer = null;
+        let source = null;
+        let startTime = 0;
+        let timings = [];
+        let isPlaying = false;
+
+        // 加载音频
+        async function loadAudio() {
+            try {
+                const response = await fetch('audio.mp3'); // 确保文件名正确
+                const arrayBuffer = await response.arrayBuffer();
+                buffer = await audioCtx.decodeAudioData(arrayBuffer);
+                document.getElementById('startBtn').innerText = "START (Ready)";
+            } catch (e) {
+                alert("无法加载 audio.mp3，请检查文件是否存在！");
+            }
+        }
+
+        loadAudio();
+
+        function start() {
+            if (isPlaying) return;
+            if (!buffer) return alert("音频还在加载中...");
+            
+            audioCtx.resume();
+            source = audioCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioCtx.destination);
+            source.start(0);
+            
+            startTime = audioCtx.currentTime;
+            isPlaying = true;
+            timings = []; // 重置
+            
+            document.getElementById('output').value = "正在记录...";
+            document.getElementById('startBtn').disabled = true;
+            
+            // 播放结束后自动生成
+            source.onended = () => {
+                isPlaying = false;
+                generateOutput();
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('startBtn').innerText = "RESTART";
+                alert("播放结束，请复制下方的数组！");
+            };
+        }
+
+        function recordBeat() {
+            if (!isPlaying) return;
+            
+            // 记录当前时间 (毫秒)
+            const time = Math.floor((audioCtx.currentTime - startTime) * 1000);
+            timings.push(time);
+            
+            // 视觉反馈
+            const flash = document.getElementById('flash');
+            flash.classList.add('active');
+            setTimeout(() => flash.classList.remove('active'), 100);
+            
+            document.getElementById('count').innerText = `已记录: ${timings.length} 个音符`;
+            
+            // 实时更新输出（可选）
+            // generateOutput(); 
+        }
+
+        function generateOutput() {
+            // 排序并去重，防止手抖
+            timings.sort((a, b) => a - b);
+            const str = `const NOTE_TIMINGS = [${timings.join(',')}];`;
+            document.getElementById('output').value = str;
+        }
+
+        // 交互绑定
+        document.getElementById('startBtn').addEventListener('click', start);
+        
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); // 防止滚动
+                recordBeat();
+            }
+        });
+
+        // 手机端触摸支持
+        document.addEventListener('touchstart', (e) => {
+            if(isPlaying) {
+                e.preventDefault();
+                recordBeat();
+            }
+        }, {passive: false});
+
+    </script>
+</body>
+</html>

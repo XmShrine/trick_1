@@ -25,7 +25,7 @@
             background-color: var(--bg-dark);
             font-family: var(--font-main);
             color: #fff;
-            touch-action: none; 
+            touch-action: none; /* 禁止移动端默认手势 */
             user-select: none;
             -webkit-user-select: none;
         }
@@ -133,7 +133,7 @@
         /* 底部进度条 */
         #progressContainer {
             position: fixed;
-            bottom: 0; left: 0; width: 100%; height: 6px; /* 加厚一点 */
+            bottom: 0; left: 0; width: 100%; height: 6px;
             background: rgba(255,255,255,0.1);
             z-index: 20;
             pointer-events: none;
@@ -142,7 +142,7 @@
             height: 100%; width: 0;
             background: var(--primary);
             box-shadow: 0 0 15px var(--primary);
-            transition: width 0.1s linear; /* 平滑过渡 */
+            transition: width 0.1s linear;
         }
 
         /* --- 覆盖层 (开始/结算) --- */
@@ -161,10 +161,11 @@
             transition: opacity 0.5s ease;
         }
 
+        /* 关键修复：延迟隐藏 visibility 以防止幽灵点击 */
         .overlay.hidden { 
             opacity: 0; 
             visibility: hidden; 
-            transition: opacity 0.5s ease, visibility 0s 0.5s; /* 关键：延迟隐藏 */
+            transition: opacity 0.5s ease, visibility 0s 0.5s; 
             pointer-events: none;
         }
 
@@ -183,6 +184,7 @@
             overflow: hidden;
             transition: 0.3s;
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+            /* pointer-events: auto; <--- 已删除，防止误触 */
         }
         .btn-glitch:hover, .btn-glitch:active {
             background: var(--primary);
@@ -257,11 +259,11 @@
 
     <script>
         // ==========================================
-        // 核心配置
+        // 核心配置 (已改为 MP3)
         // ==========================================
         const CONFIG = {
-            musicUrl: 'audio.m4a', 
-            hitSfxUrl: 'push.m4a', 
+            musicUrl: 'audio.mp3', // 确保文件是 mp3 格式
+            hitSfxUrl: 'push.mp3', // 确保文件是 mp3 格式
             imgUrl: 'source.jpeg',
             gameDuration: 88000,
             noteRadius: 55,        
@@ -270,11 +272,10 @@
             goodWin: 200,
         };
 
-        // 谱面数据：添加了一个 1500ms 的热身音符，防止开场空白太久
-        const NOTE_TIMINGS = [1500, 3919,4878,7056,8623,10000,10950,11654,13188,14001,14837,16748,17800,19017,19532,20591,21803,22646,23949,24991,25860,27074,28365,30069,31312,32593,33789,34839,35914,36977,37969,39137,40328,41524,42473,43317,43976,44522,45285,46049,46962,47916,48729,49565,50296,51111,52138,52978,53586,54170,54957,55758,56598,57741,58665,59452,60353,61226,62057,62970,63964,64941,65902,66866,67709,68608,69486,70500,71359,72177,73003,73835,74710,75660,76498,77274,78191,78976,79949,80703,81704,82503,83227,84045,84774,85640,86390];
-
+        // 谱面数据 (含 1500ms 开场热身)
+        const NOTE_TIMINGS = [1535,2037,2435,2908,3393,3854,4371,5027,5619,6095,6579,7055,7569,8083,8594,9084,9540,10042,10501,10994,11490,11935,12350,12791,13241,13711,14207,14689,15168,15603,16039,16491,16982,17458,17934,18413,19310,19719,20024,20300,20625,20970,21292,21629,21948,22265,22587,22903,23190,23513,23835,24169,24514,24851,25196,25539,25893,26264,26601,26920,27263,27585,27948,28279,28641,28929,29225,29524,29846,30203,30525,30882,31210,31550,31910,32287,32635,32981,33346,33744,34142,34501,34858,35140,35439,35761,36104,36507,36841,37169,37503,37845,38205,38565,38730,38899,39256,39621,39978,40327,40672,41000,41346,41697,42036,42396,42759,43093,43450,43772,44146,44489,44820,45180,45545,45882,46219,46561,46898,47240,47641,47969,48338,48692,49026,49394,49734,50079,50454,50805,51156,51475,51789,52143,52503,52871,53208,53556,53910,54238,54503,54694,55109,55423,55722,55965,56395,56752,57042,57245,57451,57898,58076,58406,58662,58824,59126,59477,59820,60154,60508,60868,61216,61582,61918,62261,62615,62966,63323,63680,64014,64371,64716,65065,65422,65750,66089,66478,66809,67175,67535,67883,68246,68609,68986,69352,69665,70028,70370,70707,71067,71418,71735,72106,72443,72780,73154,73523,73833,74170,74504,74823,75197,75560,75920,76271,76622,76985,77316,77656,77987,78312,78672,79061,79449,79806,80152,80497,80788,81098,81426,81800,82123,82459,82808,83208,83557,83916,84285,84668,84999,85350,85707,86073,86404,86778,87150,87498,87904,88279,88607,88949,89295,89669,90038,90459,90824,91190,91553,91919,92273,92656,92998,93338,93678,94005,94365,94676,95018,95381,95759,96107,96455,96803,97184,97558,97912,98281,98635,98928,99276,99633,99988,100324,100670,101021,101343,101674,102025,102353,102733,103087,103444,103790,104147,104483,104838,105177,105531,105888,106225,106588,106988,107331,107668,107984,108318,108657,109026,109368,109740,110088,110428,110750,111090,111452,111801,112149,112547,112979,113412,113690,113995,114163,114337,114535,114793,115170,115519,115919,116279,116645,117002,117408,117745,118169,118540,118929,119318,119646,119849,120050,120378,120845,121237,121431,121814,122180,122566,122946,123295,123623,123974,124371,124746,125112,125509,125843,126185,126513,126865,127196,127550,127880,128084,128426,128830,129294,129671,130017,130377,130731,131047,131387,131750,132133,132461,132786,133131,133479,133819,134179,134533,134887,135221,135566,135958,136301,136632,136983,137346,137679,137984,138344,138695,139041,139290,139476,139856,140425,140649,140834,140997,141336,141763,142158,142524,142872,143240,143551,143908,144262,144666,144991,145377,145737,146068,146349,146683,147072,147432,147780,148128,148503,148857,149202,149588,149960,150294,150645,150993,151321,151652,151980,152322,152659,153010,153370,153710,154061,154395,154737,155103,155451,155791,156128,156456,156795,157152,157486,157820,158145,158508,158841,159181,159532,159927,160284,160624,160989,161343,161683,162031,162368,162708,163053,163407,163761,164121,164498,164867,165192,165517,165874,166208,166579,166945,167322,167700,168071,168457,168901,169581];
         // ==========================================
-        // 音频系统
+        // 音频系统 (修复 iOS 兼容性版)
         // ==========================================
         const AudioSys = {
             ctx: null,
@@ -284,38 +285,62 @@
             startTime: 0,
             
             async init() {
+                // 1. 兼容性创建 AudioContext
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 this.ctx = new AudioContext();
-                await Promise.all([
-                    this.loadBuffer(CONFIG.musicUrl).then(b => this.bgmBuffer = b),
-                    this.loadBuffer(CONFIG.hitSfxUrl).then(b => this.sfxBuffer = b)
-                ]);
+
+                document.getElementById('statusText').innerText = "正在下载音频...";
+
+                // 2. 并行加载
+                try {
+                    await Promise.all([
+                        this.loadBuffer(CONFIG.musicUrl).then(b => this.bgmBuffer = b),
+                        this.loadBuffer(CONFIG.hitSfxUrl).then(b => this.sfxBuffer = b)
+                    ]);
+                } catch (err) {
+                    console.error(err);
+                    document.getElementById('statusText').innerText = "加载失败: " + err.message;
+                    document.getElementById('statusText').style.color = "#ff0055";
+                    return;
+                }
             },
 
+            // 核心修复：兼容 Callback 和 Promise 的解码函数
             async loadBuffer(url) {
-                try {
-                    const response = await fetch(url);
-                    const arrayBuffer = await response.arrayBuffer();
-                    return await this.ctx.decodeAudioData(arrayBuffer);
-                } catch (e) {
-                    console.error("Audio Load Error:", e);
-                    return null;
-                }
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const arrayBuffer = await response.arrayBuffer();
+
+                return new Promise((resolve, reject) => {
+                    // 尝试旧式回调 (Safari/Webkit)
+                    const res = this.ctx.decodeAudioData(arrayBuffer, 
+                        (decodedData) => resolve(decodedData),
+                        (err) => reject(err)
+                    );
+                    // 尝试新式 Promise (Chrome/Firefox)
+                    if (res && typeof res.then === 'function') {
+                        res.then(resolve).catch(reject);
+                    }
+                });
             },
 
             playBGM() {
                 if (!this.bgmBuffer) return;
-                if (this.bgmSource) try { this.bgmSource.stop(); } catch(e){}
+                this.stopBGM();
                 
                 this.bgmSource = this.ctx.createBufferSource();
                 this.bgmSource.buffer = this.bgmBuffer;
                 this.bgmSource.connect(this.ctx.destination);
                 
-                // 立即播放
                 this.bgmSource.start(0);
-                
-                // 关键修正：确保 currentTime 是最新的
                 this.startTime = this.ctx.currentTime;
+            },
+
+            stopBGM() {
+                if (this.bgmSource) {
+                    try { this.bgmSource.stop(); } catch(e){}
+                    this.bgmSource = null;
+                }
             },
 
             playSFX() {
@@ -331,7 +356,6 @@
 
             getCurrentTime() {
                 if (!this.startTime) return 0;
-                // 转为毫秒
                 return (this.ctx.currentTime - this.startTime) * 1000;
             }
         };
@@ -406,12 +430,11 @@
                     return this.hitAnimScale < 2.0; 
                 }
 
-                // 如果还没到出现时间，或者已经Miss了，不画
                 if (currentTime < this.appearTime || this.state === 'miss') return false;
 
                 const progress = (currentTime - this.appearTime) / CONFIG.approachTime;
                 
-                // 绘制本体
+                // 本体
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
@@ -484,25 +507,21 @@
 
             const now = AudioSys.getCurrentTime();
 
-            // 1. 清屏
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 2. 更新进度条 (防止 NaN)
+            // 进度条与心跳
             const safeNow = Math.max(0, now);
             const prog = Math.min(safeNow / CONFIG.gameDuration, 1);
             document.getElementById('progressBar').style.width = `${prog * 100}%`;
 
-            // 3. 心跳指示器 (证明 Loop 在跑)
             const beat = Math.sin(now / 200) * 0.5 + 0.5;
             document.getElementById('beatDot').style.opacity = beat;
 
-            // 4. 结束检测
             if (now > CONFIG.gameDuration + 1500) {
                 endGame();
                 return;
             }
 
-            // 5. 绘制音符
             gameState.balls.forEach(ball => {
                 if (ball.processed) {
                     ball.draw(ctx, now); 
@@ -515,7 +534,6 @@
                 }
             });
 
-            // 6. 绘制粒子
             for (let i = gameState.particles.length - 1; i >= 0; i--) {
                 if (!gameState.particles[i].update()) {
                     gameState.particles.splice(i, 1);
@@ -681,7 +699,7 @@
             }
         };
 
-        // 关键修复：Async + Await 确保音频上下文就绪
+        // 关键：等待音频引擎 Resumed
         startBtn.addEventListener('click', async () => {
             startBtn.innerText = "STARTING...";
             if (AudioSys.ctx.state === 'suspended') {
