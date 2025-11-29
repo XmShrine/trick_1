@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Immersive Reader</title>
+    <title>阅读器</title>
 
     <!-- 1. 引入 KaTeX (数学公式) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -19,9 +19,8 @@
             --bg-color: #000000;
             --text-primary: #F2F2F7;
             --text-secondary: #8E8E93;
-            --text-reading: #D1D1D6; /* 降低对比度，护眼 */
-            --accent: #0A84FF;       /* iOS Blue */
-            --glass-panel: rgba(28, 28, 30, 0.75);
+            --text-reading: #D1D1D6;
+            --accent: #0A84FF;
             --border-light: rgba(255, 255, 255, 0.12);
             --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
             --safe-area-bottom: env(safe-area-inset-bottom, 20px);
@@ -40,12 +39,10 @@
             overflow-x: hidden;
         }
 
-        /* --- Header (极简，自动隐藏) --- */
+        /* --- Header --- */
         header {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             height: 50px;
             background: rgba(0,0,0,0.8);
             backdrop-filter: blur(20px);
@@ -63,200 +60,181 @@
             font-weight: 600;
             color: var(--text-primary);
             opacity: 0.8;
+            max-width: 80%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         /* --- Main Content --- */
         main {
             max-width: 700px;
             margin: 0 auto;
-            padding: 80px 24px 120px; /* 底部留出控制条空间 */
+            padding: 80px 24px 150px;
             min-height: 100vh;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
         }
 
-        /* Markdown Styles */
-        h1, h2, h3 { color: var(--text-primary); font-weight: 700; letter-spacing: -0.5px; margin-top: 2em; }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* Typography */
+        h1, h2, h3 { color: var(--text-primary); font-weight: 700; margin-top: 2em; }
         h1 { font-size: 2em; border-bottom: 1px solid var(--border-light); padding-bottom: 0.3em; }
         h2 { font-size: 1.5em; }
         p { margin-bottom: 1.5em; text-align: justify; }
+        a { color: var(--accent); text-decoration: none; }
         
-        /* Math Formula Scroll */
+        /* Math & Code */
         .katex-display { overflow-x: auto; padding: 10px 0; }
-        
-        /* Code Blocks */
         pre {
             background: #1C1C1E;
             border-radius: 14px;
             padding: 16px;
             overflow-x: auto;
             border: 1px solid var(--border-light);
+            margin: 1.5em 0;
         }
+        code { color: #FF9F0A; font-family: monospace; font-size: 0.9em; }
+        pre code { color: inherit; }
 
-        /* --- Floating Control Bar (The "Dynamic Island" Scrubber) --- */
+        /* --- Scrubber (Dynamic Island Style) --- */
         .control-bar {
             position: fixed;
             bottom: calc(20px + var(--safe-area-bottom));
             left: 50%;
             transform: translateX(-50%);
-            width: 90%;
-            max-width: 400px;
-            height: 50px;
+            width: 90%; max-width: 400px; height: 50px;
             background: rgba(35, 35, 35, 0.85);
             backdrop-filter: blur(25px) saturate(180%);
             -webkit-backdrop-filter: blur(25px) saturate(180%);
             border-radius: 25px;
             border: 1px solid rgba(255,255,255,0.08);
             box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
+            display: flex; align-items: center; padding: 0 20px;
             z-index: 200;
             transition: opacity 0.3s, transform 0.3s;
         }
 
-        /* 隐藏状态 */
         .control-bar.hidden {
             opacity: 0.3;
             transform: translateX(-50%) translateY(10px) scale(0.95);
-            pointer-events: none; /* 防止误触 */
+            pointer-events: none;
         }
-        /* 触摸或者滚动结束时显示 */
         .control-bar:hover, .control-bar.active {
             opacity: 1;
             transform: translateX(-50%) translateY(0) scale(1);
             pointer-events: auto;
         }
 
-        /* Custom Range Slider (Scrubber) */
-        input[type=range] {
-            -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
-            height: 100%;
-            cursor: pointer;
-            margin: 0;
-        }
-
-        /* Slider Track */
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 2px;
-            border: none;
-        }
-
-        /* Slider Thumb (Handle) */
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: #ffffff;
-            margin-top: -8px; /* Center text vertically */
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-            transition: transform 0.1s;
-        }
-
-        input[type=range]:active::-webkit-slider-thumb {
-            transform: scale(1.3);
-            background: var(--text-primary);
-        }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; height: 100%; cursor: pointer; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #ffffff; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.4); transition: transform 0.1s; }
+        input[type=range]:active::-webkit-slider-thumb { transform: scale(1.3); }
 
         .page-info {
-            position: absolute;
-            top: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            color: var(--text-primary);
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
+            position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); padding: 4px 12px; border-radius: 12px;
+            font-size: 12px; color: var(--text-primary); opacity: 0; transition: opacity 0.2s; pointer-events: none;
         }
-        
-        .control-bar:active .page-info {
-            opacity: 1;
-        }
+        .control-bar:active .page-info { opacity: 1; }
 
+        /* Error State */
+        #error-msg { text-align: center; margin-top: 100px; display: none; padding: 20px; }
+        .btn-retry { margin-top: 20px; background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <header id="header">
-        <div class="header-title" id="book-title">Reading</div>
+        <div class="header-title" id="book-title">Loading...</div>
     </header>
 
-    <main id="content">
-        <!-- 内容将被 JS 渲染到这里 -->
-    </main>
+    <div id="error-msg"></div>
+    <main id="content"></main>
 
-    <!-- 底部控制条 -->
     <div class="control-bar" id="control-bar">
-        <!-- 显示百分比提示 -->
         <div class="page-info" id="page-info">0%</div>
-        <!-- 进度滑块 -->
-        <input type="range" id="scrubber" min="0" max="100" value="0" step="0.1">
+        <input type="range" id="scrubber" min="0" max="100" value="0" step="0.01">
     </div>
 
-    <!-- ========================================== -->
-    <!--     请将你的 Markdown 内容粘贴在下面       -->
-    <!-- ========================================== -->
-<script id="raw-markdown" type="text/plain">
-# 这是一个示例文档
-
-这里是第一章的内容。你可以在这里粘贴你的小说内容，支持 **Markdown** 格式。
-
-## 1. 数学公式支持
-这是一个行内公式：$E = mc^2$。
-
-这是一个块级公式：
-$$
-i\hbar\frac{\partial}{\partial t}\psi = \hat{H}\psi
-$$
-
-## 2. 这是一个长段落测试
-（请粘贴你的长篇小说内容替换这里...）
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-
-### 2.1 子标题
-继续测试滚动条功能。
-</script>
-    <!-- ========================================== -->
-
     <script>
-        // 1. 初始化渲染
-        document.addEventListener('DOMContentLoaded', () => {
-            const rawMd = document.getElementById('raw-markdown').textContent;
-            const contentDiv = document.getElementById('content');
-            
-            // 提取标题
-            const lines = rawMd.trim().split('\n');
-            if(lines.length > 0 && lines[0].startsWith('#')) {
-                const title = lines[0].replace(/#+\s*/, '');
-                document.getElementById('book-title').innerText = title;
-                document.title = title;
+        // 配置：目标文件名
+        const CONTENT_FILE = 'content.md';
+
+        const contentDiv = document.getElementById('content');
+        const titleElem = document.getElementById('book-title');
+        const errorDiv = document.getElementById('error-msg');
+
+        // 1. 获取并渲染内容
+        async function loadNovel() {
+            try {
+                const response = await fetch(CONTENT_FILE);
+                
+                if (!response.ok) {
+                    throw new Error(`无法加载文件: ${response.status}`);
+                }
+
+                const markdownText = await response.text();
+                
+                // 提取标题
+                const lines = markdownText.trim().split('\n');
+                if(lines.length > 0 && lines[0].startsWith('#')) {
+                    const title = lines[0].replace(/#+\s*/, '');
+                    titleElem.innerText = title;
+                    document.title = title;
+                } else {
+                    titleElem.innerText = "Untitled Story";
+                }
+
+                // Markdown 转 HTML
+                contentDiv.innerHTML = marked.parse(markdownText, {
+                    breaks: true, // 允许换行符直接换行
+                    gfm: true
+                });
+
+                // 渲染数学公式
+                renderMathInElement(contentDiv, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError : false
+                });
+
+                // 初始化 UI 状态
+                contentDiv.style.opacity = '1';
+
+            } catch (err) {
+                console.error(err);
+                contentDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                
+                // 友好的错误提示
+                const isLocal = window.location.protocol === 'file:';
+                let msg = `<h3 style="color:#FF453A">加载失败</h3><p>${err.message}</p>`;
+                
+                if (isLocal) {
+                    msg += `<div style="background:#1c1c1e; padding:15px; border-radius:10px; font-size:14px; text-align:left; color:#8E8E93; margin-top:20px;">
+                        <strong>⚠️ 浏览器安全限制</strong><br><br>
+                        直接双击打开 HTML 无法读取外部文件 (CORS 策略)。<br>
+                        <strong>解决方法：</strong>
+                        <ol style="margin-top:10px; padding-left:20px;">
+                            <li>使用 VS Code 插件 "Live Server" 打开。</li>
+                            <li>或者在终端运行: <code>python3 -m http.server</code></li>
+                            <li>或者将文件上传到 GitHub Pages / Vercel 等静态网站托管。</li>
+                        </ol>
+                    </div>`;
+                }
+                errorDiv.innerHTML = msg;
             }
+        }
 
-            // 解析 Markdown
-            contentDiv.innerHTML = marked.parse(rawMd);
+        loadNovel();
 
-            // 渲染 MathTeX
-            renderMathInElement(contentDiv, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false},
-                    {left: '\\(', right: '\\)', display: false},
-                    {left: '\\[', right: '\\]', display: true}
-                ],
-                throwOnError : false
-            });
-        });
-
-        // 2. 交互逻辑：进度条与滚动
+        // 2. 交互逻辑 (Scrubber & Header)
         const scrubber = document.getElementById('scrubber');
         const controlBar = document.getElementById('control-bar');
         const header = document.getElementById('header');
@@ -264,44 +242,34 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
         let isDragging = false;
         let scrollTimeout;
 
-        // 计算最大滚动距离
         function getMaxScroll() {
             return document.documentElement.scrollHeight - window.innerHeight;
         }
 
-        // 监听页面滚动 -> 更新进度条
+        // 滚动监听
         window.addEventListener('scroll', () => {
             if (!isDragging) {
                 const max = getMaxScroll();
+                if (max <= 0) return;
                 const current = window.scrollY;
                 const percentage = (current / max) * 100;
                 scrubber.value = percentage;
                 updatePageInfo(percentage);
             }
-
-            // 滚动时隐藏/显示 Header 和 ControlBar
             handleUIVisibility();
         });
 
-        // 监听进度条拖动 -> 更新页面位置
+        // 拖动监听
         scrubber.addEventListener('input', (e) => {
             isDragging = true;
-            const percentage = e.target.value;
+            const percentage = parseFloat(e.target.value);
             const max = getMaxScroll();
-            const targetY = (percentage / 100) * max;
-            
-            window.scrollTo(0, targetY);
+            window.scrollTo(0, (percentage / 100) * max);
             updatePageInfo(percentage);
-            
-            // 拖动时保持 UI 显示
             showUI();
         });
 
-        scrubber.addEventListener('change', () => {
-            isDragging = false;
-        });
-
-        // 触摸/鼠标交互优化
+        scrubber.addEventListener('change', () => { isDragging = false; });
         scrubber.addEventListener('touchstart', () => { isDragging = true; showUI(); });
         scrubber.addEventListener('touchend', () => { isDragging = false; });
 
@@ -309,20 +277,20 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
             pageInfo.innerText = Math.round(val) + "%";
         }
 
-        // UI 自动隐藏逻辑 (沉浸式体验)
+        // 自动隐藏 UI
         let lastScrollY = window.scrollY;
         
         function handleUIVisibility() {
             const currentScrollY = window.scrollY;
             
-            // 向下滚动 且 不在顶部 -> 隐藏 Header
+            // Header 逻辑
             if (currentScrollY > lastScrollY && currentScrollY > 50) {
                 header.style.transform = 'translateY(-100%)';
             } else {
                 header.style.transform = 'translateY(0)';
             }
 
-            // 滚动时让进度条半透明，停止滚动后恢复
+            // Scrubber 逻辑
             controlBar.classList.add('hidden');
             controlBar.classList.remove('active');
             
@@ -330,7 +298,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
             scrollTimeout = setTimeout(() => {
                 controlBar.classList.remove('hidden');
                 controlBar.classList.add('active');
-            }, 600); // 停止滚动 0.6秒后显示控制条
+            }, 600);
 
             lastScrollY = currentScrollY;
         }
@@ -342,9 +310,8 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
             clearTimeout(scrollTimeout);
         }
 
-        // 点击页面任意位置唤醒 UI
+        // 点击唤醒
         document.addEventListener('click', (e) => {
-            // 如果点击的不是控制条本身
             if (!e.target.closest('.control-bar')) {
                 showUI();
             }
