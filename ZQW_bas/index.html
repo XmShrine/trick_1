@@ -167,15 +167,15 @@
         };
 
         let audioCtx;
+        let mainBus; // 主总线，用于挂载压缩器
         const audioBuffers = {};
-        const activeSources = []; // 防止GC回收音频
-        let stopMod = 0; 
+        const activeSources = new Set(); // 优化：使用 Set 替代 Array 提高性能
         
-        // 加载队列管理
+        let stopMod = 0; 
         let loadQueue = [];
         let totalFiles = 0;
         let loadedFiles = 0;
-        const CONCURRENT_LIMIT = 4; // 手机端并发限制，4个比较稳
+        const CONCURRENT_LIMIT = 4;
 
         const speakerImg = document.getElementById('speakerCone');
         const speakerFrame = document.getElementById('speakerFrame');
@@ -186,46 +186,52 @@
             
             if (audioCtx.state === 'suspended') audioCtx.resume();
             
+            // --- 核心修复1: 音频链路重构 ---
+            // 创建一个压缩器 (Compressor)，防止音量过大爆音
+            const compressor = audioCtx.createDynamicsCompressor();
+            compressor.threshold.setValueAtTime(-10, audioCtx.currentTime); // 阈值
+            compressor.knee.setValueAtTime(40, audioCtx.currentTime);
+            compressor.ratio.setValueAtTime(12, audioCtx.currentTime); // 压缩比
+            compressor.attack.setValueAtTime(0, audioCtx.currentTime);
+            compressor.release.setValueAtTime(0.25, audioCtx.currentTime);
+            
+            // 连接: 压缩器 -> 扬声器
+            compressor.connect(audioCtx.destination);
+            mainBus = compressor; // 所有声音都连到这里
+
+            // --- 核心修复2: 音频线程保活 ---
+            // 播放一个听不见的超低频声音，强制手机音频引擎不休眠
+            const dummyOsc = audioCtx.createOscillator();
+            const dummyGain = audioCtx.createGain();
+            dummyOsc.type = 'sine';
+            dummyOsc.frequency.setValueAtTime(0.01, audioCtx.currentTime); // 0.01Hz (听不见)
+            dummyGain.gain.setValueAtTime(0.001, audioCtx.currentTime); // 极小音量
+            dummyOsc.connect(dummyGain);
+            dummyGain.connect(audioCtx.destination);
+            dummyOsc.start();
+            
             document.getElementById('start-overlay').style.opacity = '0';
             setTimeout(() => { document.getElementById('start-overlay').style.display = 'none'; }, 500);
-
-            // 保活：防止手机切后台后 Context 挂起
-            setInterval(() => {
-                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-            }, 2000);
 
             initLoader();
         }
 
-        // --- 核心修复：批量加载队列 ---
         function initLoader() {
             document.getElementById('status-text').innerText = "Queuing Files...";
-            
-            // 构建所有需要加载的文件列表
             loadQueue = [];
             for (let k in dataDic) {
                 if (dataDic[k][0]) loadQueue.push({key: k, type: 'normal'});
                 if (dataDic[k][1]) loadQueue.push({key: k, type: 'stop'});
             }
             totalFiles = loadQueue.length;
-
-            // 启动初始批次
             processQueue();
         }
 
         async function processQueue() {
             if (loadQueue.length === 0) return;
-
-            // 取出当前批次
             const batch = loadQueue.splice(0, CONCURRENT_LIMIT);
-            
-            // 并行执行当前批次
             const promises = batch.map(item => loadSound(item.key, item.type));
-            
-            // 等待当前批次完成（无论成功失败）
             await Promise.allSettled(promises);
-
-            // 递归执行下一批
             processQueue();
         }
 
@@ -239,17 +245,12 @@
                 const response = await fetch(fileName);
                 if (!response.ok) throw new Error("HTTP error");
                 const arrayBuffer = await response.arrayBuffer();
-                
-                // 关键：在手机上 decodeAudioData 也是耗时的，需要 try-catch 保护
-                // 如果 AudioContext 还没准备好，这里可能会报错
                 const decodedBuffer = await new Promise((resolve, reject) => {
                     audioCtx.decodeAudioData(arrayBuffer, resolve, reject);
                 });
-                
                 audioBuffers[bufferKey] = decodedBuffer;
             } catch (e) {
-                console.warn(`Load failed for ${fileName}, retrying...`);
-                // 可选：如果失败，重新放回队列末尾重试 (简单起见这里暂不无限重试)
+                console.warn("Load/Decode error:", e);
             } finally {
                 loadedFiles++;
                 updateUIProgress();
@@ -270,22 +271,23 @@
             }
         }
 
-        // --- 播放逻辑 ---
         function playBuffer(bufferKey) {
-            if (!audioCtx) return;
+            if (!audioCtx || !mainBus) return;
             const buffer = audioBuffers[bufferKey];
             if (buffer) {
                 const source = audioCtx.createBufferSource();
                 source.buffer = buffer;
-                source.connect(audioCtx.destination);
+                // 连接到 MainBus (压缩器) 而不是直接 Destination
+                source.connect(mainBus);
                 source.start(0);
-                triggerSpeakerEffect();
+                
+                // UI 动效优化：使用 requestAnimationFrame 避免阻塞音频线程
+                requestAnimationFrame(() => triggerSpeakerEffect());
 
-                // 关键：防止垃圾回收中断音频
-                activeSources.push(source);
+                // 防止 GC
+                activeSources.add(source);
                 source.onended = function() {
-                    const index = activeSources.indexOf(source);
-                    if (index > -1) activeSources.splice(index, 1);
+                    activeSources.delete(source);
                 };
             }
         }
@@ -293,6 +295,7 @@
         function triggerSpeakerEffect() {
             speakerImg.classList.remove('thumping');
             speakerFrame.classList.remove('active');
+            // 强制重绘
             void speakerImg.offsetWidth; 
             speakerImg.classList.add('thumping');
             speakerFrame.classList.add('active');
@@ -331,9 +334,7 @@
             }
         });
 
-        document.addEventListener('dblclick', function(event) {
-            event.preventDefault();
-        }, { passive: false });
+        document.addEventListener('dblclick', function(event) { event.preventDefault(); }, { passive: false });
 
     </script>
 </body>
