@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>切图小工具</title>
+    <style>
+        :root {
+            --apple-blue: #007AFF;
+            --apple-red: #FF3B30;
+            --line-hit-width: 40px; /* 触控热区大小 */
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background-color: #000000;
+            color: white;
+            margin: 0;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 顶部导航 */
+        header {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: max(12px, env(safe-area-inset-top)) 20px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            pointer-events: none;
+        }
+        header .title { font-size: 17px; font-weight: 600; opacity: 0.9; pointer-events: auto; }
+        header .action-btn { font-size: 15px; color: var(--apple-blue); background: none; border: none; padding: 8px; cursor: pointer; pointer-events: auto; font-weight: 500; }
+
+        /* 工作区 */
+        #workspace {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: none;
+            width: 100%;
+        }
+
+        /* 图片容器 - 关键修复：inline-block 让容器大小紧贴图片 */
+        #img-container {
+            position: relative;
+            display: inline-block; 
+            max-width: 96%;
+            max-height: 80vh;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            line-height: 0; /* 防止底部白边 */
+        }
+
+        #source-image {
+            display: block;
+            max-width: 100%;
+            max-height: 80vh; /* 确保图片不超出屏幕 */
+            pointer-events: none;
+            border-radius: 2px;
+            object-fit: contain;
+        }
+
+        /* 覆盖层 - 关键修复：确保这一层撑满图片 */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* 分割线容器 - 关键修复：添加具体尺寸 */
+        .split-line {
+            position: absolute;
+            pointer-events: auto; /* 让线可以被点到 */
+        }
+
+        /* 横线容器：宽度100%，靠左对齐 */
+        .h-line {
+            width: 100%;
+            height: 0;
+            left: 0;
+        }
+
+        /* 竖线容器：高度100%，靠顶对齐 */
+        .v-line {
+            height: 100%;
+            width: 0;
+            top: 0;
+        }
+        
+        /* 视觉可见的红线 */
+        .line-visible {
+            background-color: var(--apple-red);
+            box-shadow: 0 0 6px rgba(0,0,0,0.8); /* 加深阴影提高对比度 */
+            position: absolute;
+            border-radius: 10px;
+        }
+        
+        /* 触控热区 */
+        .line-hit-area {
+            position: absolute;
+            z-index: 20;
+            /* background: rgba(0, 255, 0, 0.3); 测试时可取消注释查看热区 */
+        }
+
+        /* 横线内部样式 */
+        .h-line .line-visible { width: 100%; height: 2px; top: -1px; } /* 居中微调 */
+        .h-line .line-hit-area { width: 100%; height: var(--line-hit-width); top: calc(var(--line-hit-width) / -2); cursor: row-resize; }
+
+        /* 竖线内部样式 */
+        .v-line .line-visible { height: 100%; width: 2px; left: -1px; } /* 居中微调 */
+        .v-line .line-hit-area { height: 100%; width: var(--line-hit-width); left: calc(var(--line-hit-width) / -2); cursor: col-resize; }
+
+        /* 拖动激活状态 */
+        .split-line.active .line-visible {
+            transform: scale(1.5); /* 拖动时变粗 */
+            box-shadow: 0 0 15px var(--apple-red);
+        }
+
+        /* 空状态 */
+        #empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; gap: 15px; }
+        #empty-state svg { width: 60px; height: 60px; opacity: 0.3; }
+
+        /* 底部工具栏 */
+        .toolbar-container {
+            position: absolute;
+            bottom: max(20px, env(safe-area-inset-bottom));
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 200;
+        }
+
+        .glass-bar {
+            background: rgba(44, 44, 46, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 32px;
+            padding: 6px;
+            display: flex;
+            gap: 8px;
+            pointer-events: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 0.5px solid rgba(255,255,255,0.1);
+        }
+
+        .tool-btn {
+            background: transparent; border: none; width: 50px; height: 50px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; color: white; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tool-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.92); }
+        .tool-btn svg { width: 24px; height: 24px; stroke-width: 2; }
+        .tool-btn.primary { background: var(--apple-blue); }
+        
+        /* 顶部通知 */
+        #notification-pill {
+            position: absolute;
+            top: max(12px, env(safe-area-inset-top));
+            left: 50%;
+            transform: translate(-50%, -150%);
+            background: rgba(255,255,255,0.95);
+            color: black;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 300;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; gap: 8px; pointer-events: none;
+        }
+        
+        #fileInput { display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="title">切图工具</div>
+        <button class="action-btn" onclick="document.getElementById('fileInput').click()">导入图片</button>
+    </header>
+
+    <div id="notification-pill">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span id="pill-text">Done</span>
+    </div>
+
+    <div id="workspace">
+        <div id="empty-state" onclick="document.getElementById('fileInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="4" ry="4"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <p>点击导入图片</p>
+        </div>
+
+        <div id="img-container" style="display: none;">
+            <img id="source-image" src="" alt="">
+            <div id="overlay"></div>
+        </div>
+    </div>
+
+    <div class="toolbar-container">
+        <div class="glass-bar">
+            <!-- 竖线 -->
+            <button class="tool-btn" onclick="addLine('v')" aria-label="Vertical Split">
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18 M8 3v1 M16 3v1 M8 20v1 M16 20v1"/></svg>
+            </button>
+            <!-- 横线 -->
+            <button class="tool-btn" onclick="addLine('h')" aria-label="Horizontal Split">
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18 M3 8h1 M3 16h1 M20 8h1 M20 16h1"/></svg>
+            </button>
+            <!-- 导入 -->
+            <button class="tool-btn" onclick="document.getElementById('fileInput').click()" aria-label="Import">
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </button>
+            <!-- 下载 -->
+            <button class="tool-btn primary" onclick="sliceAndDownload()" aria-label="Download">
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*">
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const sourceImage = document.getElementById('source-image');
+        const imgContainer = document.getElementById('img-container');
+        const overlay = document.getElementById('overlay');
+        const emptyState = document.getElementById('empty-state');
+        const pill = document.getElementById('notification-pill');
+        const pillText = document.getElementById('pill-text');
+
+        let lines = { h: [], v: [] };
+        let activeLine = null;
+
+        function showPill(msg, isSuccess = true) {
+            pillText.textContent = msg;
+            pill.querySelector('svg').style.display = isSuccess ? 'block' : 'none';
+            pill.style.transform = 'translate(-50%, 10px)'; // 显示
+            setTimeout(() => {
+                pill.style.transform = 'translate(-50%, -150%)'; // 隐藏
+            }, 2000);
+        }
+
+        // 震动反馈 (Android Only, iOS Safari 不支持 navigator.vibrate)
+        function haptic() {
+            if (navigator.vibrate) navigator.vibrate(5);
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                sourceImage.src = event.target.result;
+                sourceImage.onload = () => {
+                    emptyState.style.display = 'none';
+                    imgContainer.style.display = 'inline-block'; // 关键
+                    lines = { h: [], v: [] };
+                    renderLines();
+                    showPill('图片已导入');
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function addLine(type) {
+            if (!sourceImage.src) return showPill('请先导入图片', false);
+            
+            lines[type].push(50);
+            haptic();
+            renderLines();
+            showPill(type === 'h' ? '已添加横线' : '已添加竖线');
+        }
+
+        function renderLines() {
+            overlay.innerHTML = '';
+            ['h', 'v'].forEach(type => {
+                lines[type].forEach((pos, index) => {
+                    const el = document.createElement('div');
+                    el.className = `split-line ${type}-line`;
+                    
+                    // 核心修复：根据类型设置位置
+                    if (type === 'h') {
+                        el.style.top = pos + '%';
+                    } else {
+                        el.style.left = pos + '%';
+                    }
+
+                    el.innerHTML = `<div class="line-visible"></div><div class="line-hit-area"></div>`;
+                    
+                    const hitArea = el.querySelector('.line-hit-area');
+
+                    const startDrag = (e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        activeLine = { type, index, el };
+                        el.classList.add('active');
+                        haptic();
+                        
+                        document.addEventListener('mousemove', onMove);
+                        document.addEventListener('touchmove', onMove, { passive: false });
+                        document.addEventListener('mouseup', onEnd);
+                        document.addEventListener('touchend', onEnd);
+                    };
+
+                    hitArea.addEventListener('mousedown', startDrag);
+                    hitArea.addEventListener('touchstart', startDrag, { passive: false });
+
+                    // 双击删除
+                    let lastTap = 0;
+                    const handleTap = (e) => {
+                        const now = Date.now();
+                        if (now - lastTap < 300) {
+                            e.preventDefault();
+                            lines[type].splice(index, 1);
+                            renderLines();
+                            showPill('已删除');
+                        }
+                        lastTap = now;
+                    };
+                    hitArea.addEventListener('touchend', handleTap);
+                    hitArea.addEventListener('dblclick', () => {
+                        lines[type].splice(index, 1);
+                        renderLines();
+                    });
+
+                    overlay.appendChild(el);
+                });
+            });
+        }
+
+        const onMove = (e) => {
+            if (!activeLine) return;
+            e.preventDefault();
+
+            const rect = imgContainer.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            let pos;
+            if (activeLine.type === 'h') {
+                pos = ((clientY - rect.top) / rect.height) * 100;
+                activeLine.el.style.top = pos + '%'; // 直接操作 DOM 提高性能
+            } else {
+                pos = ((clientX - rect.left) / rect.width) * 100;
+                activeLine.el.style.left = pos + '%';
+            }
+            
+            // 限制范围
+            pos = Math.max(0, Math.min(100, pos));
+            lines[activeLine.type][activeLine.index] = pos;
+        };
+
+        const onEnd = () => {
+            if (activeLine) {
+                activeLine.el.classList.remove('active');
+                activeLine = null;
+            }
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchend', onEnd);
+        };
+
+        async function sliceAndDownload() {
+            if (!sourceImage.src) return;
+            if (lines.h.length === 0 && lines.v.length === 0) return showPill('没有分割线', false);
+
+            showPill('正在处理...', true);
+            await new Promise(r => setTimeout(r, 100)); // 让UI先渲染
+
+            const imgW = sourceImage.naturalWidth;
+            const imgH = sourceImage.naturalHeight;
+            const xP = [0, ...lines.v, 100].sort((a,b)=>a-b);
+            const yP = [0, ...lines.h, 100].sort((a,b)=>a-b);
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            let count = 0;
+
+            for (let i = 0; i < xP.length - 1; i++) {
+                for (let j = 0; j < yP.length - 1; j++) {
+                    const x = Math.floor((xP[i]/100)*imgW);
+                    const y = Math.floor((yP[j]/100)*imgH);
+                    const w = Math.floor(((xP[i+1]-xP[i])/100)*imgW);
+                    const h = Math.floor(((yP[j+1]-yP[j])/100)*imgH);
+
+                    if (w <= 0 || h <= 0) continue;
+
+                    canvas.width = w;
+                    canvas.height = h;
+                    ctx.drawImage(sourceImage, x, y, w, h, 0, 0, w, h);
+
+                    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `SLICE_${i}_${j}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    await new Promise(r => setTimeout(r, 150));
+                    count++;
+                }
+            }
+            showPill(`完成！已下载 ${count} 张`);
+        }
+    </script>
+</body>
+</html>
