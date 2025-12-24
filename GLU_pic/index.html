@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>长截图生成</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: rgba(28, 28, 30, 0.65);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --primary-gradient: linear-gradient(135deg, #51a8ff, #5a96e6);
+            --primary-glow: rgba(94, 92, 230, 0.5);
+            --text-primary: #FFFFFF;
+            --text-secondary: #8E8E93;
+            --danger: #FF453A;
+            --success: #30D158;
+            --radius-l: 24px;
+            --radius-m: 16px;
+            --radius-s: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 50% 0%, #1c1c1e 0%, #000 70%),
+                radial-gradient(circle at 80% 80%, rgba(10, 132, 255, 0.15) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-l);
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin: 0 0 24px 0;
+            letter-spacing: -0.5px;
+            background: linear-gradient(180deg, #FFF, #A1A1A6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255,255,255,0.1);
+        }
+
+        /* 方向切换器 */
+        .segment-control {
+            display: flex;
+            background: rgba(118, 118, 128, 0.24);
+            padding: 4px;
+            border-radius: var(--radius-m);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .segment-opt {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            z-index: 2;
+            cursor: pointer;
+            transition: color 0.3s;
+            color: var(--text-secondary);
+        }
+
+        .segment-opt.active {
+            color: #FFF;
+        }
+
+        .segment-slider {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            left: 4px;
+            width: calc(50% - 4px);
+            background: #636366;
+            border-radius: 12px;
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        
+        .segment-control[data-state="vertical"] .segment-slider { transform: translateX(0); }
+        .segment-control[data-state="horizontal"] .segment-slider { transform: translateX(100%); }
+
+        /* 设置选项行 */
+        .option-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .option-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .option-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* iOS Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 51px;
+            height: 31px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #39393D;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 27px;
+            width: 27px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性效果 */
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .slider {
+            background-color: #30D158; /* iOS Green */
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* 按钮 */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: var(--radius-l);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-add {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 0 20px var(--primary-glow);
+            margin-top: 10px;
+        }
+
+        .btn-download {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            box-sizing: border-box;
+        }
+
+        /* 预览区 */
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+            min-height: 100px;
+        }
+
+        @media (max-width: 400px) {
+            .preview-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            background: #2C2C2E;
+            border-radius: var(--radius-s);
+            overflow: hidden;
+            cursor: grab;
+            border: 1px solid rgba(255,255,255,0.1);
+            touch-action: none;
+        }
+
+        .sortable-ghost { opacity: 0.3; background: var(--primary-glow); }
+        .sortable-drag { cursor: grabbing; transform: scale(1.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 100; border: 1px solid #0A84FF; }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 24px;
+            height: 24px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FF453A;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed rgba(255,255,255,0.1);
+            border-radius: var(--radius-m);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* 结果区 */
+        .result-area {
+            display: none;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #resultImage {
+            max-width: 100%;
+            border-radius: var(--radius-s);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+            text-align: center;
+        }
+
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>长截图生成</h1>
+
+    <div class="segment-control" id="directionControl" data-state="vertical">
+        <div class="segment-slider"></div>
+        <div class="segment-opt active" onclick="setDirection('vertical')">纵向长图</div>
+        <div class="segment-opt" onclick="setDirection('horizontal')">横向拼接</div>
+    </div>
+
+    <div class="option-row">
+        <div>
+            <div class="option-label" id="alignLabel">统一宽度</div>
+            <div class="option-desc">自动缩放图片以对齐边缘</div>
+        </div>
+        <label class="toggle-switch">
+            <input type="checkbox" id="alignToggle" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <input type="file" id="fileInput" multiple accept="image/*">
+    <button class="btn btn-add" onclick="document.getElementById('fileInput').click()">
+        <span style="font-size: 18px; vertical-align: middle;">+</span> 添加图片
+    </button>
+    <div style="text-align: center; font-size: 12px; color: #636366; margin-bottom: 10px;">
+        长按图片可拖拽排序
+    </div>
+
+    <div class="preview-grid" id="previewList">
+        <div class="empty-state" id="emptyState">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5; margin-bottom:10px;">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <span>图片将显示在这里</span>
+        </div>
+    </div>
+
+    <div id="loading" class="loading-text">正在处理...</div>
+
+    <button class="btn btn-primary" onclick="generateImage()" id="generateBtn" style="display:none;">
+        立即生成
+    </button>
+
+    <div class="result-area" id="resultArea">
+        <h3 style="font-weight:500; font-size:16px; margin-bottom:15px; color:#fff;">生成完成</h3>
+        <img id="resultImage" alt="Result">
+        <a id="downloadLink" class="btn btn-download">保存到相册</a>
+    </div>
+</div>
+
+<script>
+    let images = [];
+    let direction = 'vertical';
+    let uniqueIdCounter = 0;
+
+    const fileInput = document.getElementById('fileInput');
+    const previewList = document.getElementById('previewList');
+    const emptyState = document.getElementById('emptyState');
+    const generateBtn = document.getElementById('generateBtn');
+    const loading = document.getElementById('loading');
+    const resultArea = document.getElementById('resultArea');
+    const alignLabel = document.getElementById('alignLabel');
+    const alignToggle = document.getElementById('alignToggle');
+
+    // 初始化 SortableJS
+    new Sortable(previewList, {
+        animation: 300,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        delay: 150,
+        delayOnTouchOnly: true,
+    });
+
+    // 切换方向
+    function setDirection(dir) {
+        direction = dir;
+        const control = document.getElementById('directionControl');
+        const opts = document.querySelectorAll('.segment-opt');
+        
+        control.setAttribute('data-state', dir);
+        opts[0].classList.toggle('active', dir === 'vertical');
+        opts[1].classList.toggle('active', dir === 'horizontal');
+
+        // 更新对齐开关的文案
+        alignLabel.innerText = dir === 'vertical' ? '统一宽度' : '统一高度';
+    }
+
+    // 文件上传
+    fileInput.addEventListener('change', function(e) {
+        if (this.files && this.files.length > 0) {
+            processFiles(Array.from(this.files));
+        }
+        this.value = '';
+    });
+
+    function processFiles(files) {
+        if(files.length > 0) {
+            emptyState.style.display = 'none';
+            generateBtn.style.display = 'block';
+            resultArea.style.display = 'none';
+        }
+
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const imgObj = {
+                        id: uniqueIdCounter++,
+                        url: e.target.result,
+                        width: img.width,
+                        height: img.height,
+                        imgElement: img
+                    };
+                    images.push(imgObj);
+                    addPreviewItem(imgObj);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function addPreviewItem(imgObj) {
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.setAttribute('data-id', imgObj.id);
+        div.innerHTML = `
+            <img src="${imgObj.url}">
+            <button class="delete-btn" onclick="removeImage(this, ${imgObj.id})">✕</button>
+        `;
+        previewList.appendChild(div);
+    }
+
+    window.removeImage = function(btn, id) {
+        btn.parentElement.remove();
+        images = images.filter(img => img.id !== id);
+        if (images.length === 0) {
+            emptyState.style.display = 'flex';
+            generateBtn.style.display = 'none';
+            resultArea.style.display = 'none';
+        }
+    };
+
+    // 生成逻辑 (含对齐算法)
+    window.generateImage = function() {
+        const items = previewList.querySelectorAll('.preview-item');
+        if (items.length === 0) return;
+
+        loading.style.display = 'block';
+        loading.innerText = '正在合成...';
+        
+        setTimeout(() => {
+            // 获取当前顺序
+            const sortedImages = [];
+            items.forEach(item => {
+                const id = parseInt(item.getAttribute('data-id'));
+                const imgObj = images.find(img => img.id === id);
+                if (imgObj) sortedImages.push(imgObj);
+            });
+
+            // 获取对齐开关状态
+            const isAlign = alignToggle.checked;
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            let canvasWidth = 0, canvasHeight = 0;
+
+            if (direction === 'vertical') {
+                // --- 纵向模式 ---
+                if (isAlign) {
+                    // 1. 找出最大宽度作为目标宽度
+                    const maxWidth = Math.max(...sortedImages.map(i => i.width));
+                    canvasWidth = maxWidth;
+                    
+                    // 2. 累加缩放后的高度
+                    canvasHeight = sortedImages.reduce((sum, img) => {
+                        const scale = maxWidth / img.width;
+                        return sum + (img.height * scale);
+                    }, 0);
+
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+                    ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height); // 背景
+
+                    // 3. 绘制
+                    let currentY = 0;
+                    sortedImages.forEach(img => {
+                        const scale = maxWidth / img.width;
+                        const drawHeight = img.height * scale;
+                        ctx.drawImage(img.imgElement, 0, currentY, maxWidth, drawHeight);
+                        currentY += drawHeight;
+                    });
+
+                } else {
+                    // 不对齐：居中绘制
+                    canvasWidth = Math.max(...sortedImages.map(i => i.width));
+                    canvasHeight = sortedImages.reduce((sum, i) => sum + i.height, 0);
+                    
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+                    ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+                    let currentY = 0;
+                    sortedImages.forEach(img => {
+                        const x = (canvasWidth - img.width) / 2;
+                        ctx.drawImage(img.imgElement, x, currentY);
+                        currentY += img.height;
+                    });
+                }
+
+            } else {
+                // --- 横向模式 ---
+                if (isAlign) {
+                    // 1. 找出最大高度
+                    const maxHeight = Math.max(...sortedImages.map(i => i.height));
+                    canvasHeight = maxHeight;
+
+                    // 2. 累加缩放后的宽度
+                    canvasWidth = sortedImages.reduce((sum, img) => {
+                        const scale = maxHeight / img.height;
+                        return sum + (img.width * scale);
+                    }, 0);
+
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+                    ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+                    // 3. 绘制
+                    let currentX = 0;
+                    sortedImages.forEach(img => {
+                        const scale = maxHeight / img.height;
+                        const drawWidth = img.width * scale;
+                        ctx.drawImage(img.imgElement, currentX, 0, drawWidth, maxHeight);
+                        currentX += drawWidth;
+                    });
+
+                } else {
+                    // 不对齐：垂直居中
+                    canvasHeight = Math.max(...sortedImages.map(i => i.height));
+                    canvasWidth = sortedImages.reduce((sum, i) => sum + i.width, 0);
+
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+                    ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+                    let currentX = 0;
+                    sortedImages.forEach(img => {
+                        const y = (canvasHeight - img.height) / 2;
+                        ctx.drawImage(img.imgElement, currentX, y);
+                        currentX += img.width;
+                    });
+                }
+            }
+
+            // 导出
+            const resultUrl = canvas.toDataURL('image/png', 1.0);
+            const resImg = document.getElementById('resultImage');
+            const dlLink = document.getElementById('downloadLink');
+
+            resImg.src = resultUrl;
+            
+            const timestamp = new Date().toISOString().slice(0,19).replace(/[-T:]/g, '');
+            dlLink.href = resultUrl;
+            dlLink.download = `StitchX_${timestamp}.png`;
+
+            loading.style.display = 'none';
+            resultArea.style.display = 'block';
+            resultArea.scrollIntoView({ behavior: 'smooth' });
+
+        }, 100);
+    };
+</script>
+
+</body>
+</html>

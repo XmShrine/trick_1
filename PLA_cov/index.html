@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayCover 键盘映射编辑器</title>
+    <style>
+        :root {
+            /* 生产力深色主题 */
+            --bg-color: #1e1e1e;       /* 画布背景 */
+            --panel-bg: #252526;       /* 面板背景 */
+            --header-bg: #333333;      /* 标题栏背景 */
+            --border-color: #454545;   /* 边框颜色 */
+            --accent-color: #007acc;   /* VS Code 蓝 */
+            --accent-hover: #0062a3;
+            --text-main: #cccccc;
+            --text-bright: #ffffff;
+            --input-bg: #3c3c3c;
+            --danger-color: #ce4646;
+            
+            --key-fill: rgba(40, 40, 40, 0.6);
+            --key-border: #bbbbbb;
+            --key-selected: #007acc;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            user-select: none;
+        }
+
+        /* === 画布区域 === */
+        #editor-stage {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* 网格背景 */
+            background-image: linear-gradient(#2a2a2a 1px, transparent 1px),
+                              linear-gradient(90deg, #2a2a2a 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        #viewport {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            background: #000;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        #bg-image {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* === 悬浮面板 (实心风格) === */
+        #panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            max-height: 90vh;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            font-size: 13px;
+        }
+
+        .panel-header {
+            padding: 10px 15px;
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            cursor: move;
+            font-weight: bold;
+            color: var(--text-bright);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .scroll-area {
+            padding: 15px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .scroll-area::-webkit-scrollbar { width: 8px; background: var(--panel-bg); }
+        .scroll-area::-webkit-scrollbar-thumb { background: #555; }
+
+        /* === 控件样式 === */
+        .group-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #888;
+            margin: 15px 0 5px 0;
+            font-weight: 600;
+        }
+        .group-label:first-child { margin-top: 0; }
+
+        .btn-row { display: flex; gap: 5px; margin-bottom: 5px; }
+        
+        button {
+            background: var(--input-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            cursor: pointer;
+            flex: 1;
+            transition: background 0.1s;
+        }
+        button:hover { background: #4a4a4a; color: white; }
+        
+        button.primary { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+        button.primary:hover { background: var(--accent-hover); }
+        
+        button.danger { color: var(--danger-color); border-color: #5a3333; }
+        button.danger:hover { background: #5a3333; color: white; }
+
+        button.recording {
+            background: #d68a0c;
+            color: white;
+            border-color: #d68a0c;
+            animation: flash 1s infinite alternate;
+        }
+        @keyframes flash { from {opacity: 1;} to {opacity: 0.7;} }
+
+        input[type="text"], input[type="number"] {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 6px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 5px;
+        }
+        input:focus { border-color: var(--accent-color); outline: none; }
+
+        /* === 图层列表 === */
+        .layer-list {
+            background: #181818;
+            border: 1px solid var(--border-color);
+            height: 180px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .layer-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #222;
+        }
+        .layer-item:hover { background: #2a2a2a; }
+        .layer-item.active { background: var(--accent-color); color: white; }
+
+        .layer-icon {
+            width: 16px; 
+            text-align: center; 
+            margin-right: 8px; 
+            font-weight: bold; 
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        /* === 映射节点 === */
+        .node {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        /* 选中态 */
+        .node.selected {
+            z-index: 999;
+            box-shadow: 0 0 0 2px var(--key-selected); /* 蓝色高亮外框 */
+        }
+        
+        /* 1. 普通按键 */
+        .node.button {
+            border-radius: 50%;
+            background: var(--key-fill);
+            border: 2px solid var(--key-border);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        /* 2. WASD */
+        .node.joystick {
+            border: 1px dashed rgba(255,255,255,0.5);
+            background: rgba(0,0,0,0.1);
+            border-radius: 50%;
+        }
+        .joy-sub {
+            position: absolute;
+            width: 30%; height: 30%;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid #aaa;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 10px; color: #fff;
+        }
+        .joy-w { top: 5%; left: 35%; }
+        .joy-a { top: 35%; left: 5%; }
+        .joy-s { bottom: 5%; left: 35%; }
+        .joy-d { top: 35%; right: 5%; }
+
+        /* 3. Mouse */
+        .node.mouse {
+            border: 2px dotted var(--accent-color);
+            background: rgba(0, 122, 204, 0.1);
+            color: var(--accent-color);
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* 底部提示 */
+        .footer-hint {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--accent-color);
+            color: white;
+            font-size: 12px;
+            padding: 4px 10px;
+            text-align: center;
+        }
+        input[type="file"] { display: none; }
+
+    </style>
+</head>
+<body>
+
+<div id="editor-stage">
+    <div id="viewport">
+        <img id="bg-image" src="" alt="">
+        </div>
+</div>
+
+<div id="panel">
+    <div class="panel-header" id="drag-handle">
+        <span>PlayCover 编辑器</span>
+        <span>正式</span>
+    </div>
+    
+    <div class="scroll-area">
+        <div class="group-label">文件 (File)</div>
+        <div class="btn-row">
+            <button onclick="document.getElementById('file-input').click()">导入 PlayMap</button>
+            <button onclick="document.getElementById('img-input').click()">导入截图</button>
+        </div>
+        <input type="file" id="file-input" accept=".playmap,.plist,.xml">
+        <input type="file" id="img-input" accept="image/*">
+
+        <div class="group-label">图层管理 (Layers)</div>
+        <div class="layer-list" id="layer-container">
+            <div class="layer-item" style="color:#666; justify-content:center;">暂无数据</div>
+        </div>
+
+        <div class="group-label">添加组件 (Add)</div>
+        <div class="btn-row">
+            <button onclick="addKey('button')">+ 按键</button>
+            <button onclick="addKey('joystick')">+ WASD</button>
+            <button onclick="addKey('mouse')">+ 鼠标</button>
+        </div>
+
+        <div id="inspector" style="display:none; border-top: 1px solid #444; margin-top:10px; padding-top:10px;">
+            <div class="group-label" style="color: var(--accent-color);">属性编辑 (Properties)</div>
+            
+            <div id="prop-key-group">
+                <div class="btn-row">
+                    <input type="text" id="prop-name" placeholder="名称">
+                    <button id="btn-record" onclick="toggleRecord()" style="flex:1;">录制按键</button>
+                </div>
+                <input type="number" id="prop-code" readonly placeholder="Key Code" style="opacity: 0.6;">
+            </div>
+
+            <div class="group-label">尺寸 (Cmd +/-)</div>
+            <input type="range" id="prop-slider" min="0.5" max="50" step="0.5" style="width:100%">
+            <div class="btn-row" style="margin-top: 5px;">
+                <input type="number" id="prop-size" step="0.1" style="margin-bottom:0">
+                <button class="danger" onclick="deleteSelected()">删除</button>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button class="primary" style="width:100%" onclick="exportPlayMap()">导出 PlayMap 文件</button>
+        </div>
+    </div>
+</div>
+
+<div class="footer-hint">提示：选中按键后，使用 <b>Command +</b> 放大，<b>Command -</b> 缩小</div>
+
+<script>
+    // === 核心设置 ===
+    const VP_W = 1280;
+    const VP_H = 720;
+    const SCALE = 15.0; // 缩放系数
+
+    let appData = { buttonModels: [], joystickModel: [], mouseAreaModel: [] };
+    let selection = { el: null, data: null, id: null };
+    let isRecording = false;
+
+    // === 键位映射表 (常用键) ===
+    const KEY_MAP = {
+        'KeyA': 0, 'KeyS': 1, 'KeyD': 2, 'KeyF': 3, 'KeyH': 4, 'KeyG': 5, 'KeyZ': 6, 'KeyX': 7, 'KeyC': 8, 'KeyV': 9,
+        'KeyB': 11, 'KeyQ': 12, 'KeyW': 13, 'KeyE': 14, 'KeyR': 15, 'KeyY': 16, 'KeyT': 17, 
+        'Key1': 18, 'Key2': 19, 'Key3': 20, 'Key4': 21, 'Key5': 23, 'Key6': 22, 
+        'Space': 49, 'Enter': 36, 'Escape': 53, 'Tab': 48, 'ShiftLeft': 56, 'ControlLeft': 59, 
+        'ArrowUp': 126, 'ArrowDown': 125, 'ArrowLeft': 123, 'ArrowRight': 124,
+        'F1': 122, 'F2': 120, 'F3': 99, 'F4': 118
+    };
+
+    // === 初始化 ===
+    function init() {
+        const vp = document.getElementById('viewport');
+        vp.style.width = VP_W + 'px'; 
+        vp.style.height = VP_H + 'px';
+
+        setupDragPanel(); // 启用面板拖拽
+
+        document.getElementById('file-input').addEventListener('change', loadFile);
+        document.getElementById('img-input').addEventListener('change', loadImg);
+        
+        // 属性输入同步
+        document.getElementById('prop-name').addEventListener('input', updateFromProp);
+        document.getElementById('prop-size').addEventListener('input', updateFromProp);
+        document.getElementById('prop-slider').addEventListener('input', (e) => {
+            document.getElementById('prop-size').value = e.target.value;
+            updateFromProp();
+        });
+
+        window.addEventListener('keydown', handleKey);
+        // 点击空白取消选择
+        vp.addEventListener('mousedown', (e) => {
+            if(e.target === vp || e.target.id === 'bg-image') deselect();
+        });
+    }
+
+    // === 渲染逻辑 ===
+    function render() {
+        const vp = document.getElementById('viewport');
+        // 保留背景图，删除其他节点
+        Array.from(vp.children).forEach(c => { if(c.id !== 'bg-image') c.remove(); });
+
+        // 创建节点
+        appData.buttonModels.forEach((d, i) => createNode(d, i, 'button'));
+        appData.joystickModel.forEach((d, i) => createNode(d, i, 'joystick'));
+        appData.mouseAreaModel.forEach((d, i) => createNode(d, i, 'mouse'));
+
+        renderLayerList();
+    }
+
+    function createNode(data, index, type) {
+        const div = document.createElement('div');
+        div.className = `node ${type}`;
+        div.id = `node-${type}-${index}`;
+        
+        if(type === 'button') div.innerText = data.keyName || '?';
+        else if(type === 'joystick') {
+            div.innerHTML = `
+                <div class="joy-sub joy-w">W</div><div class="joy-sub joy-a">A</div>
+                <div class="joy-sub joy-s">S</div><div class="joy-sub joy-d">D</div>
+            `;
+        } else if(type === 'mouse') div.innerHTML = "MOUSE";
+
+        applyStyle(div, data);
+
+        div.addEventListener('mousedown', (e) => {
+            if(e.button !== 0) return;
+            e.stopPropagation();
+            select(data, type, index);
+            startDragNode(e, div, data);
+        });
+
+        document.getElementById('viewport').appendChild(div);
+    }
+
+    function renderLayerList() {
+        const list = document.getElementById('layer-container');
+        list.innerHTML = '';
+
+        const addItem = (d, i, type, icon) => {
+            const row = document.createElement('div');
+            row.className = 'layer-item';
+            row.id = `layer-${type}-${i}`;
+            row.innerHTML = `<span class="layer-icon">${icon}</span> ${d.keyName || type}`;
+            row.onclick = () => select(d, type, i);
+            list.appendChild(row);
+        };
+
+        appData.buttonModels.forEach((d, i) => addItem(d, i, 'button', 'KEY'));
+        appData.joystickModel.forEach((d, i) => addItem(d, i, 'joystick', 'JOY'));
+        appData.mouseAreaModel.forEach((d, i) => addItem(d, i, 'mouse', 'EYE'));
+    }
+
+    // === 选择逻辑 ===
+    function select(data, type, index) {
+        // 清理旧选中
+        document.querySelectorAll('.selected').forEach(e => e.classList.remove('selected'));
+        document.querySelectorAll('.layer-item.active').forEach(e => e.classList.remove('active'));
+        stopRecord();
+
+        const idStr = `${type}-${index}`;
+        selection = { el: document.getElementById(`node-${idStr}`), data, id: idStr };
+
+        // 高亮画布节点
+        if(selection.el) selection.el.classList.add('selected');
+        // 高亮列表
+        const layerItem = document.getElementById(`layer-${idStr}`);
+        if(layerItem) {
+            layerItem.classList.add('active');
+            layerItem.scrollIntoView({block: "nearest"});
+        }
+
+        // 显示属性面板
+        document.getElementById('inspector').style.display = 'block';
+        
+        const keyGroup = document.getElementById('prop-key-group');
+        if(type === 'button') {
+            keyGroup.style.display = 'block';
+            document.getElementById('prop-name').value = data.keyName || '';
+            document.getElementById('prop-code').value = data.keyCode;
+        } else {
+            keyGroup.style.display = 'none';
+        }
+
+        document.getElementById('prop-size').value = data.transform.size;
+        document.getElementById('prop-slider').value = data.transform.size;
+    }
+
+    function deselect() {
+        document.querySelectorAll('.selected').forEach(e => e.classList.remove('selected'));
+        document.querySelectorAll('.layer-item.active').forEach(e => e.classList.remove('active'));
+        document.getElementById('inspector').style.display = 'none';
+        selection = { el: null, data: null, id: null };
+        stopRecord();
+    }
+
+    // === 交互逻辑 ===
+    function startDragNode(e, el, data) {
+        // 记录拖拽
+        const move = (ev) => {
+            const rect = document.getElementById('viewport').getBoundingClientRect();
+            let x = ev.clientX - rect.left;
+            let y = ev.clientY - rect.top;
+            x = Math.max(0, Math.min(x, VP_W));
+            y = Math.max(0, Math.min(y, VP_H));
+            
+            data.transform.xCoord = x / VP_W;
+            data.transform.yCoord = y / VP_H;
+            applyStyle(el, data);
+        };
+        const up = () => {
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', up);
+        };
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', up);
+    }
+
+    function handleKey(e) {
+        // 快捷键缩放
+        if((e.metaKey || e.ctrlKey) && selection.data) {
+            const d = selection.data;
+            if(e.key === '=' || e.key === '+') {
+                e.preventDefault();
+                d.transform.size = Math.min(50, d.transform.size + 1);
+            } else if(e.key === '-') {
+                e.preventDefault();
+                d.transform.size = Math.max(1, d.transform.size - 1);
+            }
+            applyStyle(selection.el, d);
+            document.getElementById('prop-size').value = d.transform.size;
+            document.getElementById('prop-slider').value = d.transform.size;
+            return;
+        }
+
+        // 录制键值
+        if(isRecording && selection.id && selection.id.startsWith('button')) {
+            e.preventDefault();
+            const code = KEY_MAP[e.code] || 0;
+            let name = e.key.toUpperCase();
+            if(e.code === 'Space') name = 'Space';
+            if(name.length > 5) name = name.substring(0,4);
+
+            selection.data.keyCode = code;
+            selection.data.keyName = name;
+            
+            // 更新UI
+            document.getElementById('prop-name').value = name;
+            document.getElementById('prop-code').value = code;
+            selection.el.innerText = name;
+            
+            // 更新列表文字
+            const layerEl = document.getElementById(`layer-${selection.id}`);
+            if(layerEl) layerEl.innerHTML = `<span class="layer-icon">KEY</span> ${name}`;
+
+            stopRecord();
+        }
+    }
+
+    function toggleRecord() {
+        const btn = document.getElementById('btn-record');
+        if(isRecording) stopRecord();
+        else {
+            isRecording = true;
+            btn.innerText = "按键盘...";
+            btn.classList.add('recording');
+        }
+    }
+    
+    function stopRecord() {
+        isRecording = false;
+        const btn = document.getElementById('btn-record');
+        btn.innerText = "⌨️ 录制按键";
+        btn.classList.remove('recording');
+    }
+
+    // === 工具与数据处理 ===
+    function applyStyle(el, data) {
+        const sz = data.transform.size * SCALE;
+        el.style.width = sz + 'px';
+        el.style.height = sz + 'px';
+        el.style.left = (data.transform.xCoord * VP_W) + 'px';
+        el.style.top = (data.transform.yCoord * VP_H) + 'px';
+        if(el.classList.contains('button')) el.style.fontSize = (sz * 0.4) + 'px';
+    }
+
+    function updateFromProp() {
+        if(!selection.data) return;
+        const d = selection.data;
+        d.keyName = document.getElementById('prop-name').value;
+        d.transform.size = parseFloat(document.getElementById('prop-size').value);
+        applyStyle(selection.el, d);
+        if(selection.el.classList.contains('button')) selection.el.innerText = d.keyName;
+        // 同步更新列表名称
+        if(selection.id.startsWith('button')) {
+             document.getElementById(`layer-${selection.id}`).innerHTML = `<span class="layer-icon">KEY</span> ${d.keyName}`;
+        }
+    }
+
+    function addKey(type) {
+        const base = { transform: { xCoord: 0.5, yCoord: 0.5, size: 5.0 } };
+        if(type === 'button') appData.buttonModels.push({ ...base, keyCode: 49, keyName: 'NEW' });
+        else if(type === 'joystick') appData.joystickModel.push({ ...base, keyName: 'WASD', transform: { ...base.transform, size: 12.0 } });
+        else if(type === 'mouse') appData.mouseAreaModel.push({ ...base, keyName: 'MOUSE', transform: { ...base.transform, size: 20.0 } });
+        
+        render();
+        // 自动选中
+        const listName = type === 'button' ? 'buttonModels' : (type === 'joystick' ? 'joystickModel' : 'mouseAreaModel');
+        select(appData[listName][appData[listName].length-1], type, appData[listName].length-1);
+    }
+
+    function deleteSelected() {
+        if(!selection.id) return;
+        const [type, idxStr] = selection.id.split('-');
+        const idx = parseInt(idxStr);
+        if(type === 'button') appData.buttonModels.splice(idx, 1);
+        if(type === 'joystick') appData.joystickModel.splice(idx, 1);
+        if(type === 'mouse') appData.mouseAreaModel.splice(idx, 1);
+        deselect();
+        render();
+    }
+
+    // 面板拖拽
+    function setupDragPanel() {
+        const p = document.getElementById('panel');
+        const h = document.getElementById('drag-handle');
+        let isDown = false, dx, dy;
+        h.addEventListener('mousedown', (e) => { isDown = true; dx = e.clientX - p.offsetLeft; dy = e.clientY - p.offsetTop; });
+        window.addEventListener('mouseup', () => isDown = false);
+        window.addEventListener('mousemove', (e) => {
+            if(isDown) { p.style.left = (e.clientX - dx) + 'px'; p.style.top = (e.clientY - dy) + 'px'; }
+        });
+    }
+
+    // 文件导入导出 (简化版 Plist 处理)
+    function loadFile(e) {
+        const f = e.target.files[0];
+        if(!f) return;
+        const r = new FileReader();
+        r.onload = (evt) => {
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(evt.target.result, "text/xml");
+            const dict = xml.querySelector('plist > dict');
+            if(dict) {
+                appData = parseDict(dict);
+                if(!appData.buttonModels) appData.buttonModels = [];
+                if(!appData.joystickModel) appData.joystickModel = [];
+                if(!appData.mouseAreaModel) appData.mouseAreaModel = [];
+                render();
+            }
+        };
+        r.readAsText(f);
+    }
+    
+    function loadImg(e) { if(e.target.files[0]) document.getElementById('bg-image').src = URL.createObjectURL(e.target.files[0]); }
+
+    function parseDict(node) {
+        let res = {};
+        for(let i=0; i<node.children.length; i+=2) {
+            let k = node.children[i].textContent;
+            let v = node.children[i+1];
+            if(v.tagName === 'integer') res[k] = parseInt(v.textContent);
+            else if(v.tagName === 'real') res[k] = parseFloat(v.textContent);
+            else if(v.tagName === 'string') res[k] = v.textContent;
+            else if(v.tagName === 'array') res[k] = Array.from(v.children).map(c => parseDict(c));
+            else if(v.tagName === 'dict') res[k] = parseDict(v);
+        }
+        return res;
+    }
+
+    function exportPlayMap() {
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>\n`;
+        for(let k in appData) xml += `<key>${k}</key>\n${valToXml(appData[k])}`;
+        xml += `</dict></plist>`;
+        
+        const blob = new Blob([xml], {type:'text/xml'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'config.playmap';
+        a.click();
+    }
+
+    function valToXml(v) {
+        if(typeof v === 'number') return Number.isInteger(v) ? `<integer>${v}</integer>\n` : `<real>${v}</real>\n`;
+        if(typeof v === 'string') return `<string>${v}</string>\n`;
+        if(Array.isArray(v)) return `<array>\n${v.map(i => valToXml(i)).join('')}</array>\n`;
+        if(typeof v === 'object') {
+            let s = `<dict>\n`;
+            for(let k in v) s += `<key>${k}</key>\n${valToXml(v[k])}`;
+            s += `</dict>\n`;
+            return s;
+        }
+        return '';
+    }
+
+    init();
+</script>
+</body>
+</html>
