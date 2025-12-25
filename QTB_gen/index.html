@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>👊 动感打拳生成器</title>
+    <style>
+        :root {
+            --primary-color: #ff4757;
+            --bg-color: #f5f7fa;
+            --text-color: #2d3436;
+            --border-color: #e1e4e8;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        h1 { margin: 0 0 8px 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: #2f3542; }
+        p.subtitle { color: #a4b0be; font-size: 14px; margin-bottom: 25px; }
+
+        /* 响应式画布容器 */
+        .preview-box {
+            position: relative;
+            width: 100%;
+            max-width: 300px;
+            aspect-ratio: 1/1; /* 保持正方形 */
+            margin: 0 auto 24px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #f1f2f6;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.02);
+        }
+        
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+            background: white; 
+            /* 解决高分屏模糊 */
+            image-rendering: -webkit-optimize-contrast;
+        }
+        
+        .upload-hint {
+            position: absolute;
+            color: #ced6e0;
+            font-size: 14px;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .upload-hint::before { content: '📷'; font-size: 24px; opacity: 0.5; }
+
+        /* 按钮组 */
+        .controls { display: flex; flex-direction: column; gap: 12px; }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: block;
+        }
+
+        input[type=file] {
+            position: absolute;
+            left: 0; top: 0; opacity: 0;
+            width: 100%; height: 100%;
+            cursor: pointer;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-upload {
+            background-color: white;
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+        }
+        .btn-upload:active { background-color: #f1f2f6; transform: scale(0.98); }
+
+        .btn-gen {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 8px 20px rgba(255, 71, 87, 0.3);
+        }
+        .btn-gen:active:not(:disabled) { transform: scale(0.98); box-shadow: 0 4px 10px rgba(255, 71, 87, 0.2); }
+        .btn-gen:disabled { 
+            background-color: #dfe4ea; 
+            color: #a4b0be; 
+            cursor: not-allowed; 
+            box-shadow: none; 
+        }
+
+        .status-text {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #a4b0be;
+            height: 20px;
+        }
+
+        /* 结果区域 */
+        #resultArea {
+            display: none;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px dashed var(--border-color);
+            animation: fadeUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        #resultArea img {
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            max-width: 100%;
+            border: 4px solid white;
+        }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 移动端适配 */
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 20px; }
+            h1 { font-size: 20px; }
+            .btn { padding: 14px; font-size: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>👊 动感打拳生成器</h1>
+    <p class="subtitle">极致打击感 • 完美移动端适配</p>
+
+    <div class="preview-box">
+        <div class="upload-hint" id="uploadHint">点击上传图片<br>开始制作</div>
+        <canvas id="mainCanvas" width="300" height="300"></canvas>
+    </div>
+
+    <div class="controls">
+        <div class="file-input-wrapper">
+            <button class="btn btn-upload">📂 选择图片</button>
+            <input type="file" id="imageUpload" accept="image/*">
+        </div>
+        <button class="btn btn-gen" id="generateBtn" disabled>生成 GIF</button>
+    </div>
+
+    <div class="status-text" id="statusLog">准备就绪</div>
+
+    <div id="resultArea">
+        <h3 style="margin: 0 0 10px 0; font-size:14px; color:#747d8c;">长按下方图片保存:</h3>
+        <img id="resultGif" alt="Generated GIF">
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/gif.js/0.2.0/gif.js"></script>
+
+<script>
+    // --- 核心数据：19帧 完美中心打击+动态缩放版 ---
+    // 修改说明：
+    // 1. 击中时(Frame 4 & 13) x坐标更靠近150(中心)。Frame 4 right.x -> 135, Frame 13 left.x -> 165.
+    // 2. 击中时 bg.s (背景缩放) 增大到 1.15，增加镜头冲击感。
+    const ANIMATION_DATA = [
+        // Frame 0: 待机 (向外倾斜)
+        {"bg":{"x":150,"y":150,"s":1.0,"r":0},"left":{"x":60,"y":280,"s":0.6,"r":-15},"right":{"x":240,"y":280,"s":0.6,"r":15}},
+        
+        // Frame 1-3: 右拳出击 (Visual Left Hand)
+        {"bg":{"x":148,"y":152,"s":1.02,"r":-0.01},"left":{"x":58,"y":282,"s":0.58,"r":-15},"right":{"x":210,"y":250,"s":0.9,"r":10}},
+        {"bg":{"x":145,"y":154,"s":1.05,"r":-0.02},"left":{"x":56,"y":284,"s":0.56,"r":-15},"right":{"x":180,"y":220,"s":1.2,"r":5}},
+        {"bg":{"x":142,"y":155,"s":1.08,"r":-0.03},"left":{"x":55,"y":285,"s":0.55,"r":-15},"right":{"x":150,"y":210,"s":1.4,"r":2}},
+        
+        // Frame 4: 右拳击中 (修正：移动到中心 x=135，背景猛烈缩放)
+        {"bg":{"x":140,"y":158,"s":1.15,"r":-0.05},"left":{"x":55,"y":285,"s":0.55,"r":-15},"right":{"x":135,"y":205,"s":1.55,"r":0}},
+        
+        // Frame 5-8: 右拳收回
+        {"bg":{"x":142,"y":155,"s":1.10,"r":-0.03},"left":{"x":56,"y":284,"s":0.56,"r":-15},"right":{"x":145,"y":220,"s":1.45,"r":2}},
+        {"bg":{"x":145,"y":153,"s":1.05,"r":-0.02},"left":{"x":58,"y":282,"s":0.58,"r":-15},"right":{"x":170,"y":240,"s":1.25,"r":5}},
+        {"bg":{"x":148,"y":151,"s":1.02,"r":-0.01},"left":{"x":59,"y":281,"s":0.59,"r":-13},"right":{"x":200,"y":260,"s":0.95,"r":10}},
+        
+        // Frame 9: 待机
+        {"bg":{"x":150,"y":150,"s":1.0,"r":0},"left":{"x":60,"y":280,"s":0.6,"r":-15},"right":{"x":240,"y":280,"s":0.6,"r":15}},
+        
+        // Frame 10-12: 左拳出击 (Visual Right Hand)
+        {"bg":{"x":152,"y":152,"s":1.02,"r":0.01},"left":{"x":90,"y":250,"s":0.9,"r":-10},"right":{"x":242,"y":282,"s":0.58,"r":15}},
+        {"bg":{"x":155,"y":154,"s":1.05,"r":0.02},"left":{"x":120,"y":220,"s":1.2,"r":-5},"right":{"x":244,"y":284,"s":0.56,"r":15}},
+        {"bg":{"x":158,"y":155,"s":1.08,"r":0.03},"left":{"x":150,"y":210,"s":1.4,"r":-2},"right":{"x":245,"y":285,"s":0.55,"r":15}},
+        
+        // Frame 13: 左拳击中 (修正：移动到中心 x=165，背景猛烈缩放)
+        {"bg":{"x":160,"y":158,"s":1.15,"r":0.05},"left":{"x":165,"y":205,"s":1.55,"r":0},"right":{"x":245,"y":285,"s":0.55,"r":15}},
+        
+        // Frame 14-17: 左拳收回
+        {"bg":{"x":158,"y":155,"s":1.10,"r":0.03},"left":{"x":155,"y":220,"s":1.45,"r":-2},"right":{"x":244,"y":284,"s":0.56,"r":15}},
+        {"bg":{"x":155,"y":153,"s":1.05,"r":0.02},"left":{"x":130,"y":240,"s":1.25,"r":-5},"right":{"x":242,"y":282,"s":0.58,"r":15}},
+        {"bg":{"x":152,"y":151,"s":1.02,"r":0.01},"left":{"x":100,"y":260,"s":0.95,"r":-10},"right":{"x":241,"y":281,"s":0.59,"r":13}},
+        
+        // Frame 18: 待机
+        {"bg":{"x":150,"y":150,"s":1.0,"r":0},"left":{"x":60,"y":280,"s":0.6,"r":-15},"right":{"x":240,"y":280,"s":0.6,"r":15}}
+    ];
+
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const logEl = document.getElementById('statusLog');
+    const WIDTH = 300;
+    const HEIGHT = 300;
+    
+    let userImg = null;
+    let previewInterval = null;
+
+    function log(msg) { logEl.innerText = msg; }
+
+    // --- 绘制引擎 ---
+    function drawFrame(frameIndex) {
+        if (frameIndex >= ANIMATION_DATA.length) frameIndex = 0;
+        const data = ANIMATION_DATA[frameIndex];
+
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0,0,WIDTH,HEIGHT);
+
+        // 1. 绘制背景图片 (支持动态缩放)
+        if (userImg) {
+            ctx.save();
+            ctx.translate(data.bg.x, data.bg.y);
+            ctx.rotate(data.bg.r); 
+            ctx.scale(data.bg.s, data.bg.s);
+            ctx.drawImage(userImg, -WIDTH/2, -HEIGHT/2, WIDTH, HEIGHT);
+            ctx.restore();
+        }
+
+        // 2. 绘制拳头 (保持左右手视觉修正)
+        // data.left (视觉右手), data.right (视觉左手)
+        const drawLeftFistData = () => drawFistVisual('right_hand', data.left); 
+        const drawRightFistData = () => drawFistVisual('left_hand_mirrored', data.right);
+
+        if (data.left.s < data.right.s) {
+            drawLeftFistData(); drawRightFistData();
+        } else {
+            drawRightFistData(); drawLeftFistData();
+        }
+    }
+
+    function drawFistVisual(visualType, props) {
+        ctx.save();
+        ctx.translate(props.x, props.y);
+        ctx.rotate(props.r * Math.PI / 180); 
+        
+        const baseSize = WIDTH * 0.45;
+        const size = baseSize * props.s;
+        
+        ctx.font = `${size}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle"; 
+
+        // 视觉修正：左手镜像
+        if (visualType === 'left_hand_mirrored') {
+            ctx.scale(-1, 1); 
+        }
+        
+        ctx.fillText("👊", 0, 0);
+        ctx.restore();
+    }
+
+    // --- 交互逻辑 ---
+    
+    document.getElementById('imageUpload').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        log("正在处理图片...");
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            userImg = new Image();
+            userImg.onload = function() {
+                log("预览生成中...");
+                document.getElementById('uploadHint').style.display = 'none';
+                document.getElementById('generateBtn').disabled = false;
+                startPreview(); 
+            };
+            userImg.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function startPreview() {
+        if (previewInterval) clearInterval(previewInterval);
+        let frame = 0;
+        previewInterval = setInterval(() => {
+            drawFrame(frame);
+            frame = (frame + 1) % ANIMATION_DATA.length;
+        }, 40); 
+    }
+
+    document.getElementById('generateBtn').addEventListener('click', function() {
+        if (!userImg) return;
+        const btn = this;
+        btn.disabled = true;
+        if (previewInterval) clearInterval(previewInterval);
+        log("✨ 正在渲染高清 GIF...");
+
+        const workerBlob = new Blob([`importScripts('https://cdn.bootcdn.net/ajax/libs/gif.js/0.2.0/gif.worker.js');`], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(workerBlob);
+
+        const gif = new GIF({
+            workers: 2,
+            quality: 10,
+            width: WIDTH,
+            height: HEIGHT,
+            workerScript: workerUrl,
+            background: '#ffffff'
+        });
+
+        for (let i = 0; i < ANIMATION_DATA.length; i++) {
+            drawFrame(i);
+            gif.addFrame(ctx, {copy: true, delay: 40});
+        }
+
+        gif.on('finished', function(blob) {
+            log("🎉 生成完成！");
+            document.getElementById('resultGif').src = URL.createObjectURL(blob);
+            document.getElementById('resultArea').style.display = 'block';
+            btn.disabled = false;
+            btn.innerText = "再次生成";
+            URL.revokeObjectURL(workerUrl);
+            startPreview(); 
+            // 自动滚动到底部
+            document.getElementById('resultArea').scrollIntoView({behavior: "smooth"});
+        });
+
+        gif.on('progress', function(p) {
+            log(`⏳ 处理中... ${Math.round(p * 100)}%`);
+        });
+
+        gif.render();
+    });
+
+    // 检查 gif.js 加载
+    if (typeof GIF === 'undefined') {
+        log("❌ 组件加载失败，请检查网络连接");
+    }
+</script>
+</body>
+</html>
