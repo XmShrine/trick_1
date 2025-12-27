@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Man: Modern & Impact</title>
+    <style>
+        /* --- 1. 全局与布局 --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            width: 100vw; height: 100vh;
+            overflow: hidden;
+            background-color: #222;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas { display: block; width: 100%; height: 100%; position: absolute; z-index: 1; }
+
+        /* --- 2. 现代化 UI 层 (HTML Overlay) --- */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; pointer-events: none; /* 让点击穿透到 Canvas */
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        /* 游戏中的分数 */
+        #score-display {
+            position: absolute; top: 10%;
+            font-size: 60px; font-weight: 800; color: white;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: opacity 0.2s;
+        }
+
+        /* 结算面板 (卡片式设计 + 毛玻璃) */
+        #game-over-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            text-align: center;
+            transform: scale(0.9);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: auto; /* 面板可以点击 */
+            display: none; /* 初始隐藏 */
+            min-width: 300px;
+        }
+        
+        /* 激活状态 */
+        #game-over-panel.active {
+            opacity: 1;
+            transform: scale(1);
+            display: block;
+        }
+
+        #game-over-panel h1 {
+            font-size: 32px; color: #333; margin-bottom: 10px; font-weight: 900; letter-spacing: -1px;
+        }
+        
+        .stat-row {
+            display: flex; justify-content: space-between; margin: 15px 0;
+            font-size: 18px; color: #666; font-weight: 600;
+        }
+        .stat-val { color: #e86101; font-size: 24px; font-weight: 800; }
+
+        /* 现代化按钮 */
+        #restart-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 10px 20px rgba(0, 200, 255, 0.4);
+            transition: transform 0.1s, box-shadow 0.1s;
+            width: 100%;
+        }
+        #restart-btn:active { transform: scale(0.95); box-shadow: 0 5px 10px rgba(0, 200, 255, 0.4); }
+
+        /* 引导文字 */
+        #guide-text {
+            position: absolute; bottom: 20%;
+            font-size: 20px; color: rgba(255,255,255,0.8);
+            font-weight: 500; letter-spacing: 2px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div id="score-display">0</div>
+        <div id="guide-text">TAP TO START</div>
+
+        <div id="game-over-panel">
+            <h1>GAME OVER</h1>
+            <div class="stat-row">
+                <span>SCORE</span>
+                <span class="stat-val" id="final-score">0</span>
+            </div>
+            <div class="stat-row">
+                <span>BEST</span>
+                <span class="stat-val" id="best-score">0</span>
+            </div>
+            <button id="restart-btn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    // --- 1. 核心设置 ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // UI 元素引用
+    const uiScore = document.getElementById('score-display');
+    const uiPanel = document.getElementById('game-over-panel');
+    const uiFinalScore = document.getElementById('final-score');
+    const uiBestScore = document.getElementById('best-score');
+    const uiGuide = document.getElementById('guide-text');
+    const uiRestartBtn = document.getElementById('restart-btn');
+
+    // 资源加载
+    const assets = {
+        bird: new Image(),
+        fail: new Image(),
+        jump: new Audio("jump.mp3"),
+        explode: new Audio("explosion.mp3")
+    };
+    assets.bird.src = "bird.png";
+    assets.fail.src = "fail.png";
+
+    // 游戏状态枚举
+    const STATE = { READY: 0, PLAYING: 1, DEAD: 2 };
+    let currentState = STATE.READY;
+
+    // 变量
+    let frames = 0;
+    let score = 0;
+    let highScore = localStorage.getItem('modernFlappyHigh') || 0;
+    let scale = 1;
+    let gameSpeed = 3;
+
+    // 特效变量
+    let effects = {
+        shake: 0,          // 震动强度
+        flash: 0,          // 闪光强度 (0-1)
+        failOpacity: 0,    // Fail图片透明度
+        glitchOffset: 0    // 噪点偏移
+    };
+
+    // 碎片系统
+    let shards = [];
+
+    // --- 2. 响应式适配 ---
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        // 适配逻辑
+        scale = Math.min(canvas.width / 400, canvas.height / 700);
+        if (scale < 0.7) scale = 0.7;
+        
+        ground.h = 100 * scale;
+        
+        if (currentState === STATE.READY) {
+            bird.reset();
+        }
+    }
+
+    function playSound(audio) {
+        try {
+            audio.currentTime = 0;
+            audio.play().catch(()=>{});
+        } catch(e){}
+    }
+
+    // --- 3. 游戏实体 ---
+    
+    const bird = {
+        x: 0, y: 0, w: 50, h: 35,
+        v: 0, rot: 0,
+        
+        draw() {
+            // 死亡瞬间如果不画鸟，看着会像鸟消失了，这里选择一直画，直到完全被fail图盖住
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            
+            // 旋转
+            if (currentState === STATE.PLAYING) {
+                let target = this.v > 0 ? 0.5 : -0.5;
+                this.rot += (target - this.rot) * 0.1;
+            } else if (currentState === STATE.READY) {
+                this.rot = 0;
+            }
+            ctx.rotate(this.rot);
+
+            let dw = this.w * scale;
+            let dh = this.h * scale;
+            if (assets.bird.complete && assets.bird.naturalWidth) {
+                ctx.drawImage(assets.bird, -dw/2, -dh/2, dw, dh);
+            } else {
+                ctx.fillStyle = "#FFD700"; ctx.beginPath(); ctx.arc(0,0,dw/2,0,Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+        },
+        update() {
+            if (currentState === STATE.READY) {
+                this.y = canvas.height/2.5 + Math.sin(frames*0.1) * 10;
+                this.v = 0;
+            } else if (currentState === STATE.PLAYING) {
+                this.v += 0.25 * scale;
+                this.y += this.v;
+                
+                // 地面判定
+                if (this.y + (this.h*scale)/2 >= canvas.height - ground.h) {
+                    gameOver();
+                }
+            }
+        },
+        flap() {
+            this.v = -6 * scale;
+            playSound(assets.jump);
+        },
+        reset() {
+            this.x = canvas.width / 2;
+            this.y = canvas.height / 2.5;
+            this.v = 0; this.rot = 0;
+        }
+    };
+
+    const pipes = {
+        items: [], w: 65, gap: 160,
+        update() {
+            if (currentState !== STATE.PLAYING) return;
+            
+            // 生成
+            if (frames % 120 === 0) {
+                let dw = this.w * scale;
+                let dgap = this.gap * scale;
+                let min = 50 * scale;
+                let max = canvas.height - ground.h - dgap - min;
+                this.items.push({
+                    x: canvas.width,
+                    y: Math.random() * (max - min) + min,
+                    passed: false
+                });
+            }
+
+            // 移动与碰撞
+            let dw = this.w * scale;
+            let dgap = this.gap * scale;
+            let birdR = (bird.w*scale)/2 - 5; // 碰撞宽容度
+
+            for (let i = 0; i < this.items.length; i++) {
+                let p = this.items[i];
+                p.x -= gameSpeed * scale;
+
+                // 移除
+                if (p.x + dw < 0) {
+                    this.items.shift(); i--; continue;
+                }
+                
+                // 加分
+                if (!p.passed && bird.x > p.x + dw) {
+                    score++;
+                    uiScore.innerText = score;
+                    p.passed = true;
+                }
+
+                // 撞管判定
+                if (bird.x + birdR > p.x && bird.x - birdR < p.x + dw) {
+                    if (bird.y - birdR < p.y || bird.y + birdR > p.y + dgap) {
+                        gameOver();
+                    }
+                }
+            }
+        },
+        draw() {
+            let dw = this.w * scale;
+            let dgap = this.gap * scale;
+            
+            // 死亡模式下，管道变暗，突出前面的Fail
+            ctx.fillStyle = currentState === STATE.DEAD ? '#555' : '#73bf2e';
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+
+            for(let p of this.items) {
+                let topH = p.y;
+                let botY = p.y + dgap;
+                let botH = canvas.height - ground.h - botY;
+
+                // 上管
+                ctx.fillRect(p.x, 0, dw, topH);
+                ctx.strokeRect(p.x, -2, dw, topH);
+                
+                // 下管
+                ctx.fillRect(p.x, botY, dw, botH);
+                ctx.strokeRect(p.x, botY, dw, botH+2);
+            }
+        }
+    };
+
+    const ground = {
+        h: 100, x: 0,
+        draw() {
+            ctx.fillStyle = currentState === STATE.DEAD ? '#666' : '#ded895';
+            ctx.fillRect(0, canvas.height - this.h, canvas.width, this.h);
+            // 草地
+            ctx.fillStyle = currentState === STATE.DEAD ? '#333' : '#73bf2e';
+            ctx.fillRect(0, canvas.height - this.h, canvas.width, 20 * scale);
+        },
+        update() {
+            if (currentState !== STATE.DEAD) {
+                this.x -= gameSpeed * scale;
+                // 简单的纹理滚动没做，为了保持现代简洁风格
+            }
+        }
+    };
+
+    // --- 4. 死亡逻辑 (High Impact) ---
+    function gameOver() {
+        if (currentState === STATE.DEAD) return;
+        currentState = STATE.DEAD;
+        
+        playSound(assets.explode);
+        
+        // 1. 瞬间特效初始化
+        effects.shake = 60 * scale; // 剧烈震动
+        effects.flash = 1.0;        // 红色闪光
+        effects.failOpacity = 1;    // 图片显形
+        
+        // 2. 隐藏游戏中的分数，显示引导
+        uiScore.style.opacity = 0;
+        uiGuide.style.display = 'none';
+
+        // 3. 生成粒子碎片
+        createShards();
+
+        // 4. 更新数据
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('modernFlappyHigh', highScore);
+        }
+
+        // 5. 延迟显示现代化 UI (让玩家先看爆炸)
+        setTimeout(() => {
+            uiFinalScore.innerText = score;
+            uiBestScore.innerText = highScore;
+            uiPanel.classList.add('active'); // CSS 动画滑入
+        }, 800);
+    }
+
+    function createShards() {
+        shards = [];
+        for(let i=0; i<30; i++) {
+            shards.push({
+                x: bird.x, y: bird.y,
+                vx: (Math.random()-0.5) * 30 * scale,
+                vy: (Math.random()-0.5) * 30 * scale,
+                size: (Math.random()*20 + 5) * scale,
+                color: Math.random()>0.5 ? 'red' : 'orange'
+            });
+        }
+    }
+
+    // --- 5. 绘制循环 ---
+    function draw() {
+        // 清屏
+        ctx.fillStyle = currentState === STATE.DEAD ? '#111' : '#70c5ce';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+
+        // 应用震动
+        if (effects.shake > 0) {
+            let dx = (Math.random()-0.5) * effects.shake;
+            let dy = (Math.random()-0.5) * effects.shake;
+            ctx.translate(dx, dy);
+            effects.shake *= 0.9;
+            if (effects.shake < 1) effects.shake = 0;
+        }
+
+        // 正常绘制场景
+        pipes.draw();
+        ground.draw();
+        bird.draw();
+
+        // 绘制碎片
+        if (currentState === STATE.DEAD) {
+            for(let s of shards) {
+                s.x += s.vx; s.y += s.vy; s.vy += 0.5; // 重力
+                ctx.fillStyle = s.color;
+                ctx.fillRect(s.x, s.y, s.size, s.size);
+            }
+        }
+        
+        // --- 核心：FAIL JUMPSCARE ---
+        if (currentState === STATE.DEAD && effects.failOpacity > 0) {
+            if (assets.fail.complete) {
+                // 瞬间占满屏幕的大比例
+                let size = Math.min(canvas.width, canvas.height) * 0.8;
+                // 添加噪点抖动位移
+                let jx = (Math.random()-0.5) * 20;
+                let jy = (Math.random()-0.5) * 20;
+                
+                ctx.globalAlpha = effects.failOpacity;
+                ctx.drawImage(assets.fail, 
+                    canvas.width/2 - size/2 + jx, 
+                    canvas.height/2 - size/2 + jy, 
+                    size, size * (assets.fail.height/assets.fail.width)
+                );
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        ctx.restore();
+
+        // 红色闪光层 (血色冲击)
+        if (effects.flash > 0) {
+            ctx.fillStyle = `rgba(255, 0, 0, ${effects.flash})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            effects.flash *= 0.9; // 快速衰减
+        }
+    }
+
+    function loop() {
+        bird.update();
+        pipes.update();
+        ground.update();
+        draw();
+        frames++;
+        requestAnimationFrame(loop);
+    }
+
+    // --- 6. 交互 ---
+    function action(e) {
+        if (e.type === 'touchstart') e.preventDefault(); 
+        
+        switch (currentState) {
+            case STATE.READY:
+                currentState = STATE.PLAYING;
+                uiGuide.style.display = 'none';
+                bird.flap();
+                break;
+            case STATE.PLAYING:
+                bird.flap();
+                break;
+            // DEAD 状态下 Canvas 点击无效，必须点 HTML 按钮
+        }
+    }
+
+    // 绑定 HTML 按钮事件
+    uiRestartBtn.addEventListener('click', () => {
+        // 重置游戏
+        bird.reset();
+        pipes.items = [];
+        score = 0;
+        frames = 0;
+        currentState = STATE.READY;
+        
+        // UI 重置
+        uiScore.innerText = "0";
+        uiScore.style.opacity = 1;
+        uiPanel.classList.remove('active');
+        uiGuide.style.display = 'block';
+        
+        // 特效重置
+        effects.failOpacity = 0;
+    });
+
+    // 绑定全局输入
+    window.addEventListener('mousedown', (e) => {
+        // 如果点到了按钮，不触发 Canvas 逻辑
+        if (e.target === uiRestartBtn) return;
+        action(e);
+    });
+    window.addEventListener('touchstart', (e) => {
+        if (e.target === uiRestartBtn) return;
+        action(e);
+    }, {passive: false});
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            if (currentState === STATE.DEAD) {
+                // 空格键也可以重开，模拟点击按钮
+                if (uiPanel.classList.contains('active')) uiRestartBtn.click();
+            } else {
+                action(e);
+            }
+        }
+    });
+    window.addEventListener('resize', resize);
+
+    // 启动
+    resize();
+    loop();
+
+</script>
+</body>
+</html>
