@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>LaTeX 转 Beamer</title>
+    <title>LaTeX 转 Beamer 转换器 v25.0 (编号增强版)</title>
     <style>
         :root {
             --primary-color: #0066cc;
@@ -30,6 +30,17 @@
             flex-direction: column;
         }
 
+        /* --- 顶部栏 --- */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .app-title { font-size: 18px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 10px; }
+        .version-badge { background: #000; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+
         /* --- 控制面板 --- */
         .controls {
             background: var(--panel-bg);
@@ -38,17 +49,13 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             margin-bottom: 20px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 24px;
             align-items: start;
             border: 1px solid var(--border-color);
         }
 
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+        .control-group { display: flex; flex-direction: column; gap: 12px; }
 
         .control-group-title {
             font-size: 13px;
@@ -122,160 +129,139 @@
             transition: all 0.2s;
             font-family: inherit;
         }
-
+        
         button .btn-icon { width: 18px; height: 18px; fill: currentColor; }
 
-        button.secondary {
-            background-color: #fff;
-            border: 1px solid var(--border-color);
-            color: #555;
-        }
-        button.secondary:hover {
-            background-color: #f8f9fa;
-            border-color: #bbb;
-            color: #333;
-        }
+        button.secondary { background-color: #fff; border: 1px solid var(--border-color); color: #555; }
+        button.secondary:hover { background-color: #f8f9fa; border-color: #bbb; color: #333; }
 
-        button.primary {
-            background-color: var(--primary-color);
-            color: white;
-            box-shadow: 0 4px 6px rgba(0,102,204,0.2);
-        }
-        button.primary:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 12px rgba(0,102,204,0.3);
-        }
+        button.primary { background-color: var(--primary-color); color: white; box-shadow: 0 4px 6px rgba(0,102,204,0.2); }
+        button.primary:hover { background-color: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 6px 12px rgba(0,102,204,0.3); }
+        
+        button.info { background-color: #17a2b8; color: white; padding: 6px 12px; font-size: 12px; }
+        button.info:hover { background-color: #138496; }
 
         /* --- 编辑器区域 --- */
-        .workspace {
-            flex: 1;
-            display: flex;
-            gap: 24px;
-            min-height: 0;
-        }
+        .workspace { flex: 1; display: flex; gap: 24px; min-height: 0; }
 
         .editor-box {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: var(--panel-bg);
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            flex: 1; display: flex; flex-direction: column;
+            background: var(--panel-bg); border-radius: 10px; border: 1px solid var(--border-color);
+            overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
 
         .editor-header {
-            padding: 12px 16px;
-            background: #fcfcfc;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            font-weight: 700;
-            color: #555;
+            padding: 12px 16px; background: #fcfcfc; border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 13px; font-weight: 700; color: #555;
         }
 
-        .tag-pill {
-            font-size: 11px;
-            padding: 3px 10px;
-            border-radius: 12px;
-            background: #eef2f5;
-            color: #666;
-            font-weight: normal;
-        }
+        .tag-pill { font-size: 11px; padding: 3px 10px; border-radius: 12px; background: #eef2f5; color: #666; font-weight: normal; }
         .tag-success { background: #e6fffa; color: #047481; }
 
-        .editor-container {
-            flex: 1;
-            position: relative;
-            display: flex;
-            overflow: hidden;
-            background: var(--code-bg);
-        }
+        .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; background: var(--code-bg); }
 
         .line-numbers {
-            width: 40px;
-            background: var(--line-num-bg);
-            color: var(--line-num-text);
-            text-align: right;
-            padding: 15px 8px 15px 0;
-            font-family: "JetBrains Mono", "Consolas", monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            user-select: none;
-            border-right: 1px solid #eee;
+            width: 40px; background: var(--line-num-bg); color: var(--line-num-text);
+            text-align: right; padding: 15px 8px 15px 0;
+            font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; line-height: 1.6;
+            user-select: none; border-right: 1px solid #eee;
         }
 
         textarea {
-            flex: 1;
-            border: none;
-            resize: none;
-            padding: 15px;
+            flex: 1; border: none; resize: none; padding: 15px;
             font-family: "JetBrains Mono", "Consolas", "Monaco", monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            outline: none;
-            background: transparent;
-            color: var(--text-color);
-            white-space: pre;
-            overflow-y: scroll;
-            overflow-x: auto;
+            font-size: 13px; line-height: 1.6; outline: none;
+            background: transparent; color: var(--text-color);
+            white-space: pre; overflow-y: scroll; overflow-x: auto;
         }
         
-        /* 滚动条美化 */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #bbb; }
+        /* 模态框 (Help Modal) */
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background-color: #fff; margin: 5% auto; padding: 30px; border-radius: 12px;
+            width: 80%; max-width: 800px; max-height: 85vh; overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative;
+        }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #999; }
+        .close-btn:hover { color: #333; }
+        .help-section { margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .help-section h3 { color: var(--primary-color); margin-top: 0; font-size: 16px; }
+        .help-item { margin-bottom: 12px; }
+        .help-item strong { display: inline-block; width: 180px; color: #333; font-size: 14px; }
+        .help-item span { color: #666; font-size: 13px; line-height: 1.5; }
 
     </style>
 </head>
 <body>
 
+<div class="top-bar">
+    <div class="app-title">
+        <svg class="icon" style="width:24px;height:24px;fill:var(--primary-color)" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        LaTeX 转 Beamer 智能工具
+        <span class="version-badge">v25.0</span>
+    </div>
+    <button class="info" onclick="toggleHelp()">
+        <svg class="btn-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+        使用说明
+    </button>
+</div>
+
 <div class="controls">
     <div class="control-group">
         <div class="control-group-title">
             <svg class="icon" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-            文档结构与分页
+            文档结构与目录
         </div>
         <select id="splitLevel">
             <option value="section">按 Section (章) 分页</option>
             <option value="subsection">按 Subsection (节) 分页</option>
             <option value="subsubsection" selected>按 Subsubsection (小节) 分页 (推荐)</option>
         </select>
-        <div class="toggle-wrapper" title="开启后，内容超出一页时自动生成 Slide I, Slide II...">
-            <input type="checkbox" id="autoBreakCheck" checked>
-            <span>开启自动跨页延伸 (allowframebreaks)</span>
+        
+        <div style="display:flex; align-items:center; gap:5px;">
+            <input type="checkbox" id="tocCheck" checked>
+            <span style="font-size:13px;">生成目录页</span>
+            <select id="tocDepthSelect" style="width:auto; margin-left: auto; font-size: 12px; padding: 4px;">
+                <option value="1">仅显示章 (Section)</option>
+                <option value="2">显示章+节 (Subsection)</option>
+                <option value="3" selected>显示全部细节</option>
+            </select>
         </div>
-        <div class="toggle-wrapper" title="为每个 \section 生成单独的居中标题页">
+
+        <div class="toggle-wrapper" title="开启后，在进入新的一章时插入全屏标题页">
             <input type="checkbox" id="sectionPageCheck" checked>
-            <span>生成章节独立封面</span>
+            <span>生成章节独立封面 (\AtBeginSection)</span>
+        </div>
+        
+        <div class="toggle-wrapper" title="开启后，标题将显示序号，如 1.1, 1.1.1">
+            <input type="checkbox" id="showSecNumCheck">
+            <span>显示章节编号 (1.1, 1.2...)</span>
         </div>
     </div>
 
     <div class="control-group">
         <div class="control-group-title">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-            主题与配色
+            <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            自动分页与间距
         </div>
-        <select id="themeSelect">
-            <option value="Madrid" selected>Madrid (经典/底部栏)</option>
-            <option value="Warsaw">Warsaw (立体/渐变)</option>
-            <option value="CambridgeUS">CambridgeUS (红灰/极简)</option>
-            <option value="Antibes">Antibes (树状导航)</option>
-            <option value="Berkeley">Berkeley (侧边栏)</option>
-            <option value="default">Default (白板)</option>
-        </select>
-        <select id="colorSelect">
-            <option value="default" selected>Default (默认蓝)</option>
-            <option value="beaver">Beaver (海狸色: 红/灰)</option>
-            <option value="dolphin">Dolphin (海豚色: 紫/蓝)</option>
-            <option value="wolverine">Wolverine (金刚狼: 黄/蓝)</option>
-            <option value="albatross">Albatross (信天翁: 深蓝底)</option>
-        </select>
+        <div class="toggle-wrapper" title="开启后，内容超出一页时自动生成 Slide I, Slide II...">
+            <input type="checkbox" id="autoBreakCheck" checked>
+            <span>开启自动跨页延伸 (allowframebreaks)</span>
+        </div>
+        
+        <div class="toggle-wrapper" title="开启时，标题后显示 (1), (2)...；关闭时隐藏编号">
+            <input type="checkbox" id="showContinuationCheck" checked>
+            <span>显示分页编号 (1), (2)...</span>
+        </div>
+
+        <div class="toggle-wrapper" title="自动在 PPT 标题下方显示层级关系">
+            <input type="checkbox" id="showParentTitleCheck" checked>
+            <span>标题栏显示父级标题 (Subtitle)</span>
+        </div>
     </div>
 
     <div class="control-group">
@@ -287,28 +273,54 @@
             <input type="checkbox" id="fixFloatCheck" checked>
             <span>图片去浮动 (修复引用错误)</span>
         </div>
-        <div class="toggle-wrapper" title="自动提取 \definecolor, \newcommand 等，防止编译报错">
-            <input type="checkbox" id="keepDefCheck" checked>
-            <span>保留自定义颜色/命令/库 (Fix Error)</span>
+        <div class="toggle-wrapper" title="强制将 \resizebox 和 pgfplots 的高度限制在 0.75\textheight 以内，防止 16:9 模式下图片溢出屏幕底部">
+            <input type="checkbox" id="preventOverflowCheck" checked>
+            <span style="color:#d32f2f;">防止图片溢出 (16:9 优化)</span>
         </div>
-        <div class="toggle-wrapper" title="自动在 PPT 标题下方显示层级关系">
-            <input type="checkbox" id="subtitleCheck" checked>
-            <span>显示智能层级副标题</span>
+        <div class="toggle-wrapper" title="自动提取 \definecolor 和 \usetikzlibrary，防止编译报错">
+            <input type="checkbox" id="keepDefCheck" checked>
+            <span>保留自定义颜色与宏库</span>
         </div>
     </div>
 
     <div class="control-group">
         <div class="control-group-title">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M18 4H6v2l6.5 6L6 18v2h12v-3h-7l5-5-5-5h7z"/></svg>
-            数学公式优化
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            主题与数学
         </div>
-        <div class="toggle-wrapper" title="将超长的 align 环境切分为多个小块，防止溢出屏幕">
-            <input type="checkbox" id="splitMathCheck" checked>
-            <span>自动切割超长公式 (align)</span>
+        <div style="display:flex; gap:5px;">
+            <select id="themeSelect">
+                <option value="Madrid" selected>Madrid (经典)</option>
+                <option value="Warsaw">Warsaw (立体)</option>
+                <option value="CambridgeUS">CambridgeUS (极简)</option>
+                <option value="Antibes">Antibes (树状导航)</option>
+                <option value="Berkeley">Berkeley (侧边栏)</option>
+                <option value="default">Default</option>
+            </select>
+            <select id="colorSelect">
+                <option value="default" selected>蓝</option>
+                <option value="beaver">红/灰</option>
+                <option value="dolphin">紫</option>
+                <option value="wolverine">黄/蓝</option>
+                <option value="albatross">深蓝</option>
+            </select>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:13px; color:#555;">单页最大行数:</span>
-            <input type="number" id="mathRows" value="8" min="3" max="20" style="width: 60px;">
+             <select id="fontSizeSelect" style="width: auto;">
+                 <option value="10pt">10pt 字号</option>
+                 <option value="11pt" selected>11pt (默认)</option>
+                 <option value="12pt">12pt 字号</option>
+                 <option value="14pt">14pt 字号</option>
+             </select>
+             <select id="aspectRatioSelect" style="width: auto; border: 2px solid var(--primary-color);">
+                 <option value="43">4:3 (标准)</option>
+                 <option value="169" selected>16:9 (宽屏)</option>
+                 <option value="1610">16:10</option>
+             </select>
+        </div>
+        <div class="toggle-wrapper">
+            <input type="checkbox" id="splitMathCheck" checked>
+            <span>长公式自动切割 (阈值: <input type="number" id="mathRows" value="8" min="3" max="20" style="width: 40px; display:inline; padding:2px;"> 行)</span>
         </div>
     </div>
 
@@ -327,7 +339,7 @@
 <div class="workspace">
     <div class="editor-box">
         <div class="editor-header">
-            <span>输入: Article 源代码 (essay.tex)</span>
+            <span>输入: Article 源代码</span>
             <span class="tag-pill">Source</span>
         </div>
         <div class="editor-container">
@@ -339,9 +351,7 @@
     <div class="editor-box">
         <div class="editor-header">
             <span>输出: Beamer 代码</span>
-            <div style="display:flex; gap: 8px;">
-                <span class="tag-pill tag-success">已就绪</span>
-            </div>
+            <span class="tag-pill tag-success">已就绪</span>
         </div>
         <div class="editor-container">
             <div class="line-numbers" id="line-numbers-output">1</div>
@@ -350,10 +360,50 @@
     </div>
 </div>
 
+<div id="helpModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="toggleHelp()">&times;</span>
+        <h2 style="margin-top:0; color:#333;">功能详细说明</h2>
+        
+        <div class="help-section">
+            <h3>📂 文档结构</h3>
+            <div class="help-item">
+                <strong>显示章节编号</strong>
+                <span>开启后，标题和目录会自动添加 1.1, 1.2 等序号。这是通过向 Beamer 注入编号模板并同时在正文中动态添加数字前缀实现的。</span>
+            </div>
+            <div class="help-item">
+                <strong>按 XXX 分页</strong>
+                <span>决定 PPT 的切分粒度。推荐“按 Subsubsection 分页”以获得最清晰的层级。</span>
+            </div>
+        </div>
+
+        <div class="help-section">
+            <h3>🎨 样式与修复</h3>
+            <div class="help-item">
+                <strong>防止图片溢出 (16:9)</strong>
+                <span>因为 16:9 屏幕较矮，图片容易纵向溢出。开启后，工具会将所有图片和图表的高度限制为屏幕高度的 75%。</span>
+            </div>
+            <div class="help-item">
+                <strong>长公式自动切割</strong>
+                <span>Beamer 无法自动分页公式。如果一个 align 环境超过设定的行数（如 8 行），工具会自动将其拆分为多个 align，避免内容溢出屏幕。</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     const SPLIT_MARKER = "%%%%SPLIT%%%%";
 
-    // === UI 功能：行号同步 ===
+    function toggleHelp() {
+        const modal = document.getElementById('helpModal');
+        modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+    }
+    
+    window.onclick = function(event) {
+        const modal = document.getElementById('helpModal');
+        if (event.target == modal) modal.style.display = "none";
+    }
+
     function updateLineNumbers(id) {
         const textarea = document.getElementById(id);
         const lineNums = document.getElementById(`line-numbers-${id}`);
@@ -373,23 +423,25 @@
         updateLineNumbers('output');
     }
 
-    // === 核心逻辑 ===
     function insertSplit() {
         const textarea = document.getElementById('input');
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
-        const insertText = "\n" + SPLIT_MARKER + "\n";
-        textarea.value = textarea.value.substring(0, start) + insertText + textarea.value.substring(end);
-        const newPos = start + insertText.length;
+        textarea.value = textarea.value.substring(0, start) + "\n" + SPLIT_MARKER + "\n" + textarea.value.substring(end);
         textarea.focus();
-        textarea.setSelectionRange(newPos, newPos);
         updateLineNumbers('input');
     }
 
-    // 1. 去浮动
-    function fixFloats(text) {
+    // === 内核逻辑 ===
+    function fixFloats(text, preventOverflow) {
         text = text.replace(/\\begin\{figure\}(?:\[.*?\])?([\s\S]*?)\\end\{figure\}/g, (match, content) => {
             let newContent = content.replace(/\\caption\{/g, "\\captionof{figure}{");
+            
+            if (preventOverflow) {
+                newContent = newContent.replace(/\\resizebox\{.*?\}(\s*)\{\s*!\s*\}/g, "\\resizebox{!}{0.75\\textheight}");
+                newContent = newContent.replace(/height\s*=\s*[\d\.]+\\textwidth/g, "height=0.75\\textheight");
+            }
+            
             return `\\begin{center}\n${newContent}\n\\end{center}`;
         });
         text = text.replace(/\\begin\{table\}(?:\[.*?\])?([\s\S]*?)\\end\{table\}/g, (match, content) => {
@@ -399,7 +451,6 @@
         return text;
     }
 
-    // 2. 数学切割
     function processMathEnvironments(text, maxRows) {
         const regex = /\\begin\{align(\*?)\}([\s\S]*?)\\end\{align\1\}/g;
         return text.replace(regex, (match, star, content) => {
@@ -414,7 +465,7 @@
             let result = "";
             chunks.forEach((chunk, index) => {
                 result += `\\begin{align${star}}\n    ${chunk}\n\\end{align${star}}\n`;
-                if (index < chunks.length - 1) result += "% [自动切割长公式]\n"; 
+                if (index < chunks.length - 1) result += "% [自动切割]\n"; 
             });
             return result;
         });
@@ -425,17 +476,23 @@
         const splitLevel = document.getElementById('splitLevel').value;
         const selectedTheme = document.getElementById('themeSelect').value;
         const selectedColor = document.getElementById('colorSelect').value;
+        const fontSize = document.getElementById('fontSizeSelect').value;
+        const aspectRatio = document.getElementById('aspectRatioSelect').value;
         
         const isAutoBreak = document.getElementById('autoBreakCheck').checked;
         const isFixFloat = document.getElementById('fixFloatCheck').checked;
+        const preventOverflow = document.getElementById('preventOverflowCheck').checked;
         const isKeepDef = document.getElementById('keepDefCheck').checked;
         const isSplitMath = document.getElementById('splitMathCheck').checked;
         const mathMaxRows = document.getElementById('mathRows').value;
         const needSectionPage = document.getElementById('sectionPageCheck').checked;
-        const useSmartSubtitle = document.getElementById('subtitleCheck').checked;
-        
-        const needTOC = true;
+        const showParentTitle = document.getElementById('showParentTitleCheck').checked;
+        const needTOC = document.getElementById('tocCheck').checked;
+        const tocDepth = document.getElementById('tocDepthSelect').value;
+        const showContinuation = document.getElementById('showContinuationCheck').checked;
+        const showSecNum = document.getElementById('showSecNumCheck').checked;
 
+        // 分离导言区
         let inputPreamble = "";
         let body = rawInput;
         const docStartRegex = /\\begin\{document\}/;
@@ -445,7 +502,11 @@
             body = parts[1].split(/\\end\{document\}/)[0];
         }
         
-        let newPreamble = `\\documentclass{beamer}
+        let docOpts = [];
+        if (fontSize) docOpts.push(fontSize);
+        if (aspectRatio && aspectRatio !== "43") docOpts.push(`aspectratio=${aspectRatio}`);
+        
+        let newPreamble = `\\documentclass[${docOpts.join(',')}]{beamer}
 \\usepackage{ctex}
 \\usepackage{amsmath,amssymb}
 \\usepackage{bm}
@@ -457,6 +518,7 @@
 \\pgfplotsset{compat=newest}
 \\usepackage{caption} 
 \\usepackage{cleveref} 
+\\usepackage[export]{adjustbox} 
 
 \\allowdisplaybreaks[4]
 
@@ -465,14 +527,26 @@
 \\usecolortheme{${selectedColor}}
 
 \\setbeamertemplate{itemize items}[circle]
-\\setcounter{tocdepth}{3}
+\\setcounter{tocdepth}{${tocDepth}}
 \\setbeamertemplate{caption}[numbered]
-\\setbeamertemplate{frametitle continuation}{%
+`;
+
+        if (showContinuation) {
+            newPreamble += `\\setbeamertemplate{frametitle continuation}{%
     \\ifnum\\insertcontinuationcount>1
     \\textmd{\\small(\\insertcontinuationcount)}
     \\fi
-}
-`;
+}\n`;
+        } else {
+            newPreamble += `\\setbeamertemplate{frametitle continuation}{}\n`;
+        }
+
+        // 章节编号控制 (TOC)
+        if (showSecNum) {
+            newPreamble += `\\setbeamertemplate{section in toc}[sections numbered]
+\\setbeamertemplate{subsection in toc}[subsections numbered]
+\\setbeamertemplate{subsubsection in toc}[subsubsections numbered]\n`;
+        }
 
         if (needSectionPage) {
             newPreamble += `
@@ -490,44 +564,25 @@
         }
 
         if (isKeepDef) {
-            // === 核心修复: 提取并保留自定义定义 ===
             let customDefs = "";
-            
-            // 1. 颜色
             const defineColorMatches = inputPreamble.match(/\\definecolor\{.*?\}\{.*?\}\{.*?\}/g);
-            if (defineColorMatches) {
-                customDefs += "\n% --- 用户自定义颜色 ---\n" + defineColorMatches.join("\n");
-            }
+            if (defineColorMatches) customDefs += "\n% --- 自定义颜色 ---\n" + defineColorMatches.join("\n");
             
-            // 2. TikZ 库
             const tikzLibMatches = inputPreamble.match(/\\usetikzlibrary\{.*?\}/g);
-            if (tikzLibMatches) {
-                customDefs += "\n% --- TikZ 库 ---\n" + tikzLibMatches.join("\n");
-            }
+            if (tikzLibMatches) customDefs += "\n% --- TikZ 库 ---\n" + tikzLibMatches.join("\n");
             
-            // 3. PGF 设置
             const pgfSetMatches = inputPreamble.match(/\\pgfplotsset\{.*?\}/g);
-            if (pgfSetMatches) {
-                customDefs += "\n" + pgfSetMatches.join("\n");
-            }
+            if (pgfSetMatches) customDefs += "\n" + pgfSetMatches.join("\n");
 
-            // 4. 自定义命令 (\newcommand, \def, \DeclareMathOperator)
-            // 扫描 preamble 中的这些行
             const lines = inputPreamble.split('\n');
             const cmdPattern = /^\\(newcommand|renewcommand|providecommand|def|DeclareMathOperator)/;
             let cmdLines = [];
             lines.forEach(line => {
-                if (cmdPattern.test(line.trim())) {
-                    cmdLines.push(line.trim());
-                }
+                if (cmdPattern.test(line.trim())) cmdLines.push(line.trim());
             });
-            if (cmdLines.length > 0) {
-                customDefs += "\n% --- 用户自定义命令 ---\n" + cmdLines.join("\n");
-            }
+            if (cmdLines.length > 0) customDefs += "\n% --- 自定义命令 ---\n" + cmdLines.join("\n");
 
-            if (customDefs) {
-                newPreamble += customDefs + "\n";
-            }
+            if (customDefs) newPreamble += customDefs + "\n";
         }
 
         const fullText = rawInput;
@@ -538,7 +593,7 @@
             if (matches) newPreamble += matches[matches.length - 1] + "\n";
         });
 
-        if (isFixFloat) body = fixFloats(body);
+        if (isFixFloat) body = fixFloats(body, preventOverflow);
         if (isSplitMath) body = processMathEnvironments(body, mathMaxRows);
 
         const lines = body.split('\n');
@@ -546,8 +601,10 @@
         let envStack = []; 
         let currentBuffer = ""; 
         let currSec = "", currSub = "", currSubSub = "";
+        
+        // 内部计数器 (用于 Frame Title 和 正文标题)
+        let secCounter = 0, subCounter = 0, subSubCounter = 0;
 
-        // 辅助：正则提取标题内容
         function extractTitle(line, type) {
             const regex = new RegExp(`\\\\${type}\\*?\\{(.*)\\}`);
             const match = line.match(regex);
@@ -555,18 +612,28 @@
         }
 
         function getFrameHeader() {
-            let title = "", subtitle = "";
-            if (currSubSub) {
-                title = currSubSub;
-                if (useSmartSubtitle) subtitle = currSub ? `$\\hookrightarrow$ ${currSub}` : (currSec ? `§ ${currSec}` : "");
-            } else if (currSub) {
-                title = currSub;
-                if (useSmartSubtitle && currSec) subtitle = `§ ${currSec}`;
-            } else if (currSec) {
-                title = currSec;
+            let title = "";
+            let subtitle = "";
+
+            if (splitLevel === 'section') {
+                title = currSec || "详细内容";
+            } else if (splitLevel === 'subsection') {
+                title = currSub || currSec || "详细内容";
+                if (showParentTitle && currSec && currSub) subtitle = `§ ${currSec}`;
             } else {
-                title = "详细内容";
+                if (currSubSub) {
+                    title = currSubSub;
+                    if (showParentTitle) subtitle = currSub ? `$\\hookrightarrow$ ${currSub}` : (currSec ? `§ ${currSec}` : "");
+                } else if (currSub) {
+                    title = currSub;
+                    if (showParentTitle && currSec) subtitle = `§ ${currSec}`;
+                } else if (currSec) {
+                    title = currSec;
+                } else {
+                    title = "详细内容";
+                }
             }
+
             let header = `{${title}}`;
             if (subtitle) header += `\n\\framesubtitle{${subtitle}}`;
             return header;
@@ -600,12 +667,10 @@
         function shouldSplit(line) {
             if (line.includes(SPLIT_MARKER)) return true;
             
-            // v15.1 更新：支持带星号的章节
             const isSec = line.match(/\\section\*?\{.*\}/);
             const isSub = line.match(/\\subsection\*?\{.*\}/);
             const isSubSub = line.match(/\\subsubsection\*?\{.*\}/);
             
-            const splitLevel = document.getElementById('splitLevel').value;
             if (splitLevel === 'section') return isSec;
             if (splitLevel === 'subsection') return isSec || isSub;
             if (splitLevel === 'subsubsection') return isSec || isSub || isSubSub;
@@ -624,33 +689,56 @@
                 continue;
             }
 
-            // 检测带星号的章节
             const isSec = line.match(/\\section\*?\{([^}]+)\}/);
             const isSub = line.match(/\\subsection\*?\{([^}]+)\}/);
             const isSubSub = line.match(/\\subsubsection\*?\{([^}]+)\}/);
             const isHeader = isSec || isSub || isSubSub;
 
             if (isHeader) {
+                // 处理计数器 (仅当未带星号时)
+                if (showSecNum && !line.includes("*")) {
+                    if (isSec) { secCounter++; subCounter = 0; subSubCounter = 0; }
+                    if (isSub) { subCounter++; subSubCounter = 0; }
+                    if (isSubSub) { subSubCounter++; }
+                }
+
+                // 准备标题前缀
+                let prefix = "";
+                if (showSecNum && !line.includes("*")) {
+                    if (isSec) prefix = `${secCounter}. `;
+                    if (isSub) prefix = `${secCounter}.${subCounter} `;
+                    if (isSubSub) prefix = `${secCounter}.${subCounter}.${subSubCounter} `;
+                }
+
                 if (shouldSplit(line)) {
                     closeFrame();
                     
-                    // 如果是不带星号的 section，输出到外部触发 AtBeginSection
-                    if (isSec && !line.includes("*")) {
-                        resultFrames += line + "\n";
-                        currSec = extractTitle(line, "section"); currSub = ""; currSubSub = "";
-                        continue; 
+                    if (isSec && !line.includes("*")) resultFrames += line + "\n";
+                    if (isSub && !line.includes("*")) resultFrames += line + "\n";
+                    if (isSubSub && !line.includes("*")) resultFrames += line + "\n";
+
+                    if (isSec) { currSec = prefix + extractTitle(line, "section"); currSub = ""; currSubSub = ""; }
+                    if (isSub) { currSub = prefix + extractTitle(line, "subsection"); currSubSub = ""; }
+                    if (isSubSub) { currSubSub = prefix + extractTitle(line, "subsubsection"); }
+                    
+                    continue; 
+                } 
+                else {
+                    let titleText = "";
+                    if (isSec) { 
+                        currSec = prefix + extractTitle(line, "section"); 
+                        titleText = currSec; 
+                    }
+                    if (isSub) { 
+                        currSub = prefix + extractTitle(line, "subsection"); 
+                        titleText = currSub; 
+                    }
+                    if (isSubSub) { 
+                        currSubSub = prefix + extractTitle(line, "subsubsection"); 
+                        titleText = currSubSub; 
                     }
                     
-                    if (isSec) { currSec = extractTitle(line, "section"); currSub = ""; currSubSub = ""; }
-                    if (isSub) { currSub = extractTitle(line, "subsection"); currSubSub = ""; }
-                    if (isSubSub) { currSubSub = extractTitle(line, "subsubsection"); }
-                    continue;
-                } else {
-                    if (isSec) { currSec = extractTitle(line, "section"); currSub = ""; currSubSub = ""; }
-                    if (isSub) { currSub = extractTitle(line, "subsection"); currSubSub = ""; }
-                    if (isSubSub) { currSubSub = extractTitle(line, "subsubsection"); }
-                    let titleText = isSec ? currSec : (isSub ? currSub : currSubSub);
-                    currentBuffer += `\\bigskip\n\\textbf{\\large ${titleText}}\n\\medskip\n`;
+                    currentBuffer += `\\par\\bigskip\n\\textbf{\\large ${titleText}}\n\\par\\medskip\n`;
                     continue;
                 }
             }

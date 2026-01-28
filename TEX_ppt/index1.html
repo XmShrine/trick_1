@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>LaTeX 转 Beamer</title>
+    <style>
+        :root {
+            --primary-color: #0066cc;
+            --primary-hover: #0052a3;
+            --success-color: #28a745;
+            --bg-color: #f4f6f9;
+            --panel-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --text-color: #333;
+            --secondary-text: #666;
+            --code-bg: #fafafa;
+            --line-num-bg: #f0f0f0;
+            --line-num-text: #999;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
+            padding: 24px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 控制面板 --- */
+        .controls {
+            background: var(--panel-bg);
+            padding: 20px 24px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            align-items: start;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-group-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 6px;
+        }
+
+        /* SVG Icon */
+        .icon { width: 16px; height: 16px; fill: currentColor; opacity: 0.8; }
+
+        /* 表单控件 */
+        select, input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            width: 100%;
+            background-color: #fff;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0,102,204,0.1);
+        }
+
+        /* 开关样式 */
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            user-select: none;
+            color: #444;
+        }
+        .toggle-wrapper input { cursor: pointer; accent-color: var(--primary-color); transform: scale(1.1); }
+        .toggle-wrapper:hover span { color: #000; }
+
+        /* 按钮组 */
+        .action-group {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+            margin-top: 4px;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        button .btn-icon { width: 18px; height: 18px; fill: currentColor; }
+
+        button.secondary {
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            color: #555;
+        }
+        button.secondary:hover {
+            background-color: #f8f9fa;
+            border-color: #bbb;
+            color: #333;
+        }
+
+        button.primary {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,102,204,0.2);
+        }
+        button.primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(0,102,204,0.3);
+        }
+
+        /* --- 编辑器区域 --- */
+        .workspace {
+            flex: 1;
+            display: flex;
+            gap: 24px;
+            min-height: 0;
+        }
+
+        .editor-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--panel-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .editor-header {
+            padding: 12px 16px;
+            background: #fcfcfc;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #555;
+        }
+
+        .tag-pill {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: #eef2f5;
+            color: #666;
+            font-weight: normal;
+        }
+        .tag-success { background: #e6fffa; color: #047481; }
+
+        .editor-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            overflow: hidden;
+            background: var(--code-bg);
+        }
+
+        .line-numbers {
+            width: 40px;
+            background: var(--line-num-bg);
+            color: var(--line-num-text);
+            text-align: right;
+            padding: 15px 8px 15px 0;
+            font-family: "JetBrains Mono", "Consolas", monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            user-select: none;
+            border-right: 1px solid #eee;
+        }
+
+        textarea {
+            flex: 1;
+            border: none;
+            resize: none;
+            padding: 15px;
+            font-family: "JetBrains Mono", "Consolas", "Monaco", monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            outline: none;
+            background: transparent;
+            color: var(--text-color);
+            white-space: pre;
+            overflow-y: scroll;
+            overflow-x: auto;
+        }
+        
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #bbb; }
+
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <div class="control-group">
+        <div class="control-group-title">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+            文档结构与分页
+        </div>
+        <select id="splitLevel">
+            <option value="section">按 Section (章) 分页</option>
+            <option value="subsection">按 Subsection (节) 分页</option>
+            <option value="subsubsection" selected>按 Subsubsection (小节) 分页 (推荐)</option>
+        </select>
+        <div class="toggle-wrapper" title="开启后，内容超出一页时自动生成 Slide I, Slide II...">
+            <input type="checkbox" id="autoBreakCheck" checked>
+            <span>开启自动跨页延伸 (allowframebreaks)</span>
+        </div>
+        <div class="toggle-wrapper" title="为每个 \section 生成单独的居中标题页">
+            <input type="checkbox" id="sectionPageCheck" checked>
+            <span>生成章节独立封面</span>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <div class="control-group-title">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            主题与配色
+        </div>
+        <select id="themeSelect">
+            <option value="Madrid" selected>Madrid (经典/底部栏)</option>
+            <option value="Warsaw">Warsaw (立体/渐变)</option>
+            <option value="CambridgeUS">CambridgeUS (红灰/极简)</option>
+            <option value="Antibes">Antibes (树状导航)</option>
+            <option value="Berkeley">Berkeley (侧边栏)</option>
+            <option value="default">Default (白板)</option>
+        </select>
+        <select id="colorSelect">
+            <option value="default" selected>Default (默认蓝)</option>
+            <option value="beaver">Beaver (海狸色: 红/灰)</option>
+            <option value="dolphin">Dolphin (海豚色: 紫/蓝)</option>
+            <option value="wolverine">Wolverine (金刚狼: 黄/蓝)</option>
+            <option value="albatross">Albatross (信天翁: 深蓝底)</option>
+        </select>
+    </div>
+
+    <div class="control-group">
+        <div class="control-group-title">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
+            智能修复 (Auto Fix)
+        </div>
+        <div class="toggle-wrapper" title="将 figure/table 转换为非浮动环境，解决 \ref 变成 ?? 的问题">
+            <input type="checkbox" id="fixFloatCheck" checked>
+            <span>图片去浮动 (修复引用错误)</span>
+        </div>
+        <div class="toggle-wrapper" title="自动提取 \definecolor, \newcommand 等，防止编译报错">
+            <input type="checkbox" id="keepDefCheck" checked>
+            <span>保留自定义颜色/命令/库 (Fix Error)</span>
+        </div>
+        <div class="toggle-wrapper" title="自动在 PPT 标题下方显示层级关系">
+            <input type="checkbox" id="subtitleCheck" checked>
+            <span>显示智能层级副标题</span>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <div class="control-group-title">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M18 4H6v2l6.5 6L6 18v2h12v-3h-7l5-5-5-5h7z"/></svg>
+            数学公式优化
+        </div>
+        <div class="toggle-wrapper" title="将超长的 align 环境切分为多个小块，防止溢出屏幕">
+            <input type="checkbox" id="splitMathCheck" checked>
+            <span>自动切割超长公式 (align)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:13px; color:#555;">单页最大行数:</span>
+            <input type="number" id="mathRows" value="8" min="3" max="20" style="width: 60px;">
+        </div>
+    </div>
+
+    <div class="action-group">
+        <button class="secondary" onclick="insertSplit()">
+            <svg class="btn-icon" viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+            插入强制分页符
+        </button>
+        <button class="primary" onclick="convert()">
+            <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>
+            开始转换 (Convert)
+        </button>
+    </div>
+</div>
+
+<div class="workspace">
+    <div class="editor-box">
+        <div class="editor-header">
+            <span>输入: Article 源代码 (essay.tex)</span>
+            <span class="tag-pill">Source</span>
+        </div>
+        <div class="editor-container">
+            <div class="line-numbers" id="line-numbers-input">1</div>
+            <textarea id="input" placeholder="请在此处粘贴 essay.tex 的完整内容..." spellcheck="false" onscroll="syncScroll('input')" oninput="updateLineNumbers('input')"></textarea>
+        </div>
+    </div>
+
+    <div class="editor-box">
+        <div class="editor-header">
+            <span>输出: Beamer 代码</span>
+            <div style="display:flex; gap: 8px;">
+                <span class="tag-pill tag-success">已就绪</span>
+            </div>
+        </div>
+        <div class="editor-container">
+            <div class="line-numbers" id="line-numbers-output">1</div>
+            <textarea id="output" readonly spellcheck="false" onscroll="syncScroll('output')"></textarea>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SPLIT_MARKER = "%%%%SPLIT%%%%";
+
+    // === UI 功能：行号同步 ===
+    function updateLineNumbers(id) {
+        const textarea = document.getElementById(id);
+        const lineNums = document.getElementById(`line-numbers-${id}`);
+        const lines = textarea.value.split('\n').length;
+        if (lineNums.childElementCount === lines) return;
+        lineNums.innerHTML = Array(lines).fill(0).map((_, i) => `<div>${i + 1}</div>`).join('');
+    }
+
+    function syncScroll(id) {
+        const textarea = document.getElementById(id);
+        const lineNums = document.getElementById(`line-numbers-${id}`);
+        lineNums.scrollTop = textarea.scrollTop;
+    }
+
+    window.onload = function() {
+        updateLineNumbers('input');
+        updateLineNumbers('output');
+    }
+
+    // === 核心逻辑 ===
+    function insertSplit() {
+        const textarea = document.getElementById('input');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const insertText = "\n" + SPLIT_MARKER + "\n";
+        textarea.value = textarea.value.substring(0, start) + insertText + textarea.value.substring(end);
+        const newPos = start + insertText.length;
+        textarea.focus();
+        textarea.setSelectionRange(newPos, newPos);
+        updateLineNumbers('input');
+    }
+
+    // 1. 去浮动
+    function fixFloats(text) {
+        text = text.replace(/\\begin\{figure\}(?:\[.*?\])?([\s\S]*?)\\end\{figure\}/g, (match, content) => {
+            let newContent = content.replace(/\\caption\{/g, "\\captionof{figure}{");
+            return `\\begin{center}\n${newContent}\n\\end{center}`;
+        });
+        text = text.replace(/\\begin\{table\}(?:\[.*?\])?([\s\S]*?)\\end\{table\}/g, (match, content) => {
+            let newContent = content.replace(/\\caption\{/g, "\\captionof{table}{");
+            return `\\begin{center}\n${newContent}\n\\end{center}`;
+        });
+        return text;
+    }
+
+    // 2. 数学切割
+    function processMathEnvironments(text, maxRows) {
+        const regex = /\\begin\{align(\*?)\}([\s\S]*?)\\end\{align\1\}/g;
+        return text.replace(regex, (match, star, content) => {
+            const rows = content.split('\\\\').map(r => r.trim()).filter(r => r.length > 0);
+            if (rows.length <= maxRows) return match;
+            let chunks = [];
+            for (let i = 0; i < rows.length; i += parseInt(maxRows)) {
+                let chunkRows = rows.slice(i, i + parseInt(maxRows));
+                let chunkContent = chunkRows.join(' \\\\\n    ');
+                chunks.push(chunkContent);
+            }
+            let result = "";
+            chunks.forEach((chunk, index) => {
+                result += `\\begin{align${star}}\n    ${chunk}\n\\end{align${star}}\n`;
+                if (index < chunks.length - 1) result += "% [自动切割长公式]\n"; 
+            });
+            return result;
+        });
+    }
+
+    function convert() {
+        const rawInput = document.getElementById('input').value;
+        const splitLevel = document.getElementById('splitLevel').value;
+        const selectedTheme = document.getElementById('themeSelect').value;
+        const selectedColor = document.getElementById('colorSelect').value;
+        
+        const isAutoBreak = document.getElementById('autoBreakCheck').checked;
+        const isFixFloat = document.getElementById('fixFloatCheck').checked;
+        const isKeepDef = document.getElementById('keepDefCheck').checked;
+        const isSplitMath = document.getElementById('splitMathCheck').checked;
+        const mathMaxRows = document.getElementById('mathRows').value;
+        const needSectionPage = document.getElementById('sectionPageCheck').checked;
+        const useSmartSubtitle = document.getElementById('subtitleCheck').checked;
+        
+        const needTOC = true;
+
+        let inputPreamble = "";
+        let body = rawInput;
+        const docStartRegex = /\\begin\{document\}/;
+        if (docStartRegex.test(rawInput)) {
+            const parts = rawInput.split(docStartRegex);
+            inputPreamble = parts[0];
+            body = parts[1].split(/\\end\{document\}/)[0];
+        }
+        
+        let newPreamble = `\\documentclass{beamer}
+\\usepackage{ctex}
+\\usepackage{amsmath,amssymb}
+\\usepackage{bm}
+\\usepackage{booktabs}
+\\usepackage{longtable}
+\\usepackage{tikz}
+\\usepackage{tikz-3dplot}
+\\usepackage{pgfplots}
+\\pgfplotsset{compat=newest}
+\\usepackage{caption} 
+\\usepackage{cleveref} 
+
+\\allowdisplaybreaks[4]
+
+% === 主题设置 ===
+\\usetheme{${selectedTheme}}
+\\usecolortheme{${selectedColor}}
+
+\\setbeamertemplate{itemize items}[circle]
+\\setcounter{tocdepth}{3}
+\\setbeamertemplate{caption}[numbered]
+\\setbeamertemplate{frametitle continuation}{%
+    \\ifnum\\insertcontinuationcount>1
+    \\textmd{\\small(\\insertcontinuationcount)}
+    \\fi
+}
+`;
+
+        if (needSectionPage) {
+            newPreamble += `
+\\AtBeginSection[]{
+  \\begin{frame}
+  \\vfill
+  \\centering
+  \\begin{beamercolorbox}[sep=8pt,center,shadow=true,rounded=true]{title}
+    \\usebeamerfont{title}\\insertsectionhead\\par%
+  \\end{beamercolorbox}
+  \\vfill
+  \\end{frame}
+}
+`;
+        }
+
+        if (isKeepDef) {
+            // === 核心修复: 提取并保留自定义定义 ===
+            let customDefs = "";
+            
+            // 1. 颜色
+            const defineColorMatches = inputPreamble.match(/\\definecolor\{.*?\}\{.*?\}\{.*?\}/g);
+            if (defineColorMatches) {
+                customDefs += "\n% --- 用户自定义颜色 ---\n" + defineColorMatches.join("\n");
+            }
+            
+            // 2. TikZ 库
+            const tikzLibMatches = inputPreamble.match(/\\usetikzlibrary\{.*?\}/g);
+            if (tikzLibMatches) {
+                customDefs += "\n% --- TikZ 库 ---\n" + tikzLibMatches.join("\n");
+            }
+            
+            // 3. PGF 设置
+            const pgfSetMatches = inputPreamble.match(/\\pgfplotsset\{.*?\}/g);
+            if (pgfSetMatches) {
+                customDefs += "\n" + pgfSetMatches.join("\n");
+            }
+
+            // 4. 自定义命令 (\newcommand, \def, \DeclareMathOperator)
+            // 扫描 preamble 中的这些行
+            const lines = inputPreamble.split('\n');
+            const cmdPattern = /^\\(newcommand|renewcommand|providecommand|def|DeclareMathOperator)/;
+            let cmdLines = [];
+            lines.forEach(line => {
+                if (cmdPattern.test(line.trim())) {
+                    cmdLines.push(line.trim());
+                }
+            });
+            if (cmdLines.length > 0) {
+                customDefs += "\n% --- 用户自定义命令 ---\n" + cmdLines.join("\n");
+            }
+
+            if (customDefs) {
+                newPreamble += customDefs + "\n";
+            }
+        }
+
+        const fullText = rawInput;
+        const metaTags = ["title", "author", "date", "subtitle", "institute"];
+        metaTags.forEach(tag => {
+            const regex = new RegExp(`\\\\${tag}(\\[.*?\\])?\\{.*?\\}`, "g");
+            const matches = fullText.match(regex);
+            if (matches) newPreamble += matches[matches.length - 1] + "\n";
+        });
+
+        if (isFixFloat) body = fixFloats(body);
+        if (isSplitMath) body = processMathEnvironments(body, mathMaxRows);
+
+        const lines = body.split('\n');
+        let resultFrames = "";
+        let envStack = []; 
+        let currentBuffer = ""; 
+        let currSec = "", currSub = "", currSubSub = "";
+
+        // 辅助：正则提取标题内容
+        function extractTitle(line, type) {
+            const regex = new RegExp(`\\\\${type}\\*?\\{(.*)\\}`);
+            const match = line.match(regex);
+            return match ? match[1] : "";
+        }
+
+        function getFrameHeader() {
+            let title = "", subtitle = "";
+            if (currSubSub) {
+                title = currSubSub;
+                if (useSmartSubtitle) subtitle = currSub ? `$\\hookrightarrow$ ${currSub}` : (currSec ? `§ ${currSec}` : "");
+            } else if (currSub) {
+                title = currSub;
+                if (useSmartSubtitle && currSec) subtitle = `§ ${currSec}`;
+            } else if (currSec) {
+                title = currSec;
+            } else {
+                title = "详细内容";
+            }
+            let header = `{${title}}`;
+            if (subtitle) header += `\n\\framesubtitle{${subtitle}}`;
+            return header;
+        }
+
+        function closeFrame() {
+            if (!currentBuffer || currentBuffer.trim().length === 0) return;
+
+            let closingTags = "", openingTags = "";
+            let tempStack = [...envStack];
+            while(tempStack.length > 0) {
+                let env = tempStack.pop();
+                if (env === "displaymath_bracket") {
+                    closingTags += "\n\\]"; openingTags = "\\[\n" + openingTags;
+                } else {
+                    closingTags += `\n\\end{${env}}`; openingTags = `\\begin{${env}}\n` + openingTags;
+                }
+            }
+            let optionsList = [];
+            if (isAutoBreak || currentBuffer.includes("\\begin{longtable}")) {
+                optionsList.push("allowframebreaks");
+            }
+            let frameOptions = optionsList.length > 0 ? `[${optionsList.join(",")}]` : "";
+
+            resultFrames += `\\begin{frame}${frameOptions}${getFrameHeader()}\n`;
+            resultFrames += currentBuffer + closingTags;
+            resultFrames += `\n\\end{frame}\n\n`;
+            currentBuffer = openingTags;
+        }
+
+        function shouldSplit(line) {
+            if (line.includes(SPLIT_MARKER)) return true;
+            
+            // v15.1 更新：支持带星号的章节
+            const isSec = line.match(/\\section\*?\{.*\}/);
+            const isSub = line.match(/\\subsection\*?\{.*\}/);
+            const isSubSub = line.match(/\\subsubsection\*?\{.*\}/);
+            
+            const splitLevel = document.getElementById('splitLevel').value;
+            if (splitLevel === 'section') return isSec;
+            if (splitLevel === 'subsection') return isSec || isSub;
+            if (splitLevel === 'subsubsection') return isSec || isSub || isSubSub;
+            return false;
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trimEnd();
+            if (line.match(/^\\(title|author|date|subtitle|institute)(\[.*\])?\{.*\}/)) continue;
+
+            if (line.includes("\\maketitle")) {
+                closeFrame(); 
+                resultFrames += "\\begin{frame}\n\\titlepage\n\\end{frame}\n\n";
+                if (needTOC) resultFrames += "\\begin{frame}[allowframebreaks]{目录}\n\\tableofcontents\n\\end{frame}\n\n";
+                currentBuffer = "";
+                continue;
+            }
+
+            // 检测带星号的章节
+            const isSec = line.match(/\\section\*?\{([^}]+)\}/);
+            const isSub = line.match(/\\subsection\*?\{([^}]+)\}/);
+            const isSubSub = line.match(/\\subsubsection\*?\{([^}]+)\}/);
+            const isHeader = isSec || isSub || isSubSub;
+
+            if (isHeader) {
+                if (shouldSplit(line)) {
+                    closeFrame();
+                    
+                    // 如果是不带星号的 section，输出到外部触发 AtBeginSection
+                    if (isSec && !line.includes("*")) {
+                        resultFrames += line + "\n";
+                        currSec = extractTitle(line, "section"); currSub = ""; currSubSub = "";
+                        continue; 
+                    }
+                    
+                    if (isSec) { currSec = extractTitle(line, "section"); currSub = ""; currSubSub = ""; }
+                    if (isSub) { currSub = extractTitle(line, "subsection"); currSubSub = ""; }
+                    if (isSubSub) { currSubSub = extractTitle(line, "subsubsection"); }
+                    continue;
+                } else {
+                    if (isSec) { currSec = extractTitle(line, "section"); currSub = ""; currSubSub = ""; }
+                    if (isSub) { currSub = extractTitle(line, "subsection"); currSubSub = ""; }
+                    if (isSubSub) { currSubSub = extractTitle(line, "subsubsection"); }
+                    let titleText = isSec ? currSec : (isSub ? currSub : currSubSub);
+                    currentBuffer += `\\bigskip\n\\textbf{\\large ${titleText}}\n\\medskip\n`;
+                    continue;
+                }
+            }
+
+            if (line.includes(SPLIT_MARKER)) {
+                closeFrame();
+                continue;
+            }
+
+            const beginMatch = line.match(/\\begin\{([^}]+)\}/);
+            const endMatch = line.match(/\\end\{([^}]+)\}/);
+            if (beginMatch && !endMatch) envStack.push(beginMatch[1]);
+            else if (endMatch && !beginMatch) {
+                if (envStack.length > 0) envStack.pop();
+            } else if (line.includes("\\[") && !line.includes("\\]")) {
+                envStack.push("displaymath_bracket");
+            } else if (line.includes("\\]") && !line.includes("\\[")) {
+                if (envStack[envStack.length-1] === "displaymath_bracket") envStack.pop();
+            }
+
+            currentBuffer += line + "\n";
+        }
+
+        closeFrame();
+        const finalOutput = newPreamble + "\n\\begin{document}\n\n" + resultFrames + "\n\n\\end{document}";
+        
+        const outputEl = document.getElementById('output');
+        outputEl.value = finalOutput;
+        updateLineNumbers('output');
+    }
+</script>
+
+</body>
+</html>
