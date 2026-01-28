@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>LaTeX 转 Beamer</title>
+    <title>LaTeX 转 Beamer 转换器 v15.2 (修复版)</title>
     <style>
         :root {
             --primary-color: #0066cc;
@@ -287,9 +287,9 @@
             <input type="checkbox" id="fixFloatCheck" checked>
             <span>图片去浮动 (修复引用错误)</span>
         </div>
-        <div class="toggle-wrapper" title="自动提取 \definecolor 和 \usetikzlibrary，防止编译报错">
+        <div class="toggle-wrapper" title="自动提取 \definecolor, \newcommand 等，防止编译报错">
             <input type="checkbox" id="keepDefCheck" checked>
-            <span>保留自定义颜色与宏库 (Fix Error)</span>
+            <span>保留自定义颜色/命令/库 (Fix Error)</span>
         </div>
         <div class="toggle-wrapper" title="自动在 PPT 标题下方显示层级关系">
             <input type="checkbox" id="subtitleCheck" checked>
@@ -490,18 +490,43 @@
         }
 
         if (isKeepDef) {
-            // 提取自定义颜色和库
+            // === 核心修复: 提取并保留自定义定义 ===
+            let customDefs = "";
+            
+            // 1. 颜色
             const defineColorMatches = inputPreamble.match(/\\definecolor\{.*?\}\{.*?\}\{.*?\}/g);
             if (defineColorMatches) {
-                newPreamble += "\n% --- 用户自定义颜色 ---\n" + defineColorMatches.join("\n") + "\n";
+                customDefs += "\n% --- 用户自定义颜色 ---\n" + defineColorMatches.join("\n");
             }
+            
+            // 2. TikZ 库
             const tikzLibMatches = inputPreamble.match(/\\usetikzlibrary\{.*?\}/g);
             if (tikzLibMatches) {
-                newPreamble += "\n% --- TikZ 库 ---\n" + tikzLibMatches.join("\n") + "\n";
+                customDefs += "\n% --- TikZ 库 ---\n" + tikzLibMatches.join("\n");
             }
+            
+            // 3. PGF 设置
             const pgfSetMatches = inputPreamble.match(/\\pgfplotsset\{.*?\}/g);
             if (pgfSetMatches) {
-                newPreamble += "\n" + pgfSetMatches.join("\n") + "\n";
+                customDefs += "\n" + pgfSetMatches.join("\n");
+            }
+
+            // 4. 自定义命令 (\newcommand, \def, \DeclareMathOperator)
+            // 扫描 preamble 中的这些行
+            const lines = inputPreamble.split('\n');
+            const cmdPattern = /^\\(newcommand|renewcommand|providecommand|def|DeclareMathOperator)/;
+            let cmdLines = [];
+            lines.forEach(line => {
+                if (cmdPattern.test(line.trim())) {
+                    cmdLines.push(line.trim());
+                }
+            });
+            if (cmdLines.length > 0) {
+                customDefs += "\n% --- 用户自定义命令 ---\n" + cmdLines.join("\n");
+            }
+
+            if (customDefs) {
+                newPreamble += customDefs + "\n";
             }
         }
 
@@ -521,6 +546,13 @@
         let envStack = []; 
         let currentBuffer = ""; 
         let currSec = "", currSub = "", currSubSub = "";
+
+        // 辅助：正则提取标题内容
+        function extractTitle(line, type) {
+            const regex = new RegExp(`\\\\${type}\\*?\\{(.*)\\}`);
+            const match = line.match(regex);
+            return match ? match[1] : "";
+        }
 
         function getFrameHeader() {
             let title = "", subtitle = "";
@@ -565,17 +597,14 @@
             currentBuffer = openingTags;
         }
 
-        function extractTitle(line, type) {
-            const regex = new RegExp(`\\\\${type}\\{(.*)\\}`);
-            const match = line.match(regex);
-            return match ? match[1] : "";
-        }
-
         function shouldSplit(line) {
             if (line.includes(SPLIT_MARKER)) return true;
-            const isSec = line.match(/\\section\{.*\}/);
-            const isSub = line.match(/\\subsection\{.*\}/);
-            const isSubSub = line.match(/\\subsubsection\{.*\}/);
+            
+            // v15.1 更新：支持带星号的章节
+            const isSec = line.match(/\\section\*?\{.*\}/);
+            const isSub = line.match(/\\subsection\*?\{.*\}/);
+            const isSubSub = line.match(/\\subsubsection\*?\{.*\}/);
+            
             const splitLevel = document.getElementById('splitLevel').value;
             if (splitLevel === 'section') return isSec;
             if (splitLevel === 'subsection') return isSec || isSub;
@@ -595,15 +624,23 @@
                 continue;
             }
 
-            const isSec = line.match(/\\section\{([^}]+)\}/);
-            const isSub = line.match(/\\subsection\{([^}]+)\}/);
-            const isSubSub = line.match(/\\subsubsection\{([^}]+)\}/);
+            // 检测带星号的章节
+            const isSec = line.match(/\\section\*?\{([^}]+)\}/);
+            const isSub = line.match(/\\subsection\*?\{([^}]+)\}/);
+            const isSubSub = line.match(/\\subsubsection\*?\{([^}]+)\}/);
             const isHeader = isSec || isSub || isSubSub;
 
             if (isHeader) {
                 if (shouldSplit(line)) {
                     closeFrame();
-                    resultFrames += line + "\n"; 
+                    
+                    // 如果是不带星号的 section，输出到外部触发 AtBeginSection
+                    if (isSec && !line.includes("*")) {
+                        resultFrames += line + "\n";
+                        currSec = extractTitle(line, "section"); currSub = ""; currSubSub = "";
+                        continue; 
+                    }
+                    
                     if (isSec) { currSec = extractTitle(line, "section"); currSub = ""; currSubSub = ""; }
                     if (isSub) { currSub = extractTitle(line, "subsection"); currSubSub = ""; }
                     if (isSubSub) { currSubSub = extractTitle(line, "subsubsection"); }
