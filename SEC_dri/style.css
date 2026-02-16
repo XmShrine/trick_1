@@ -1,0 +1,313 @@
+/* Base Reset */
+body,
+html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: white;
+    user-select: none;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    outline: none;
+}
+
+/* UI Container */
+#ui-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Let clicks pass through to canvas */
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Common UI Panel Style */
+.panel {
+    pointer-events: auto;
+}
+
+/* Top Left */
+#top-left-panel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+#locationInput {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    width: 250px;
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+}
+
+#locationInput:focus {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #00ffcc;
+    width: 300px;
+    outline: none;
+}
+
+#openMapBtn {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s;
+}
+
+#openMapBtn:hover {
+    background: #00ffcc;
+    color: black;
+    border-color: #00ffcc;
+}
+
+/* Top Right: Minimap */
+#minimap-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 180px;
+    height: 180px;
+    pointer-events: auto;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+#minimap {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#minimap-label {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: bold;
+    color: #00ffcc;
+}
+
+/* Bottom Left: Status */
+#status-panel {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    pointer-events: auto;
+}
+
+#speed {
+    font-size: 48px;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    line-height: 1;
+}
+
+.unit {
+    font-size: 16px;
+    font-weight: 400;
+    opacity: 0.6;
+    vertical-align: super;
+}
+
+#controls-hint {
+    font-size: 12px;
+    opacity: 0.6;
+    margin-top: 5px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 5px 10px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+#debug {
+    font-size: 10px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Tuning Panel */
+#tuning-panel {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 15px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+    width: 200px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#tuning-panel h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    text-transform: uppercase;
+    color: #00ffcc;
+    letter-spacing: 1px;
+}
+
+.control-group {
+    margin-bottom: 10px;
+}
+
+.control-group label {
+    display: block;
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 4px;
+}
+
+.control-group input[type=range] {
+    width: 100%;
+}
+
+/* Loading Overlay */
+#loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px 30px;
+    border-radius: 30px;
+    z-index: 3000;
+    backdrop-filter: blur(5px);
+    display: none;
+    /* Controlled by JS */
+}
+
+/* Map Picker Modal */
+#mapPickerModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    /* Dark overlay */
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s;
+}
+
+#mapPickerModal.hidden {
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+    /* optional, but opacity transition nicer if we handle display start/end */
+}
+
+.modal-content {
+    background: #1a1a1a;
+    padding: 25px;
+    border-radius: 16px;
+    width: 70vw;
+    height: 70vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-content h2 {
+    margin: 0 0 15px 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+#leafletMap {
+    flex-grow: 1;
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    background: #222;
+    z-index: 10;
+    /* Leaflet tiles need to be visible */
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#startGameBtn {
+    background: #00ffcc;
+    color: black;
+}
+
+#startGameBtn:disabled {
+    background: #444;
+    color: #888;
+    cursor: not-allowed;
+}
+
+#startGameBtn:hover:not(:disabled) {
+    background: #fff;
+    box-shadow: 0 0 10px #00ffcc;
+}
+
+#closeModalBtn {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #444;
+}
+
+#closeModalBtn:hover {
+    border-color: #fff;
+}
+
+.hint {
+    color: #666;
+    font-size: 12px;
+    margin-top: 5px;
+    text-align: center;
+}

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>反重力：真实世界驾驶模拟器</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="speed_lines.css">
+
+    <!-- Leaflet for Map Selection -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="loading">正在加载地图数据...</div>
+    <div id="speed-lines"></div>
+
+    <!-- Map Picker Modal -->
+    <div id="mapPickerModal" class="hidden">
+        <div class="modal-content">
+            <h2>选择起始位置</h2>
+            <div id="leafletMap"></div>
+            <div class="modal-actions">
+                <button id="startGameBtn" disabled>点击地图选择出发点</button>
+                <button id="closeModalBtn">取消</button>
+            </div>
+            <p class="hint">点击地图上任意位置设置出发点</p>
+        </div>
+    </div>
+
+    <!-- UI Overlay -->
+    <div id="ui-container">
+        <!-- Top Left: Search & Map Button -->
+        <div id="top-left-panel">
+            <div id="search-box">
+                <input type="text" id="locationInput" placeholder="搜索地点（如：上海外滩）">
+            </div>
+            <button id="openMapBtn" title="打开世界地图">🌍 地图</button>
+        </div>
+
+        <!-- Top Right: Minimap -->
+        <div id="minimap-container">
+            <canvas id="minimap"></canvas>
+            <div id="minimap-label">N</div>
+        </div>
+
+        <!-- Bottom Left: Stats -->
+        <div id="status-panel">
+            <div id="speed">0 <span class="unit">km/h</span></div>
+            <div id="controls-hint">
+                WASD：驾驶 | 空格：刹车 | C：切换视角
+            </div>
+            <div id="debug"></div>
+        </div>
+
+        <!-- Right Side: Tuning -->
+        <div id="tuning-panel">
+            <h3>操控调节</h3>
+            <div class="control-group">
+                <label>转向平滑</label>
+                <input type="range" id="steerSmooth" min="1" max="10" step="0.5" value="5">
+            </div>
+            <div class="control-group">
+                <label>转向速度</label>
+                <input type="range" id="turnSpeed" min="1" max="6" step="0.2" value="3.5">
+            </div>
+            <div class="control-group">
+                <label>摩擦力</label>
+                <input type="range" id="friction" min="0.5" max="5" step="0.1" value="3.0">
+            </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        let map, marker, playerMarker;
+
+        function initMap() {
+            const startLat = 39.1365;
+            const startLon = 117.2103;
+            map = L.map('map').setView([startLat, startLon], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            map.on('click', function (e) {
+                const { lat, lng } = e.latlng;
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([lat, lng]).addTo(map);
+                document.getElementById('latInput').value = lat.toFixed(6);
+                document.getElementById('lonInput').value = lng.toFixed(6);
+            });
+        }
+
+        function openMapPicker() {
+            document.getElementById('mapPickerModal').classList.remove('hidden');
+            if (!map) initMap();
+            setTimeout(() => {
+                map.invalidateSize();
+                if (window.getCarPosition) {
+                    const pos = window.getCarPosition();
+                    if (pos) {
+                        if (!playerMarker) {
+                            playerMarker = L.circleMarker([pos.lat, pos.lon], {
+                                color: '#00ffcc', fillColor: '#00ffcc', fillOpacity: 0.8, radius: 8
+                            }).addTo(map).bindPopup("我的位置");
+                        } else {
+                            playerMarker.setLatLng([pos.lat, pos.lon]);
+                        }
+                        map.setView([pos.lat, pos.lon], 15);
+                    }
+                }
+            }, 100);
+        }
+
+        function closeMapPicker() {
+            document.getElementById('mapPickerModal').classList.add('hidden');
+        }
+
+        document.getElementById('openMapBtn').addEventListener('click', openMapPicker);
+        document.getElementById('closeMapBtn').addEventListener('click', closeMapPicker);
+
+        // Search Function
+        document.getElementById('confirmMapBtn').addEventListener('click', () => {
+            const lat = parseFloat(document.getElementById('latInput').value);
+            const lon = parseFloat(document.getElementById('lonInput').value);
+            if (window.resetMap) {
+                window.resetMap(lat, lon);
+                closeMapPicker();
+            }
+        });
+
+        // Use Enter key to search
+        const searchInput = document.querySelector('.search-bar input');
+        searchInput.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const query = searchInput.value;
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        const { lat, lon } = data[0];
+                        if (window.resetMap) window.resetMap(parseFloat(lat), parseFloat(lon));
+                    }
+                } catch (err) {
+                    console.error("Search failed", err);
+                }
+            }
+        });
+    </script>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+
+</html>
