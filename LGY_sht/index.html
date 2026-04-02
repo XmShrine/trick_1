@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>李广昱谈治理工作网页汇编</title>
+    <meta
+      name="description"
+      content="神人之家馆藏人物之一：李广昱。专题汇编式静态人物页，附带本地工作台互动与渐进式归档测验。"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./script.js" defer></script>
+  </head>
+  <body>
+    <div class="noise"></div>
+    <main class="page-shell">
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="doc-head">
+            <span class="doc-flag">神人之家专题汇编</span>
+            <span class="doc-code">内部参考 〔2026〕LGY-1号</span>
+          </div>
+          <p class="eyebrow">神人之家馆藏人物 012</p>
+          <h1>李广昱谈治理工作<br />网页汇编</h1>
+          <p class="hero-dek">
+            从主观困难到依法告知，从调课、复学到围栏漏洞与风气治理，他擅长把一切小事升级为秩序问题。
+          </p>
+          <div class="chip-row">
+            <span class="chip">主客观二分法大师</span>
+            <span class="chip">文件化人格</span>
+            <span class="chip">治理冲动过强</span>
+            <span class="chip">集体优先话术机</span>
+          </div>
+        </div>
+        <aside class="hero-panel">
+          <div class="stamp">供学习参考</div>
+          <div class="metric-grid">
+            <article>
+              <span>神人指数</span>
+              <strong>98.4</strong>
+            </article>
+            <article>
+              <span>治理欲</span>
+              <strong>MAX</strong>
+            </article>
+            <article>
+              <span>文书化倾向</span>
+              <strong>极高</strong>
+            </article>
+            <article>
+              <span>回怼速度</span>
+              <strong>瞬发</strong>
+            </article>
+          </div>
+          <p class="panel-note">
+            典型特征：先定性，再切主客观，再上升到集体与秩序，最后给出治理措施或封口句。
+          </p>
+          <div class="download-panel">
+            <p class="download-label">治国理政方针</p>
+            <a class="download-link" href="./FU-lgy.pdf" download>
+              下载《李广昱谈治国理政（第一卷）》
+            </a>
+          </div>
+        </aside>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <p class="section-kicker">人物定性</p>
+          <h2>他神的不是观点偏，而是整套稳定机制</h2>
+          <p class="section-copy">编者按：本页不从寻常生平入手，而从其稳定输出的治理结构、论辩结构与文书结构切入。</p>
+        </div>
+        <div class="profile-grid">
+          <article class="profile-card">
+            <h3>动机审判</h3>
+            <p>不同意他的人，往往会被重新定义成懒惰、贪图安逸、扰乱军心或不顾集体。</p>
+          </article>
+          <article class="profile-card">
+            <h3>主客观切割</h3>
+            <p>“课表是客观决定的，想不想来是主观问题”这类句式，是他的基础操作系统。</p>
+          </article>
+          <article class="profile-card">
+            <h3>集体压制</h3>
+            <p>任何个体不便都能被压缩成“不能因为少数人影响整体安排”的集体叙事。</p>
+          </article>
+          <article class="profile-card">
+            <h3>权威背书</h3>
+            <p>当上级、教务、学校和制度与他同向时，权威会立刻成为终局论据。</p>
+          </article>
+          <article class="profile-card">
+            <h3>文书化治理</h3>
+            <p>他不止嘴上说理，还天然倾向于投诉、上报、发通知、写告知书并保留追责权利。</p>
+          </article>
+          <article class="profile-card">
+            <h3>小事原则化</h3>
+            <p>调课、复学、社团、围栏、线圈都能被升级成秩序、文化和意识形态层面的大事。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <p class="section-kicker">卷宗档案</p>
+          <h2>五大稳定输出场景</h2>
+          <p class="section-copy">以下材料按问题领域整理，力求完整呈现李广昱同志在不同校园事务中的方法论延续。</p>
+        </div>
+        <div class="dossier-grid" id="dossierGrid"></div>
+      </section>
+
+      <section class="section quote-section">
+        <div class="section-heading">
+          <p class="section-kicker">原典摘录</p>
+          <h2>高频神句墙</h2>
+          <p class="section-copy">以下句式长期高频出现，已可视为其思想表达系统中的核心关键词。</p>
+        </div>
+        <div class="quote-wall" id="quoteWall"></div>
+      </section>
+
+      <section class="section interactive-shell">
+        <div class="section-heading">
+          <p class="section-kicker">互动一</p>
+          <h2>李广昱工作台</h2>
+          <p class="section-copy">
+            选择一个议题和一个常见反对意见，系统会同时生成他的治理批示与顺手回怼。
+          </p>
+        </div>
+        <div class="simulator">
+          <div class="controls">
+            <label>
+              <span>议题</span>
+              <select id="topicSelect"></select>
+            </label>
+            <label>
+              <span>反对意见</span>
+              <select id="stanceSelect"></select>
+            </label>
+            <button id="debateBtn" class="action-btn" type="button">开始回怼</button>
+          </div>
+          <article class="response-card">
+            <p class="response-label">李广昱批示</p>
+            <div id="debateOutput" class="response-output"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section interactive-shell">
+        <div class="section-heading">
+          <p class="section-kicker">互动二</p>
+          <h2>李广昱归档测验</h2>
+          <p class="section-copy">
+            选择一套卷子，逐题作答。系统会根据你的判断方式，给出一份更像李广昱风格的归档结论。
+          </p>
+        </div>
+        <div class="quiz-shell">
+          <div id="quizBundlePicker" class="quiz-bundle-picker"></div>
+          <article class="quiz-runner">
+            <div class="quiz-meta">
+              <p id="quizBundleLabel" class="quiz-bundle-label">请先选择一套卷子</p>
+              <div class="quiz-progress-track">
+                <div id="quizProgressBar" class="quiz-progress-bar"></div>
+              </div>
+              <p id="quizProgressText" class="quiz-progress-text">0 / 0</p>
+            </div>
+            <div id="quizStage" class="quiz-stage">
+              <div class="response-part response-part--editor">
+                请从上方选择一套测验。题目会逐题出现，每次选择都会立即推进到下一题。
+              </div>
+            </div>
+            <div class="translator-actions">
+              <button id="quizRestartBtn" class="action-btn action-btn--muted" type="button">重开当前卷</button>
+            </div>
+          </article>
+          <article class="response-card">
+            <p class="response-label">归档结论</p>
+            <div id="quizOutput" class="response-output response-output--dense"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
