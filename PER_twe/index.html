@@ -1,0 +1,2337 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CPTI关系测试25型</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3f4f8;
+        --panel: rgba(255, 255, 255, 0.92);
+        --panel-strong: #ffffff;
+        --line: rgba(95, 107, 138, 0.14);
+        --text: #2f3646;
+        --muted: #73809c;
+        --soft: #99a5bd;
+        --accent: #5d7ef3;
+        --accent-2: #f37ea3;
+        --accent-3: #5dc7b3;
+        --shadow: 0 28px 70px rgba(122, 132, 167, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(174, 193, 255, 0.55), transparent 24%),
+          radial-gradient(circle at 85% 12%, rgba(255, 193, 217, 0.48), transparent 22%),
+          linear-gradient(180deg, #fbfbfe 0%, #f0f2f8 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 82%);
+      }
+
+      .shell {
+        width: min(1180px, calc(100vw - 32px));
+        margin: 24px auto 56px;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: 28px 28px 26px;
+        border-radius: 28px;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(252, 252, 255, 0.84)),
+          linear-gradient(135deg, rgba(123, 153, 255, 0.08), rgba(255, 146, 179, 0.08));
+        backdrop-filter: blur(16px);
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(255, 255, 255, 0.55);
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: auto -14% -54% 48%;
+        height: 320px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(125, 167, 255, 0.18), transparent 62%);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(93, 126, 243, 0.08);
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      .hero h1 {
+        margin: 18px 0 10px;
+        font-size: clamp(28px, 5vw, 54px);
+        line-height: 1.02;
+        letter-spacing: -0.04em;
+      }
+
+      .hero p {
+        max-width: 720px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.8;
+      }
+
+      .hero-grid {
+        margin-top: 22px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+      }
+
+      .hero-pill {
+        position: relative;
+        overflow: hidden;
+        padding: 16px 16px 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(131, 145, 179, 0.12);
+      }
+
+      .hero-pill strong {
+        display: block;
+        font-size: 15px;
+        margin-bottom: 6px;
+      }
+
+      .hero-pill span {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.48fr) minmax(320px, 0.92fr);
+        gap: 18px;
+        margin-top: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        background: var(--panel);
+        border-radius: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+
+      .panel-inner {
+        padding: 22px;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: -0.03em;
+      }
+
+      .section-subtitle {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .question-stack {
+        margin-top: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .question-card {
+        padding: 18px;
+        border-radius: 22px;
+        background: var(--panel-strong);
+        border: 1px solid var(--line);
+      }
+
+      .question-head {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .qid {
+        flex: none;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+        font-weight: 800;
+        background: rgba(93, 126, 243, 0.08);
+      }
+
+      .question-title {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.7;
+      }
+
+      .question-type {
+        margin-top: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--soft);
+        background: rgba(114, 128, 156, 0.08);
+      }
+
+      .option-grid {
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .option-chip {
+        position: relative;
+        padding: 11px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(120, 135, 167, 0.18);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 253, 0.92));
+        color: var(--text);
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+      }
+
+      .option-chip:hover {
+        transform: translateY(-1px);
+        border-color: rgba(93, 126, 243, 0.3);
+        box-shadow: 0 12px 28px rgba(93, 126, 243, 0.1);
+      }
+
+      .option-chip.selected {
+        border-color: rgba(93, 126, 243, 0.4);
+        background:
+          linear-gradient(135deg, rgba(93, 126, 243, 0.11), rgba(255, 255, 255, 0.94)),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 253, 0.92));
+        box-shadow: 0 12px 24px rgba(93, 126, 243, 0.12);
+      }
+
+      .option-chip small {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .region-grid {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+        gap: 10px;
+      }
+
+      .country-select-wrap {
+        margin-top: 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .country-select {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(120, 135, 167, 0.18);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 253, 0.94));
+        color: var(--text);
+        font: inherit;
+      }
+
+      .country-select:focus {
+        outline: 2px solid rgba(93, 126, 243, 0.16);
+        border-color: rgba(93, 126, 243, 0.32);
+      }
+
+      .country-select-hint {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
+      .region-card {
+        padding: 14px;
+        min-height: 120px;
+      }
+
+      .region-card strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .region-card .region-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .region-card .region-tags span {
+        padding: 5px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        color: var(--muted);
+        background: rgba(111, 126, 156, 0.08);
+      }
+
+      .actions {
+        position: sticky;
+        top: 16px;
+        padding: 22px;
+      }
+
+      .action-box + .action-box {
+        margin-top: 14px;
+      }
+
+      .action-box {
+        padding: 18px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid var(--line);
+      }
+
+      .action-box h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .action-box p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.75;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      button,
+      .ghost-button {
+        appearance: none;
+        border: none;
+        border-radius: 16px;
+        padding: 12px 16px;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .primary-button {
+        color: white;
+        background: linear-gradient(135deg, #5d7ef3, #8e7ff4);
+        box-shadow: 0 16px 28px rgba(102, 117, 233, 0.24);
+      }
+
+      .secondary-button {
+        color: var(--text);
+        background: rgba(93, 126, 243, 0.09);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 132px;
+        padding: 14px;
+        margin-top: 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(124, 137, 168, 0.18);
+        resize: vertical;
+        font: inherit;
+        color: var(--text);
+        background: rgba(247, 249, 252, 0.96);
+      }
+
+      textarea:focus {
+        outline: 2px solid rgba(93, 126, 243, 0.16);
+        border-color: rgba(93, 126, 243, 0.32);
+      }
+
+      .status {
+        margin-top: 14px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        font-size: 13px;
+        line-height: 1.7;
+        background: rgba(93, 126, 243, 0.08);
+        color: var(--accent);
+      }
+
+      .status.error {
+        background: rgba(243, 110, 110, 0.1);
+        color: #b25151;
+      }
+
+      .status.hidden {
+        display: none;
+      }
+
+      .summary-card {
+        margin-top: 18px;
+        padding: 22px;
+        border-radius: 24px;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 244, 247, 0.92)),
+          linear-gradient(135deg, rgba(93, 126, 243, 0.08), rgba(243, 126, 163, 0.08));
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: var(--shadow);
+      }
+
+      .summary-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.76);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .summary-card h2 {
+        margin: 0;
+        font-size: clamp(28px, 4vw, 38px);
+        letter-spacing: -0.04em;
+      }
+
+      .summary-card h2 span {
+        display: block;
+        font-size: 15px;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+
+      .summary-card p {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.85;
+      }
+
+      .metrics {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+      }
+
+      .metric {
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.78);
+      }
+
+      .metric strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 18px;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .result-section {
+        margin-top: 22px;
+      }
+
+      .result-section h3 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .result-grid {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
+        gap: 12px;
+      }
+
+      .result-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 254px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(120, 137, 166, 0.14);
+        box-shadow: 0 16px 38px rgba(127, 136, 162, 0.14);
+      }
+
+      .result-card .art {
+        position: relative;
+        height: 148px;
+        background:
+          radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.46), transparent 28%),
+          linear-gradient(135deg, var(--card-a), var(--card-b));
+      }
+
+      .result-card .art::before,
+      .result-card .art::after {
+        content: "";
+        position: absolute;
+        bottom: 16px;
+        width: 48px;
+        height: 82px;
+        border-radius: 30px 30px 16px 16px;
+        background: linear-gradient(180deg, rgba(74, 83, 105, 0.95), rgba(118, 132, 170, 0.78));
+        box-shadow:
+          inset 0 10px 14px rgba(255, 255, 255, 0.14),
+          0 12px 20px rgba(64, 74, 97, 0.14);
+      }
+
+      .result-card .art::before {
+        left: 28px;
+        transform: rotate(calc(var(--pose-left, -8deg)));
+      }
+
+      .result-card .art::after {
+        right: 28px;
+        transform: rotate(calc(var(--pose-right, 8deg)));
+      }
+
+      .result-card .halo {
+        position: absolute;
+        inset: auto auto 20px 50%;
+        width: 66px;
+        height: 66px;
+        margin-left: -33px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        filter: blur(2px);
+      }
+
+      .result-card .content {
+        padding: 14px 14px 16px;
+      }
+
+      .result-card strong {
+        display: block;
+        text-align: center;
+        font-size: 16px;
+      }
+
+      .result-card .en {
+        margin-top: 7px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+      }
+
+      .result-card .score {
+        margin-top: 12px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .result-card .score span {
+        padding: 6px 9px;
+        border-radius: 999px;
+        background: rgba(96, 114, 151, 0.08);
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .legend {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .footer-note {
+        margin-top: 20px;
+        padding: 16px 18px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.76);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.8;
+      }
+
+      .footer-note code {
+        color: var(--text);
+      }
+
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          position: static;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          width: min(100vw - 18px, 100%);
+          margin-top: 10px;
+        }
+
+        .hero-grid,
+        .metrics,
+        .button-row {
+          grid-template-columns: 1fr;
+        }
+
+        .hero,
+        .panel,
+        .summary-card {
+          border-radius: 22px;
+        }
+
+        .panel-inner,
+        .actions,
+        .summary-card {
+          padding: 18px;
+        }
+
+        .question-card,
+        .action-box {
+          padding: 16px;
+          border-radius: 18px;
+        }
+
+        .option-grid {
+          gap: 8px;
+        }
+
+        .option-chip {
+          width: 100%;
+          text-align: left;
+        }
+
+        .hero h1 {
+          font-size: 34px;
+        }
+
+        .section-title {
+          font-size: 22px;
+        }
+
+        .result-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 420px) {
+        .shell {
+          width: calc(100vw - 12px);
+        }
+
+        .hero,
+        .panel,
+        .summary-card {
+          border-radius: 18px;
+        }
+
+        .panel-inner,
+        .actions,
+        .summary-card {
+          padding: 14px;
+        }
+
+        .hero-grid {
+          gap: 10px;
+        }
+
+        .hero-pill,
+        .action-box,
+        .question-card {
+          border-radius: 16px;
+        }
+
+        .qid {
+          width: 36px;
+          height: 36px;
+          border-radius: 12px;
+        }
+
+        .question-title {
+          font-size: 15px;
+          line-height: 1.6;
+        }
+
+        .result-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .result-card {
+          min-height: 236px;
+        }
+
+        .country-select,
+        textarea,
+        button {
+          font-size: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <div class="eyebrow">CPTI RELATION ARCHIVE</div>
+        <h1>CPTI关系测试25型</h1>
+        <p>
+          先答完整份问卷，页面会生成一段可逆的加密答卷档案。你可以复制自己的密文给别人；别人把这段密文贴进页面后，系统会解密双方档案，并依据答题差异、价值冲突、社交节奏和保护欲结构来推断你们更像哪一种关系图鉴。
+        </p>
+        <div class="hero-grid">
+          <div class="hero-pill">
+            <strong>1. 建立档案</strong>
+            <span>答完 30 题后，生成本人的加密结果串。</span>
+          </div>
+          <div class="hero-pill">
+            <strong>2. 复制密文</strong>
+            <span>结果串可逆，能被同一页面重新读回完整答卷。</span>
+          </div>
+          <div class="hero-pill">
+            <strong>3. 粘贴比对</strong>
+            <span>输入别人的密文，就能看到双方更像哪一种关系。</span>
+          </div>
+          <div class="hero-pill">
+            <strong>4. 图鉴拆分</strong>
+            <span>保留截图式双语卡片布局，显示主关系与其他可能。</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="layout">
+        <section class="panel">
+          <div class="panel-inner">
+            <h2 class="section-title">问卷档案</h2>
+            <p class="section-subtitle">
+              单选题点一个选项即可，多选题可选多个。建议先全部答完再生成档案；没有完成时页面会提醒缺失题目。
+            </p>
+            <div class="question-stack" id="questionStack"></div>
+          </div>
+        </section>
+
+        <aside class="panel actions">
+          <div class="action-box">
+            <h3>生成我的加密结果</h3>
+            <p>结果串会把你的答卷压缩进一个可逆密文里。别人拿到它之后，可以直接和自己的档案做关系比较。</p>
+            <div class="button-row">
+              <button class="primary-button" id="generateButton">生成我的密文</button>
+              <button class="secondary-button" id="copyButton">复制密文</button>
+            </div>
+            <textarea id="shareToken" readonly placeholder="生成后会在这里出现你的加密档案"></textarea>
+            <div class="status hidden" id="generateStatus"></div>
+          </div>
+
+          <div class="action-box">
+            <h3>粘贴别人的结果并比较</h3>
+            <p>把对方得到的加密结果粘贴进来，点击比较后会直接解密并生成关系图鉴。</p>
+            <textarea id="peerToken" placeholder="把别人给你的 CPTI 密文贴在这里"></textarea>
+            <div class="button-row">
+              <button class="primary-button" id="compareButton">比较关系</button>
+              <button class="secondary-button" id="showSelfButton">只看我的可收集图鉴</button>
+            </div>
+            <div class="status hidden" id="compareStatus"></div>
+          </div>
+
+          <div class="footer-note">
+            密文采用页面内置对称密钥 + AES-GCM 可逆加密。它能满足“复制密文即可比对”的需求，但由于密钥在本页脚本中可见，它属于可逆分享档案，不适合当作高强度私密存储。
+          </div>
+        </aside>
+      </div>
+
+      <section class="summary-card" id="summaryCard">
+        <div class="summary-badge" id="summaryMode">SELF ARCHIVE</div>
+        <h2 id="summaryTitle">
+          请先完成问卷并生成档案
+          <span>NO RELATION YET</span>
+        </h2>
+        <p id="summaryDescription">
+          生成自己的密文后，页面会根据你的答题倾向估算“理论上可以收集的图鉴”。再粘贴别人的密文，就会显示双方最像的关系类型。
+        </p>
+        <div class="metrics" id="metrics"></div>
+      </section>
+
+      <section class="result-section">
+        <h3 id="primaryHeading">基于您的答题档案，理论上可以收集的图鉴：</h3>
+        <div class="result-grid" id="primaryGrid"></div>
+        <div class="legend" id="primaryLegend"></div>
+      </section>
+
+      <section class="result-section">
+        <h3 id="secondaryHeading">其他图鉴：</h3>
+        <div class="result-grid" id="secondaryGrid"></div>
+        <div class="legend" id="secondaryLegend"></div>
+      </section>
+    </div>
+
+    <script>
+      /* CPTI_LOGIC_START */
+      (() => {
+        const APP_SECRET = "cpti-offline-share-v1";
+        const TOKEN_PREFIX = "CPTI1.";
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+        let cachedKeyPromise = null;
+
+        const CONTINENT_LABELS = {
+          africa: "非洲",
+          asia: "亚洲",
+          europe: "欧洲",
+          northAmerica: "北美洲",
+          southAmerica: "南美洲",
+          oceania: "大洋洲",
+          polar: "极地",
+        };
+
+        const CONTINENT_TRAITS = {
+          africa: { depth: 4, warmth: 3, social: 2 },
+          asia: { order: 4, depth: 3, warmth: 1 },
+          europe: { depth: 4, order: 4, social: 1 },
+          northAmerica: { social: 4, lead: 3, order: 2 },
+          southAmerica: { warmth: 5, social: 4, defiance: 2 },
+          oceania: { warmth: 4, depth: 3, social: 1 },
+          polar: { oddity: 20, depth: 8, social: -6 },
+        };
+
+        const COUNTRY_GROUPS = [
+          { continent: "africa", codes: "DZ AO BJ BW BF BI CM CV CF TD KM CD CG CI DJ EG GQ ER SZ ET GA GM GH GN GW KE LS LR LY MG MW ML MR MU MA MZ NA NE NG RW ST SN SC SL SO ZA SS SD TZ TG TN UG ZM ZW".split(" ") },
+          { continent: "asia", codes: "AF AM AZ BH BD BT BN KH CN CY GE IN ID IR IQ IL JP JO KZ KW KG LA LB MY MV MN MM NP KP OM PK PS PH QA SA SG KR LK SY TJ TH TL TR TM AE UZ VN YE TW".split(" ") },
+          { continent: "europe", codes: "AL AD AT BY BE BA BG HR CZ DK EE FI FR DE GR HU IS IE IT LV LI LT LU MT MD MC ME NL MK NO PL PT RO RU SM RS SK SI ES SE CH UA GB VA".split(" ") },
+          { continent: "northAmerica", codes: "AG BS BB BZ CA CR CU DM DO SV GD GT HT HN JM MX NI PA KN LC VC TT US".split(" ") },
+          { continent: "southAmerica", codes: "AR BO BR CL CO EC GY PY PE SR UY VE".split(" ") },
+          { continent: "oceania", codes: "AU NZ FJ KI MH FM NR PW PG WS SB TO TV VU".split(" ") },
+          { continent: "polar", codes: "AQ".split(" ") },
+        ];
+
+        function buildCountryOptions() {
+          const zhNames = new Intl.DisplayNames(["zh-Hans"], { type: "region" });
+          const enNames = new Intl.DisplayNames(["en"], { type: "region" });
+
+          return COUNTRY_GROUPS.flatMap((group) =>
+            group.codes.map((code) => ({
+              key: code,
+              label: zhNames.of(code) || code,
+              en: (enNames.of(code) || code).toUpperCase(),
+              continent: group.continent,
+              tags: [CONTINENT_LABELS[group.continent]],
+              traits: CONTINENT_TRAITS[group.continent] || {},
+            })),
+          );
+        }
+
+        const COUNTRY_OPTIONS = buildCountryOptions();
+
+        const QUESTIONS = [
+          { id: "q1", type: "single", question: "有界闭紧在任何时候都是紧集吗？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "什么是有界闭紧" }] },
+          { id: "q2", type: "single", question: "对举报大学考试作弊的态度是？", options: [{ key: "A", label: "涉及切身利益等-举报，反之-不举报" }, { key: "B", label: "无论如何不举报" }, { key: "C", label: "无论如何举报" }, { key: "D", label: "不知道" }] },
+          { id: "q3", type: "multiple", question: "出去玩大多以什么为目的？", options: [{ key: "A", label: "食物" }, { key: "B", label: "景色" }, { key: "C", label: "纯遛弯" }, { key: "D", label: "其他" }, { key: "E", label: "不出去玩" }] },
+          { id: "q4", type: "single", question: "对网络空间实名制的态度是（全球的网络空间）？", options: [{ key: "A", label: "支持" }, { key: "B", label: "反对" }, { key: "C", label: "什么是网络空间实名制" }] },
+          { id: "q5", type: "single", question: "喜欢偏向背诵的学科（此处以医学类为例）还是偏向理解的学科（此处以计算机类为例）？（此处强调学习时的偏好，不涉及学科本身的难易程度或倾向）", options: [{ key: "A", label: "偏向背诵" }, { key: "B", label: "偏向理解" }, { key: "C", label: "不知道" }] },
+          { id: "q6", type: "single", question: "是否有阅读长篇以自然语言为主要内容的材料的兴趣（指以自然语言为主要内容的材料，如小说、长篇文章等，而非以代码或公式为主的材料）？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
+          { id: "q7", type: "single", question: "喜欢睡觉吗？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "无所谓" }] },
+          { id: "q8", type: "single", question: "会理解对方所描述问题后再给出回答吗？", options: [{ key: "A", label: "总是这样" }, { key: "B", label: "不这样" }, { key: "C", label: "根据问题内容而定" }, { key: "D", label: "不知道" }] },
+          { id: "q9", type: "single", question: "是否可以快速与陌生人建立联系并进行交流？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "遇不到陌生人" }, { key: "D", label: "不知道" }] },
+          { id: "q10", type: "single", question: "遇到不合理（主观上）的规定，会想要绕过去？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "没遇到过不合理的规定" }, { key: "D", label: "不知道" }] },
+          { id: "q11", type: "single", question: "一些较为重要的事情需要亲力亲为，了解细节？（本题摘自“是否要求自己制定旅行攻略”）可以引申为多种情况，如工作、学习等方面的事情，本题重点在于细节二字", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
+          { id: "q12", type: "single", question: "是否会记得朋友随口说起的小事？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "有可能" }, { key: "D", label: "不知道" }] },
+          { id: "q13", type: "single", question: "总体来说（按自身经历占比决定）交往新朋友是带来兴奋还是疲惫？", options: [{ key: "A", label: "兴奋" }, { key: "B", label: "疲惫" }, { key: "C", label: "占比一样" }, { key: "D", label: "不知道" }] },
+          { id: "q14", type: "single", question: "别人（这里可以抽象为一个主体）说「这个不行」，会想要反驳或尝试吗？（按占比决定）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "D", label: "不知道" }] },
+          { id: "q15", type: "single", question: "周末别人邀请你出去玩，你会想要拒绝吗？（按你遇到过的情况中的占比决定）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "没被邀请出去过或很少被邀请出去玩" }, { key: "D", label: "不知道" }] },
+          { id: "q16", type: "single", question: "是否会直接反驳你不认同的上级观点？（按占比决定）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "D", label: "不知道" }] },
+          { id: "q17", type: "single", question: "在持有一定观点时，是否容易被说服？（根据经历来判定）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
+          { id: "q18", type: "single", question: "选择你对墙的观点（最贴近你观点的选项）", options: [{ key: "A", label: "反对，认为墙是对网络空间的限制和控制，不利于信息自由流通和个人隐私保护" }, { key: "B", label: "支持，认为墙是维护国家安全和社会稳定的必要措施" }, { key: "C", label: "反对，但是认为墙在某些情况下可能有其合理性和必要性" }, { key: "D", label: "支持，但希望自己没有这种限制" }, { key: "E", label: "没有符合的观点" }] },
+          { id: "q19", type: "single", question: "你喜欢什么系统（电脑）", options: [{ key: "A", label: "macOS" }, { key: "B", label: "鸿蒙 OS" }, { key: "C", label: "Windows" }, { key: "D", label: "Linux" }, { key: "E", label: "什么是电脑" }] },
+          { id: "q20", type: "single", question: "朋友圈子比较广泛，什么人都有", options: [{ key: "A", label: "是" }, { key: "B", label: "不是" }] },
+          { id: "q21", type: "single", question: "你更喜欢自己主导，而不是执行别人的计划？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "无所谓" }] },
+          { id: "q22", type: "single", question: "社交结束后，你需要独处一段时间？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
+          { id: "q23", type: "single", question: "和别人意见不同时，你倾向于顺着对方，避免产生矛盾？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
+          { id: "q24", type: "single", question: "有时一时冲动做出后悔的事情？", options: [{ key: "A", label: "有过" }, { key: "B", label: "没有" }] },
+          { id: "q25", type: "single", question: "做新事情前，习惯先搞清楚流程再做（此处指你看重的事情，忽略你根本不愿意做的事情）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "无所谓" }] },
+          { id: "q26", type: "single", question: "大型聚会 or 小范围（2-3人）聚会", options: [{ key: "A", label: "大型聚会" }, { key: "B", label: "小范围聚会" }, { key: "C", label: "什么是聚会" }] },
+          { id: "q27", type: "single", question: "如果现在给你一笔充足的资金，并限定你去一个地方旅游（广义上的），请问你最想去哪里？", options: COUNTRY_OPTIONS.map((item) => ({ key: item.key, label: item.label, en: item.en, continent: item.continent, tags: item.tags })) },
+          { id: "q28", type: "single", question: "喜好：法无规则皆可为 or 法有规则才可为（纯个人喜欢，不指代对其他人的要求）", options: [{ key: "A", label: "法无规则皆可为" }, { key: "B", label: "法有规则才可为" }, { key: "C", label: "不知道" }] },
+          { id: "q29", type: "multiple", question: "选择你喜欢的翘课模式：", options: [{ key: "A", label: "直接翘课，完全不去上课" }, { key: "B", label: "只翘水课，不翘专业课" }, { key: "C", label: "只翘专业课，不翘水课" }, { key: "D", label: "只翘不点名的课" }, { key: "E", label: "只翘点名的课" }, { key: "F", label: "只翘不喜欢的课" }, { key: "G", label: "只翘喜欢的课" }, { key: "H", label: "不翘课" }] },
+          { id: "q30", type: "single", question: "你是什么性别？", options: [{ key: "A", label: "男" }, { key: "B", label: "女" }] },
+        ];
+
+        const QUESTION_MAP = Object.fromEntries(QUESTIONS.map((question, index) => [question.id, { question, index }]));
+        const REGION_MAP = Object.fromEntries(COUNTRY_OPTIONS.map((item) => [item.key, item]));
+
+        const RELATIONS = [
+          { label: "TWINS", zh: "孪生兄弟", en: "TWINS", tone: ["#9fb6ca", "#c7d4e1"], pose: [-6, 6], summary: "你们像同一套人格模板切出来的两份复本，节奏、原则和偏好高度重叠。" },
+          { label: "INMATE", zh: "狱友", en: "INMATE", tone: ["#b9b1a5", "#dfc8b1"], pose: [-12, 12], summary: "你们更像一起扛过糟糕环境的人，连接感来自共同的叛逆、疲惫与生存感。" },
+          { label: "SETTLED", zh: "老夫老妻", en: "SETTLED", tone: ["#d6c4ad", "#efe6d5"], pose: [-10, 9], summary: "不是最炽烈的一对，但最能稳稳地长期共处。" },
+          { label: "ENEMIES", zh: "仇人", en: "ENEMIES", tone: ["#ede1d6", "#f7f0eb"], pose: [-16, 16], summary: "你们在世界观与处事方式上存在明显冲撞，稍微靠近就容易摩擦。" },
+          { label: "RIVALS", zh: "死对头", en: "RIVALS", tone: ["#4ca0d6", "#f36b5d"], pose: [-10, 10], summary: "像两股力量对着顶，既互相看见，又很难轻易服气。" },
+          { label: "UNITED", zh: "桃园结义", en: "UNITED", tone: ["#ddceb2", "#f4ebe0"], pose: [-7, 7], summary: "不是完全一样，但会选择站到同一边，把关系放在冲突前面。" },
+          { label: "MENTOR", zh: "师徒", en: "MENTOR", tone: ["#c7b8a3", "#e7dccd"], pose: [-4, 15], summary: "你们之间存在明显的带领与被带领结构，像方法论和经验在传递。" },
+          { label: "DAD-SON", zh: "父子", en: "DAD-SON", tone: ["#c8b79a", "#eee2c6"], pose: [-3, 14], summary: "更强的一方像稳住节奏的父辈，关系核心是管、护和框架。" },
+          { label: "DAD-DAU", zh: "父女", en: "DAD-DAU", tone: ["#d7c59d", "#f0e3c6"], pose: [-3, 13], summary: "是男性保护者与更柔软一侧的组合，控制感和照拂感都更明显。" },
+          { label: "ALLIES", zh: "革命战友", en: "ALLIES", tone: ["#7e857e", "#c5cbc0"], pose: [-8, 8], summary: "你们不是为了温柔走到一起，而是为了并肩、执行和一起打硬仗。" },
+          { label: "SYNC", zh: "知己", en: "SYNC", tone: ["#d8c9b8", "#f1e6da"], pose: [-4, 4], summary: "你们的相处逻辑是‘懂’，不必解释太多也能自动对齐。" },
+          { label: "HOMIES", zh: "死党", en: "HOMIES", tone: ["#c9d7e8", "#edf4fa"], pose: [-8, 8], summary: "轻松、熟悉、好搭，像不用端着就能立刻进入同频道。" },
+          { label: "LOVERS", zh: "情侣", en: "LOVERS", tone: ["#f1aec3", "#ffe9ef"], pose: [-6, 6], summary: "你们的相似与互补都刚好够用，既有吸附力，也有亲密感。" },
+          { label: "BROS", zh: "兄弟", en: "BROS", tone: ["#a8c0d1", "#d6e7f0"], pose: [-12, 12], summary: "这不是细腻型亲密，而是很硬朗、很直接的相互站台。" },
+          { label: "WEIRDOS", zh: "臭味相投", en: "WEIRDOS", tone: ["#bcc0ba", "#d9d3e3"], pose: [-14, 14], summary: "你们会在别人觉得奇怪的地方迅速认亲，怪得刚好重合。" },
+          { label: "GUARD", zh: "兄妹", en: "GUARD", tone: ["#c8d4d3", "#f1dce1"], pose: [-5, 14], summary: "更像哥哥式保护结构，亲近中带着站位和照看。" },
+          { label: "SOUL", zh: "灵魂伴侣", en: "SOUL", tone: ["#13285d", "#5d7ef3"], pose: [-5, 5], summary: "你们的贴近感更深层，像情绪与理解方式在深处互相接住。" },
+          { label: "ECHO", zh: "孪生姐妹", en: "ECHO", tone: ["#c596d9", "#f6c2df"], pose: [-7, 7], summary: "高相似但更轻、更亮、更外显，像互相映出的回声。" },
+          { label: "PLASTIC", zh: "塑料姐妹", en: "PLASTIC", tone: ["#f4bfd2", "#ffe7b8"], pose: [-7, 7], summary: "画面和气氛都对，但更偏表层合拍，深处不一定互相托底。" },
+          { label: "MOM-DAU", zh: "母女", en: "MOM-DAU", tone: ["#efb8b9", "#ffd8df"], pose: [-4, 13], summary: "带领的一侧既给情绪容纳，也给秩序框架，像典型母女结构。" },
+          { label: "MOM-SON", zh: "母子", en: "MOM-SON", tone: ["#d5b0bc", "#f5d7d8"], pose: [-4, 13], summary: "强侧更像柔中带控的照顾者，关系靠黏性与保护欲支撑。" },
+          { label: "GLUED", zh: "闺蜜", en: "GLUED", tone: ["#f4c3d6", "#ffe8f1"], pose: [-8, 8], summary: "高黏度、高陪伴感、高情绪承接，关系会越贴越紧。" },
+          { label: "SISTERS", zh: "姐妹", en: "SISTERS", tone: ["#e8c48c", "#f5d59d"], pose: [-10, 10], summary: "平等而坚韧的并肩关系，亲密感里还带一点同类较劲。" },
+          { label: "PARTY", zh: "酒肉朋友", en: "PARTY", tone: ["#f98c3d", "#f4ca5b"], pose: [-12, 12], summary: "相处重点是热闹和即时快乐，最强连接点在玩、吃和场面感。" },
+          { label: "KEEPER", zh: "姐弟", en: "KEEPER", tone: ["#d9c1ca", "#d4deeb"], pose: [-14, 5], summary: "更像姐姐式护持结构，既会照看，也会替关系兜住边界。" },
+        ];
+
+        const RELATION_MAP = Object.fromEntries(RELATIONS.map((item) => [item.label, item]));
+
+        function clamp(value, min, max) {
+          return Math.max(min, Math.min(max, value));
+        }
+
+        function clamp01(value) {
+          return clamp(value, 0, 1);
+        }
+
+        function avg(values) {
+          const filtered = values.filter((value) => Number.isFinite(value));
+          return filtered.length ? filtered.reduce((sum, value) => sum + value, 0) / filtered.length : 0;
+        }
+
+        function closeness(left, right, scale = 100) {
+          return 1 - clamp01(Math.abs(left - right) / scale);
+        }
+
+        function jaccard(left, right) {
+          const leftSet = new Set(left);
+          const rightSet = new Set(right);
+          if (!leftSet.size && !rightSet.size) return 0.5;
+          const union = new Set([...leftSet, ...rightSet]);
+          let overlap = 0;
+          union.forEach((item) => {
+            if (leftSet.has(item) && rightSet.has(item)) overlap += 1;
+          });
+          return union.size ? overlap / union.size : 0;
+        }
+
+        function stableSortNumbers(values) {
+          return [...values].sort((left, right) => left - right);
+        }
+
+        function createEmptyAnswers() {
+          return QUESTIONS.map((question) => (question.type === "multiple" ? [] : null));
+        }
+
+        function answerToKey(question, answer) {
+          if (question.type === "multiple") {
+            return answer.map((index) => question.options[index]?.key).filter(Boolean);
+          }
+          if (answer === null || answer === undefined || answer < 0) return null;
+          return question.options[answer]?.key ?? null;
+        }
+
+        function getAnswerById(answers, id) {
+          const { question, index } = QUESTION_MAP[id];
+          return answerToKey(question, answers[index]);
+        }
+
+        function getRegionInfo(regionKey) {
+          return REGION_MAP[regionKey] ?? null;
+        }
+
+        function delta(traits, key, amount) {
+          traits[key] = clamp(traits[key] + amount, 0, 100);
+        }
+
+        function deriveProfile(answers) {
+          const traits = {
+            social: 50,
+            empathy: 50,
+            order: 50,
+            defiance: 50,
+            depth: 50,
+            warmth: 50,
+            lead: 50,
+            oddity: 12,
+          };
+
+          const meta = {
+            answers,
+            q3: getAnswerById(answers, "q3") || [],
+            q19: getAnswerById(answers, "q19"),
+            q27: getAnswerById(answers, "q27"),
+            q29: getAnswerById(answers, "q29") || [],
+            q30: getAnswerById(answers, "q30"),
+            ideology: {
+              q4: getAnswerById(answers, "q4"),
+              q18: getAnswerById(answers, "q18"),
+              q28: getAnswerById(answers, "q28"),
+            },
+          };
+
+          const genderGroup = meta.q30 === "A" ? "male" : meta.q30 === "B" ? "female" : "other";
+          meta.gender = genderGroup;
+
+          const q1 = getAnswerById(answers, "q1");
+          if (q1 === "B") delta(traits, "depth", 10);
+          if (q1 === "A") delta(traits, "depth", 4);
+          if (q1 === "C") {
+            delta(traits, "depth", -10);
+            delta(traits, "oddity", 4);
+          }
+
+          const q2 = getAnswerById(answers, "q2");
+          if (q2 === "A") {
+            delta(traits, "order", 2);
+            delta(traits, "depth", 2);
+          }
+          if (q2 === "B") delta(traits, "empathy", -6);
+          if (q2 === "C") {
+            delta(traits, "order", 8);
+            delta(traits, "lead", 6);
+          }
+
+          meta.q3.forEach((key) => {
+            if (key === "A") {
+              delta(traits, "warmth", 4);
+              delta(traits, "social", 4);
+            }
+            if (key === "B") delta(traits, "depth", 6);
+            if (key === "C") {
+              delta(traits, "warmth", 2);
+              delta(traits, "order", 2);
+            }
+            if (key === "D") delta(traits, "oddity", 6);
+            if (key === "E") delta(traits, "social", -8);
+          });
+
+          const q4 = getAnswerById(answers, "q4");
+          if (q4 === "A") {
+            delta(traits, "order", 8);
+            delta(traits, "defiance", -10);
+          }
+          if (q4 === "B") {
+            delta(traits, "defiance", 10);
+            delta(traits, "depth", 4);
+          }
+          if (q4 === "C") delta(traits, "depth", -6);
+
+          const q5 = getAnswerById(answers, "q5");
+          if (q5 === "A") {
+            delta(traits, "order", 4);
+            delta(traits, "depth", -6);
+          }
+          if (q5 === "B") delta(traits, "depth", 10);
+
+          const q6 = getAnswerById(answers, "q6");
+          if (q6 === "A") {
+            delta(traits, "empathy", 6);
+            delta(traits, "depth", 12);
+          }
+          if (q6 === "B") {
+            delta(traits, "depth", -8);
+            delta(traits, "empathy", -4);
+          }
+
+          const q7 = getAnswerById(answers, "q7");
+          if (q7 === "A") delta(traits, "warmth", 4);
+          if (q7 === "B") {
+            delta(traits, "warmth", -4);
+            delta(traits, "order", 2);
+          }
+          if (q7 === "C") delta(traits, "oddity", 4);
+
+          const q8 = getAnswerById(answers, "q8");
+          if (q8 === "A") {
+            delta(traits, "empathy", 18);
+            delta(traits, "order", 8);
+          }
+          if (q8 === "B") {
+            delta(traits, "empathy", -18);
+            delta(traits, "lead", 4);
+          }
+          if (q8 === "C") {
+            delta(traits, "empathy", 4);
+            delta(traits, "depth", 4);
+          }
+
+          const q9 = getAnswerById(answers, "q9");
+          if (q9 === "A") {
+            delta(traits, "social", 18);
+            delta(traits, "lead", 6);
+          }
+          if (q9 === "B") delta(traits, "social", -18);
+          if (q9 === "C") {
+            delta(traits, "social", -10);
+            delta(traits, "oddity", 2);
+          }
+
+          const q10 = getAnswerById(answers, "q10");
+          if (q10 === "A") {
+            delta(traits, "defiance", 18);
+            delta(traits, "order", -8);
+          }
+          if (q10 === "B") {
+            delta(traits, "defiance", -12);
+            delta(traits, "order", 6);
+          }
+
+          const q11 = getAnswerById(answers, "q11");
+          if (q11 === "A") {
+            delta(traits, "order", 18);
+            delta(traits, "lead", 10);
+          }
+          if (q11 === "B") delta(traits, "order", -14);
+
+          const q12 = getAnswerById(answers, "q12");
+          if (q12 === "A") {
+            delta(traits, "empathy", 18);
+            delta(traits, "warmth", 10);
+          }
+          if (q12 === "B") {
+            delta(traits, "empathy", -14);
+            delta(traits, "warmth", -8);
+          }
+          if (q12 === "C") {
+            delta(traits, "empathy", 6);
+            delta(traits, "warmth", 4);
+          }
+
+          const q13 = getAnswerById(answers, "q13");
+          if (q13 === "A") {
+            delta(traits, "social", 16);
+            delta(traits, "warmth", 6);
+          }
+          if (q13 === "B") delta(traits, "social", -16);
+
+          const q14 = getAnswerById(answers, "q14");
+          if (q14 === "A") {
+            delta(traits, "defiance", 12);
+            delta(traits, "lead", 10);
+          }
+          if (q14 === "B") delta(traits, "defiance", -8);
+
+          const q15 = getAnswerById(answers, "q15");
+          if (q15 === "A") {
+            delta(traits, "social", -10);
+            delta(traits, "warmth", -4);
+          }
+          if (q15 === "B") {
+            delta(traits, "social", 10);
+            delta(traits, "warmth", 8);
+          }
+          if (q15 === "C") delta(traits, "social", -4);
+
+          const q16 = getAnswerById(answers, "q16");
+          if (q16 === "A") {
+            delta(traits, "defiance", 14);
+            delta(traits, "lead", 12);
+          }
+          if (q16 === "B") delta(traits, "defiance", -12);
+
+          const q17 = getAnswerById(answers, "q17");
+          if (q17 === "A") {
+            delta(traits, "warmth", 6);
+            delta(traits, "empathy", 4);
+            delta(traits, "lead", -6);
+          }
+          if (q17 === "B") {
+            delta(traits, "lead", 6);
+            delta(traits, "defiance", 4);
+          }
+
+          const q18 = getAnswerById(answers, "q18");
+          if (q18 === "A") {
+            delta(traits, "defiance", 18);
+            delta(traits, "depth", 6);
+          }
+          if (q18 === "B") {
+            delta(traits, "defiance", -14);
+            delta(traits, "order", 8);
+          }
+          if (q18 === "C") {
+            delta(traits, "defiance", 10);
+            delta(traits, "depth", 12);
+          }
+          if (q18 === "D") {
+            delta(traits, "defiance", 2);
+            delta(traits, "order", -4);
+          }
+          if (q18 === "E") delta(traits, "depth", 4);
+
+          const q19 = meta.q19;
+          if (q19 === "A") {
+            delta(traits, "depth", 6);
+            delta(traits, "order", 4);
+          }
+          if (q19 === "B") delta(traits, "order", 6);
+          if (q19 === "D") {
+            delta(traits, "depth", 12);
+            delta(traits, "defiance", 6);
+          }
+          if (q19 === "E") {
+            delta(traits, "oddity", 16);
+            delta(traits, "depth", -16);
+          }
+
+          const q20 = getAnswerById(answers, "q20");
+          if (q20 === "A") {
+            delta(traits, "social", 16);
+            delta(traits, "warmth", 6);
+          }
+          if (q20 === "B") delta(traits, "social", -16);
+
+          const q21 = getAnswerById(answers, "q21");
+          if (q21 === "A") {
+            delta(traits, "lead", 18);
+            delta(traits, "order", 6);
+          }
+          if (q21 === "B") delta(traits, "lead", -12);
+
+          const q22 = getAnswerById(answers, "q22");
+          if (q22 === "A") {
+            delta(traits, "social", -18);
+            delta(traits, "depth", 4);
+          }
+          if (q22 === "B") delta(traits, "social", 14);
+
+          const q23 = getAnswerById(answers, "q23");
+          if (q23 === "A") {
+            delta(traits, "warmth", 10);
+            delta(traits, "empathy", 8);
+            delta(traits, "defiance", -8);
+          }
+          if (q23 === "B") {
+            delta(traits, "warmth", -6);
+            delta(traits, "defiance", 6);
+          }
+
+          const q24 = getAnswerById(answers, "q24");
+          if (q24 === "A") {
+            delta(traits, "order", -14);
+            delta(traits, "warmth", 2);
+          }
+          if (q24 === "B") delta(traits, "order", 10);
+
+          const q25 = getAnswerById(answers, "q25");
+          if (q25 === "A") {
+            delta(traits, "order", 18);
+            delta(traits, "depth", 4);
+          }
+          if (q25 === "B") delta(traits, "order", -14);
+
+          const q26 = getAnswerById(answers, "q26");
+          if (q26 === "A") delta(traits, "social", 12);
+          if (q26 === "B") {
+            delta(traits, "social", -10);
+            delta(traits, "warmth", 2);
+          }
+          if (q26 === "C") delta(traits, "oddity", 4);
+
+          const regionInfo = getRegionInfo(meta.q27);
+          if (regionInfo?.traits) {
+            Object.entries(regionInfo.traits).forEach(([key, amount]) => delta(traits, key, amount));
+          }
+          meta.regionTags = regionInfo?.tags ?? [];
+
+          const q28 = getAnswerById(answers, "q28");
+          if (q28 === "A") delta(traits, "defiance", 18);
+          if (q28 === "B") {
+            delta(traits, "order", 12);
+            delta(traits, "defiance", -16);
+          }
+
+          meta.q29.forEach((key) => {
+            if (key === "A") {
+              delta(traits, "defiance", 14);
+              delta(traits, "order", -10);
+              delta(traits, "social", 4);
+            }
+            if (key === "B") {
+              delta(traits, "defiance", 8);
+              delta(traits, "order", 2);
+            }
+            if (key === "C") {
+              delta(traits, "defiance", 10);
+              delta(traits, "order", -2);
+            }
+            if (key === "D") {
+              delta(traits, "defiance", 6);
+              delta(traits, "order", 4);
+            }
+            if (key === "E") {
+              delta(traits, "oddity", 8);
+              delta(traits, "defiance", 6);
+            }
+            if (key === "F") {
+              delta(traits, "defiance", 8);
+              delta(traits, "warmth", -2);
+            }
+            if (key === "G") {
+              delta(traits, "oddity", 8);
+              delta(traits, "warmth", 2);
+            }
+            if (key === "H") {
+              delta(traits, "order", 12);
+              delta(traits, "defiance", -14);
+            }
+          });
+
+          meta.assertive = avg([traits.lead / 100, traits.defiance / 100]);
+          meta.playful = clamp01(avg([(100 - traits.order) / 100, traits.social / 100, traits.warmth / 100]));
+          meta.signature = traits.lead + traits.order + traits.depth;
+          meta.regionInfo = regionInfo;
+
+          return { traits, meta };
+        }
+
+        function regionMatch(leftKey, rightKey) {
+          if (!leftKey || !rightKey) return 0.5;
+          if (leftKey === rightKey) return 1;
+          const left = getRegionInfo(leftKey);
+          const right = getRegionInfo(rightKey);
+          if (!left || !right) return 0.25;
+          if (left.continent === right.continent) return 0.66;
+          if (left.continent === "polar" || right.continent === "polar") return 0.12;
+          const nearContinents = new Set([
+            "europe:asia",
+            "asia:europe",
+            "northAmerica:southAmerica",
+            "southAmerica:northAmerica",
+            "asia:oceania",
+            "oceania:asia",
+            "europe:africa",
+            "africa:europe",
+          ]);
+          if (nearContinents.has(`${left.continent}:${right.continent}`)) return 0.38;
+          return 0.22;
+        }
+
+        function osMatch(left, right) {
+          if (!left || !right) return 0.5;
+          if (left === right) return 1;
+          const unixLike = new Set(["A", "D"]);
+          if (unixLike.has(left) && unixLike.has(right)) return 0.72;
+          if (left === "E" || right === "E") return 0.12;
+          if ((left === "B" && right === "C") || (left === "C" && right === "B")) return 0.4;
+          return 0.32;
+        }
+
+        function ideologyPosition(id, key) {
+          if (!key) return 0.5;
+          const maps = {
+            q4: { A: 0.12, B: 0.9, C: 0.5 },
+            q18: { A: 0.95, B: 0.05, C: 0.78, D: 0.4, E: 0.52 },
+            q28: { A: 0.92, B: 0.08, C: 0.5 },
+          };
+          return maps[id]?.[key] ?? 0.5;
+        }
+
+        function buildPairMetrics(left, right) {
+          const leftTraits = left.traits;
+          const rightTraits = right.traits;
+          const overallSimilarity = avg([
+            closeness(leftTraits.social, rightTraits.social),
+            closeness(leftTraits.empathy, rightTraits.empathy),
+            closeness(leftTraits.order, rightTraits.order),
+            closeness(leftTraits.defiance, rightTraits.defiance),
+            closeness(leftTraits.depth, rightTraits.depth),
+            closeness(leftTraits.warmth, rightTraits.warmth),
+            closeness(leftTraits.lead, rightTraits.lead),
+          ]);
+          const valuesSimilarity = avg([
+            closeness(leftTraits.order, rightTraits.order),
+            closeness(leftTraits.defiance, rightTraits.defiance),
+            closeness(leftTraits.depth, rightTraits.depth),
+          ]);
+          const socialSimilarity = closeness(leftTraits.social, rightTraits.social);
+          const careSimilarity = avg([
+            closeness(leftTraits.empathy, rightTraits.empathy),
+            closeness(leftTraits.warmth, rightTraits.warmth),
+          ]);
+          const interestMatch = avg([
+            jaccard(left.meta.q3, right.meta.q3),
+            jaccard(left.meta.q29, right.meta.q29),
+            osMatch(left.meta.q19, right.meta.q19),
+            regionMatch(left.meta.q27, right.meta.q27),
+          ]);
+          const ideologyClash = avg([
+            Math.abs(ideologyPosition("q4", left.meta.ideology.q4) - ideologyPosition("q4", right.meta.ideology.q4)),
+            Math.abs(ideologyPosition("q18", left.meta.ideology.q18) - ideologyPosition("q18", right.meta.ideology.q18)),
+            Math.abs(ideologyPosition("q28", left.meta.ideology.q28) - ideologyPosition("q28", right.meta.ideology.q28)),
+          ]);
+          const assertiveMin = Math.min(left.meta.assertive, right.meta.assertive);
+          const assertiveMax = Math.max(left.meta.assertive, right.meta.assertive);
+          const powerClash = clamp01(assertiveMin * closeness(leftTraits.lead, rightTraits.lead, 60));
+          const warmthAverage = avg([
+            leftTraits.warmth / 100,
+            rightTraits.warmth / 100,
+            leftTraits.empathy / 100,
+            rightTraits.empathy / 100,
+          ]);
+          const orderAverage = avg([leftTraits.order / 100, rightTraits.order / 100]);
+          const socialAverage = avg([leftTraits.social / 100, rightTraits.social / 100]);
+          const depthBond = avg([
+            Math.min(leftTraits.depth, rightTraits.depth) / 100,
+            closeness(leftTraits.depth, rightTraits.depth),
+          ]);
+          const leadGap = Math.abs(leftTraits.lead - rightTraits.lead) / 100;
+          const orderGap = Math.abs(leftTraits.order - rightTraits.order) / 100;
+          const depthGap = Math.abs(leftTraits.depth - rightTraits.depth) / 100;
+          const complementarity = clamp01(
+            leadGap * 0.44 +
+              orderGap * 0.18 +
+              (1 - socialSimilarity) * 0.08 +
+              careSimilarity * 0.18 +
+              warmthAverage * 0.12 -
+              ideologyClash * 0.22 -
+              powerClash * 0.12,
+          );
+          const friction = clamp01(
+            ideologyClash * 0.46 +
+              powerClash * 0.18 +
+              (1 - careSimilarity) * 0.16 +
+              (1 - valuesSimilarity) * 0.12 +
+              (1 - warmthAverage) * 0.08,
+          );
+          const weirdResonance = avg([
+            Math.min(leftTraits.oddity, rightTraits.oddity) / 100,
+            closeness(leftTraits.oddity, rightTraits.oddity),
+          ]);
+          const rebelliousMin = Math.min(leftTraits.defiance, rightTraits.defiance) / 100;
+          const guidanceGap = clamp01(
+            avg([leadGap, orderGap, depthGap]) * 0.72 + warmthAverage * 0.16 + careSimilarity * 0.12 - friction * 0.18,
+          );
+          const stronger = left.meta.signature >= right.meta.signature ? "left" : "right";
+          const strongerProfile = stronger === "left" ? left : right;
+          const softerProfile = stronger === "left" ? right : left;
+          const strongerWarmth = avg([strongerProfile.traits.warmth / 100, strongerProfile.traits.empathy / 100]);
+          const strongerOrder = strongerProfile.traits.order / 100;
+          const spark = avg([
+            warmthAverage,
+            socialAverage,
+            interestMatch,
+            Math.min(leftTraits.warmth, rightTraits.warmth) / 100,
+          ]);
+          const partyBias = avg([
+            socialAverage,
+            jaccard(left.meta.q3, right.meta.q3),
+            1 - orderAverage,
+            jaccard(left.meta.q29.filter((item) => item !== "H"), right.meta.q29.filter((item) => item !== "H")),
+          ]);
+
+          return {
+            overallSimilarity,
+            valuesSimilarity,
+            socialSimilarity,
+            careSimilarity,
+            interestMatch,
+            ideologyClash,
+            assertiveMin,
+            assertiveMax,
+            powerClash,
+            warmthAverage,
+            orderAverage,
+            socialAverage,
+            depthBond,
+            complementarity,
+            friction,
+            weirdResonance,
+            rebelliousMin,
+            guidanceGap,
+            stronger,
+            strongerProfile,
+            softerProfile,
+            strongerWarmth,
+            strongerOrder,
+            spark,
+            partyBias,
+            bothMale: left.meta.gender === "male" && right.meta.gender === "male",
+            bothFemale: left.meta.gender === "female" && right.meta.gender === "female",
+            mixedBinary:
+              (left.meta.gender === "male" && right.meta.gender === "female") ||
+              (left.meta.gender === "female" && right.meta.gender === "male"),
+          };
+        }
+
+        function relationScore(label, left, right, metrics) {
+          const w = (value) => value * 100;
+          const strongerIsMale = metrics.strongerProfile.meta.gender === "male";
+          const strongerIsFemale = metrics.strongerProfile.meta.gender === "female";
+          const softerIsMale = metrics.softerProfile.meta.gender === "male";
+          const softerIsFemale = metrics.softerProfile.meta.gender === "female";
+
+          switch (label) {
+            case "TWINS":
+              return w(
+                0.32 * metrics.overallSimilarity +
+                  0.22 * metrics.valuesSimilarity +
+                  0.15 * metrics.interestMatch +
+                  0.14 * metrics.socialSimilarity +
+                  0.1 * (1 - metrics.ideologyClash) +
+                  0.07 * (1 - metrics.friction),
+              ) + (left.meta.gender === right.meta.gender ? 8 : -18);
+            case "ECHO":
+              return w(
+                0.24 * metrics.overallSimilarity +
+                  0.18 * metrics.socialSimilarity +
+                  0.18 * metrics.careSimilarity +
+                  0.12 * metrics.interestMatch +
+                  0.1 * (1 - metrics.ideologyClash) +
+                  0.18 * (1 - metrics.friction),
+              ) + (metrics.bothFemale ? 18 : -34) + (metrics.socialAverage > 0.56 ? 4 : 0);
+            case "SOUL":
+              return w(
+                0.21 * metrics.overallSimilarity +
+                  0.25 * metrics.depthBond +
+                  0.22 * metrics.careSimilarity +
+                  0.12 * metrics.complementarity +
+                  0.1 * (1 - metrics.ideologyClash) +
+                  0.1 * (1 - metrics.friction),
+              );
+            case "SYNC":
+              return w(
+                0.28 * metrics.overallSimilarity +
+                  0.22 * metrics.valuesSimilarity +
+                  0.14 * metrics.socialSimilarity +
+                  0.14 * metrics.interestMatch +
+                  0.1 * (1 - metrics.ideologyClash) +
+                  0.12 * (1 - metrics.friction),
+              );
+            case "SETTLED":
+              return w(
+                0.24 * metrics.overallSimilarity +
+                  0.2 * metrics.complementarity +
+                  0.18 * metrics.valuesSimilarity +
+                  0.18 * metrics.warmthAverage +
+                  0.1 * (1 - metrics.ideologyClash) +
+                  0.1 * (1 - metrics.friction),
+              );
+            case "UNITED":
+              return w(
+                0.22 * metrics.overallSimilarity +
+                  0.22 * metrics.warmthAverage +
+                  0.18 * metrics.careSimilarity +
+                  0.1 * (1 - metrics.ideologyClash) +
+                  0.1 * (1 - metrics.friction) +
+                  0.18 * (1 - metrics.assertiveMin),
+              );
+            case "HOMIES":
+              return w(
+                0.22 * metrics.overallSimilarity +
+                  0.22 * metrics.warmthAverage +
+                  0.2 * metrics.socialAverage +
+                  0.18 * metrics.interestMatch +
+                  0.08 * (1 - metrics.ideologyClash) +
+                  0.1 * (1 - metrics.friction),
+              );
+            case "BROS":
+              return (
+                w(
+                  0.22 * metrics.overallSimilarity +
+                    0.25 * metrics.warmthAverage +
+                    0.18 * metrics.socialAverage +
+                    0.12 * metrics.partyBias +
+                    0.08 * (1 - metrics.ideologyClash) +
+                    0.15 * (1 - metrics.friction),
+                ) + (metrics.bothMale ? 16 : -20)
+              );
+            case "SISTERS":
+              return (
+                w(
+                  0.2 * metrics.overallSimilarity +
+                    0.2 * metrics.warmthAverage +
+                    0.18 * metrics.careSimilarity +
+                    0.2 * metrics.assertiveMin +
+                    0.08 * (1 - metrics.ideologyClash) +
+                    0.14 * (1 - metrics.friction),
+                ) + (metrics.bothFemale ? 18 : -26)
+              );
+            case "GLUED":
+              return (
+                w(
+                  0.24 * metrics.overallSimilarity +
+                    0.25 * metrics.warmthAverage +
+                    0.22 * metrics.careSimilarity +
+                    0.14 * metrics.socialSimilarity +
+                    0.06 * (1 - metrics.ideologyClash) +
+                    0.09 * (1 - metrics.friction),
+                ) + (metrics.bothFemale ? 14 : -18)
+              );
+            case "LOVERS":
+              return w(
+                0.18 * metrics.overallSimilarity +
+                  0.18 * metrics.warmthAverage +
+                  0.16 * metrics.careSimilarity +
+                  0.14 * metrics.depthBond +
+                  0.16 * metrics.spark +
+                  0.1 * metrics.interestMatch +
+                  0.08 * metrics.complementarity +
+                  0.06 * (1 - metrics.ideologyClash) +
+                  0.04 * (1 - metrics.friction),
+              ) + (metrics.mixedBinary ? 4 : 0);
+            case "PARTY":
+              return w(
+                0.28 * metrics.socialAverage +
+                  0.24 * metrics.partyBias +
+                  0.14 * metrics.interestMatch +
+                  0.14 * metrics.spark +
+                  0.2 * (1 - metrics.friction),
+              );
+            case "PLASTIC":
+              return (
+                w(
+                  0.22 * metrics.socialSimilarity +
+                    0.18 * metrics.overallSimilarity +
+                    0.2 * (1 - metrics.depthBond) +
+                    0.18 * (1 - metrics.careSimilarity) +
+                    0.12 * metrics.interestMatch +
+                    0.1 * (1 - metrics.friction),
+                ) + (metrics.bothFemale ? 14 : -22)
+              );
+            case "RIVALS":
+              return w(
+                0.24 * metrics.powerClash +
+                  0.2 * metrics.assertiveMin +
+                  0.18 * metrics.overallSimilarity +
+                  0.16 * closeness(left.traits.order, right.traits.order) +
+                  0.12 * (1 - metrics.ideologyClash) +
+                  0.1 * metrics.friction,
+              );
+            case "ENEMIES":
+              return w(
+                0.35 * metrics.friction +
+                  0.3 * metrics.ideologyClash +
+                  0.18 * metrics.assertiveMin +
+                  0.1 * (1 - metrics.warmthAverage) +
+                  0.07 * metrics.powerClash,
+              );
+            case "INMATE":
+              return w(
+                0.28 * metrics.rebelliousMin +
+                  0.18 * (1 - metrics.orderAverage) +
+                  0.16 * metrics.overallSimilarity +
+                  0.14 * jaccard(left.meta.q29, right.meta.q29) +
+                  0.12 * metrics.weirdResonance +
+                  0.12 * (1 - metrics.friction / 2),
+              );
+            case "ALLIES":
+              return w(
+                0.24 * metrics.rebelliousMin +
+                  0.22 * metrics.valuesSimilarity +
+                  0.14 * metrics.assertiveMin +
+                  0.2 * (1 - metrics.friction) +
+                  0.2 * metrics.overallSimilarity,
+              );
+            case "MENTOR":
+              return w(
+                0.34 * metrics.guidanceGap +
+                  0.18 * metrics.strongerWarmth +
+                  0.16 * metrics.strongerOrder +
+                  0.14 * metrics.overallSimilarity +
+                  0.18 * (1 - metrics.friction),
+              );
+            case "DAD-SON":
+              return (
+                w(
+                  0.34 * metrics.guidanceGap +
+                    0.22 * metrics.strongerWarmth +
+                    0.2 * metrics.strongerOrder +
+                    0.14 * (1 - metrics.friction) +
+                    0.1 * metrics.overallSimilarity,
+                ) + (strongerIsMale && softerIsMale ? 18 : -20) + (metrics.guidanceGap > 0.43 ? 6 : -4)
+              );
+            case "DAD-DAU":
+              return (
+                w(
+                  0.34 * metrics.guidanceGap +
+                    0.22 * metrics.strongerWarmth +
+                    0.2 * metrics.strongerOrder +
+                    0.14 * (1 - metrics.friction) +
+                    0.1 * metrics.overallSimilarity,
+                ) + (strongerIsMale && softerIsFemale ? 18 : -20) + (metrics.guidanceGap > 0.43 ? 8 : -4)
+              );
+            case "MOM-SON":
+              return (
+                w(
+                  0.34 * metrics.guidanceGap +
+                    0.24 * metrics.strongerWarmth +
+                    0.16 * metrics.strongerOrder +
+                    0.14 * (1 - metrics.friction) +
+                    0.12 * metrics.overallSimilarity,
+                ) + (strongerIsFemale && softerIsMale ? 18 : -20) + (metrics.guidanceGap > 0.43 ? 8 : -4)
+              );
+            case "MOM-DAU":
+              return (
+                w(
+                  0.34 * metrics.guidanceGap +
+                    0.24 * metrics.strongerWarmth +
+                    0.16 * metrics.strongerOrder +
+                    0.14 * (1 - metrics.friction) +
+                    0.12 * metrics.overallSimilarity,
+                ) + (strongerIsFemale && softerIsFemale ? 18 : -20) + (metrics.guidanceGap > 0.43 ? 6 : -4)
+              );
+            case "GUARD":
+              return (
+                w(
+                  0.2 * metrics.complementarity +
+                    0.18 * metrics.warmthAverage +
+                    0.16 * metrics.careSimilarity +
+                    0.12 * metrics.overallSimilarity +
+                    0.12 * metrics.socialSimilarity +
+                    0.1 * (1 - metrics.friction),
+                ) +
+                (strongerIsMale && softerIsFemale ? 18 : -16) +
+                (metrics.guidanceGap > 0.32 && metrics.guidanceGap < 0.44 ? 8 : -8) +
+                (metrics.spark < 0.65 ? 6 : -12)
+              );
+            case "KEEPER":
+              return (
+                w(
+                  0.2 * metrics.complementarity +
+                    0.2 * metrics.warmthAverage +
+                    0.16 * metrics.careSimilarity +
+                    0.12 * metrics.overallSimilarity +
+                    0.1 * metrics.socialSimilarity +
+                    0.1 * (1 - metrics.friction),
+                ) +
+                (strongerIsFemale && softerIsMale ? 18 : -16) +
+                (metrics.guidanceGap > 0.32 && metrics.guidanceGap < 0.44 ? 8 : -8) +
+                (metrics.spark < 0.65 ? 6 : -12)
+              );
+            case "WEIRDOS":
+              return w(
+                0.42 * metrics.weirdResonance +
+                  0.18 * metrics.overallSimilarity +
+                  0.12 * metrics.interestMatch +
+                  0.1 * metrics.depthBond +
+                  0.08 * (1 - metrics.friction) +
+                  0.1 * jaccard(left.meta.q29, right.meta.q29),
+              );
+            default:
+              return 0;
+          }
+        }
+
+        function relationModifier(label, metrics) {
+          let modifier = 1;
+          const oddityAverage =
+            (metrics.strongerProfile.traits.oddity + metrics.softerProfile.traits.oddity) / 200;
+          if (metrics.ideologyClash > 0.65 && metrics.friction > 0.55) {
+            if (["TWINS", "ECHO", "SOUL", "SYNC", "SETTLED", "UNITED", "HOMIES", "BROS", "GLUED", "LOVERS"].includes(label)) {
+              modifier *= 0.72;
+            }
+            if (["ENEMIES", "RIVALS"].includes(label)) {
+              modifier *= 1.12;
+            }
+          }
+          if (metrics.weirdResonance > 0.62) {
+            if (label === "WEIRDOS") modifier *= oddityAverage > 0.58 ? 1.34 : 1.18;
+            if (["TWINS", "SYNC", "SETTLED", "ECHO", "GLUED"].includes(label)) modifier *= oddityAverage > 0.58 ? 0.78 : 0.92;
+          }
+          if (metrics.guidanceGap > 0.42) {
+            if (["MENTOR", "DAD-SON", "DAD-DAU", "MOM-SON", "MOM-DAU"].includes(label)) modifier *= 1.06;
+            if (["TWINS", "ECHO"].includes(label)) modifier *= 0.9;
+          }
+          return modifier;
+        }
+
+        function compareAnswerSets(leftAnswers, rightAnswers) {
+          const left = deriveProfile(leftAnswers);
+          const right = deriveProfile(rightAnswers);
+          const metrics = buildPairMetrics(left, right);
+          const ranked = RELATIONS.map((relation) => ({
+            ...relation,
+            score: Number((relationScore(relation.label, left, right, metrics) * relationModifier(relation.label, metrics)).toFixed(2)),
+          })).sort((a, b) => b.score - a.score);
+          return {
+            left,
+            right,
+            metrics,
+            ranked,
+            top: ranked[0],
+            confidence: Number(clamp(ranked[0].score - (ranked[1]?.score ?? 0), 0, 100).toFixed(2)),
+          };
+        }
+
+        function collectableScore(label, profile) {
+          const t = profile.traits;
+          const gender = profile.meta.gender;
+          const n = {
+            social: t.social / 100,
+            empathy: t.empathy / 100,
+            order: t.order / 100,
+            defiance: t.defiance / 100,
+            depth: t.depth / 100,
+            warmth: t.warmth / 100,
+            lead: t.lead / 100,
+            oddity: t.oddity / 100,
+          };
+
+          switch (label) {
+            case "TWINS":
+              return 100 * (0.3 * n.depth + 0.24 * n.order + 0.2 * n.empathy + 0.12 * (1 - Math.abs(n.social - 0.5)) + 0.14 * (1 - n.oddity));
+            case "ECHO":
+              return 100 * (0.24 * n.social + 0.2 * n.warmth + 0.2 * n.empathy + 0.16 * (1 - n.order * 0.3) + 0.2 * (gender === "female" ? 1 : 0.18));
+            case "SOUL":
+              return 100 * (0.3 * n.depth + 0.24 * n.empathy + 0.22 * n.warmth + 0.12 * (1 - Math.abs(n.social - 0.45)) + 0.12 * (1 - n.oddity * 0.3));
+            case "SYNC":
+              return 100 * (0.3 * n.order + 0.22 * n.depth + 0.18 * n.empathy + 0.16 * (1 - n.defiance * 0.45) + 0.14 * (1 - Math.abs(n.social - 0.45)));
+            case "SETTLED":
+              return 100 * (0.26 * n.order + 0.22 * n.warmth + 0.2 * n.depth + 0.18 * n.empathy + 0.14 * (1 - n.defiance * 0.4));
+            case "UNITED":
+              return 100 * (0.22 * n.warmth + 0.24 * n.empathy + 0.18 * (1 - n.defiance * 0.3) + 0.18 * n.social + 0.18 * n.order);
+            case "HOMIES":
+              return 100 * (0.28 * n.social + 0.24 * n.warmth + 0.16 * n.empathy + 0.18 * (1 - n.order * 0.25) + 0.14 * (1 - n.depth * 0.2));
+            case "BROS":
+              return 100 * (0.26 * n.social + 0.24 * n.warmth + 0.18 * (1 - n.order * 0.2) + 0.16 * n.lead + 0.16 * (gender === "male" ? 1 : 0.4));
+            case "SISTERS":
+              return 100 * (0.24 * n.warmth + 0.2 * n.empathy + 0.16 * n.defiance + 0.16 * n.social + 0.24 * (gender === "female" ? 1 : 0.14));
+            case "GLUED":
+              return 100 * (0.3 * n.warmth + 0.24 * n.empathy + 0.18 * n.social + 0.14 * (1 - n.defiance * 0.25) + 0.14 * (gender === "female" ? 1 : 0.22));
+            case "LOVERS":
+              return 100 * (0.24 * n.warmth + 0.2 * n.empathy + 0.18 * n.depth + 0.18 * n.social + 0.2 * (1 - n.oddity * 0.2));
+            case "PARTY":
+              return 100 * (0.34 * n.social + 0.2 * (1 - n.order) + 0.18 * n.warmth + 0.14 * n.lead + 0.14 * (profile.meta.q3.includes("A") ? 1 : 0.55));
+            case "PLASTIC":
+              return 100 * (0.28 * n.social + 0.18 * (1 - n.depth) + 0.18 * (1 - n.empathy) + 0.18 * n.warmth + 0.18 * (gender === "female" ? 1 : 0.2));
+            case "RIVALS":
+              return 100 * (0.28 * n.lead + 0.24 * n.defiance + 0.18 * n.order + 0.16 * n.depth + 0.14 * (1 - n.warmth * 0.25));
+            case "ENEMIES":
+              return 100 * (0.3 * n.defiance + 0.22 * n.lead + 0.16 * (1 - n.warmth) + 0.16 * (1 - n.empathy) + 0.16 * (1 - n.order * 0.15));
+            case "INMATE":
+              return 100 * (0.3 * n.defiance + 0.2 * (1 - n.order) + 0.16 * n.oddity + 0.16 * (profile.meta.q29.length ? 1 : 0.5) + 0.18 * (1 - n.warmth * 0.3));
+            case "ALLIES":
+              return 100 * (0.28 * n.defiance + 0.2 * n.lead + 0.18 * n.order + 0.16 * n.depth + 0.18 * n.warmth);
+            case "MENTOR":
+              return 100 * (0.28 * n.lead + 0.24 * n.order + 0.2 * n.depth + 0.18 * n.empathy + 0.1 * n.warmth);
+            case "DAD-SON":
+              return 100 * (0.28 * n.lead + 0.24 * n.order + 0.18 * n.warmth + 0.12 * n.empathy + 0.18 * (gender === "male" ? 1 : 0.35));
+            case "DAD-DAU":
+              return 100 * (0.28 * n.lead + 0.22 * n.order + 0.22 * n.warmth + 0.1 * n.empathy + 0.18 * (gender === "male" ? 1 : 0.35));
+            case "MOM-SON":
+              return 100 * (0.22 * n.lead + 0.18 * n.order + 0.28 * n.warmth + 0.18 * n.empathy + 0.14 * (gender === "female" ? 1 : 0.35));
+            case "MOM-DAU":
+              return 100 * (0.2 * n.lead + 0.16 * n.order + 0.3 * n.warmth + 0.2 * n.empathy + 0.14 * (gender === "female" ? 1 : 0.35));
+            case "GUARD":
+              return 100 * (0.24 * n.lead + 0.22 * n.warmth + 0.18 * n.empathy + 0.16 * n.order + 0.2 * (gender === "male" ? 1 : 0.4));
+            case "KEEPER":
+              return 100 * (0.18 * n.lead + 0.26 * n.warmth + 0.22 * n.empathy + 0.14 * n.order + 0.2 * (gender === "female" ? 1 : 0.4));
+            case "WEIRDOS":
+              return 100 * (0.46 * n.oddity + 0.18 * n.depth + 0.12 * (1 - n.order * 0.2) + 0.12 * n.defiance + 0.12 * (1 - Math.abs(n.social - 0.5)));
+            default:
+              return 0;
+          }
+        }
+
+        function getCollectableDeck(answers) {
+          const profile = deriveProfile(answers);
+          const ranked = RELATIONS.map((relation) => ({
+            ...relation,
+            score: Number(collectableScore(relation.label, profile).toFixed(2)),
+          })).sort((a, b) => b.score - a.score);
+          return {
+            profile,
+            ranked,
+            primary: ranked.slice(0, 16),
+            secondary: ranked.slice(16),
+          };
+        }
+
+        function validateAnswers(answers) {
+          const missing = [];
+          QUESTIONS.forEach((question, index) => {
+            const answer = answers[index];
+            if (question.type === "multiple") {
+              if (!Array.isArray(answer) || answer.length === 0) missing.push(question.id);
+            } else if (answer === null || answer === undefined || answer < 0) {
+              missing.push(question.id);
+            }
+          });
+          return missing;
+        }
+
+        function bytesToBase64Url(bytes) {
+          const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+          let output = "";
+          for (let i = 0; i < bytes.length; i += 3) {
+            const chunk = ((bytes[i] ?? 0) << 16) | ((bytes[i + 1] ?? 0) << 8) | (bytes[i + 2] ?? 0);
+            output += alphabet[(chunk >> 18) & 63];
+            output += alphabet[(chunk >> 12) & 63];
+            output += i + 1 < bytes.length ? alphabet[(chunk >> 6) & 63] : "";
+            output += i + 2 < bytes.length ? alphabet[chunk & 63] : "";
+          }
+          return output;
+        }
+
+        function base64UrlToBytes(text) {
+          const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+          const lookup = Object.fromEntries([...alphabet].map((char, index) => [char, index]));
+          const clean = text.replace(/=+$/g, "");
+          const bytes = [];
+          for (let i = 0; i < clean.length; i += 4) {
+            const a = lookup[clean[i]];
+            const b = lookup[clean[i + 1]];
+            const c = clean[i + 2] ? lookup[clean[i + 2]] : 0;
+            const d = clean[i + 3] ? lookup[clean[i + 3]] : 0;
+            const chunk = (a << 18) | (b << 12) | (c << 6) | d;
+            bytes.push((chunk >> 16) & 255);
+            if (clean[i + 2]) bytes.push((chunk >> 8) & 255);
+            if (clean[i + 3]) bytes.push(chunk & 255);
+          }
+          return new Uint8Array(bytes);
+        }
+
+        async function getCryptoKey() {
+          if (!cachedKeyPromise) {
+            cachedKeyPromise = crypto.subtle
+              .importKey("raw", encoder.encode(APP_SECRET), "PBKDF2", false, ["deriveKey"])
+              .then((baseKey) =>
+                crypto.subtle.deriveKey(
+                  {
+                    name: "PBKDF2",
+                    salt: encoder.encode("cpti-archive-salt"),
+                    iterations: 120000,
+                    hash: "SHA-256",
+                  },
+                  baseKey,
+                  { name: "AES-GCM", length: 256 },
+                  false,
+                  ["encrypt", "decrypt"],
+                ),
+              );
+          }
+          return cachedKeyPromise;
+        }
+
+        async function encodeShareToken(answers) {
+          const payload = {
+            v: 1,
+            t: Date.now(),
+            a: answers.map((answer) => (Array.isArray(answer) ? stableSortNumbers(answer) : answer)),
+          };
+          const key = await getCryptoKey();
+          const iv = crypto.getRandomValues(new Uint8Array(12));
+          const plaintext = encoder.encode(JSON.stringify(payload));
+          const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plaintext));
+          const blob = encoder.encode(JSON.stringify({ iv: bytesToBase64Url(iv), data: bytesToBase64Url(ciphertext) }));
+          return TOKEN_PREFIX + bytesToBase64Url(blob);
+        }
+
+        async function decodeShareToken(token) {
+          if (!token || typeof token !== "string" || !token.startsWith(TOKEN_PREFIX)) {
+            throw new Error("密文格式不正确，必须以 CPTI1. 开头");
+          }
+          const key = await getCryptoKey();
+          const encoded = token.slice(TOKEN_PREFIX.length).trim();
+          const wrapper = JSON.parse(decoder.decode(base64UrlToBytes(encoded)));
+          const iv = base64UrlToBytes(wrapper.iv);
+          const data = base64UrlToBytes(wrapper.data);
+          const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+          const payload = JSON.parse(decoder.decode(new Uint8Array(plaintext)));
+          if (!Array.isArray(payload.a) || payload.v !== 1) {
+            throw new Error("密文版本不受支持");
+          }
+          return { version: payload.v, timestamp: payload.t, answers: payload.a };
+        }
+
+        function describeCompareResult(result) {
+          const relation = RELATION_MAP[result.top.label];
+          const frictionLabel =
+            result.metrics.friction > 0.62 ? "高摩擦" : result.metrics.friction > 0.38 ? "有摩擦" : "低摩擦";
+          const syncLabel =
+            result.metrics.overallSimilarity > 0.78 ? "高相似" : result.metrics.overallSimilarity > 0.6 ? "中高相似" : "偏互补";
+          return `${relation.summary} 当前结构更接近 ${syncLabel}、${frictionLabel} 的组合。`;
+        }
+
+        function topMetricsForCompare(result) {
+          return [
+            { label: "整体相似", value: `${Math.round(result.metrics.overallSimilarity * 100)}%` },
+            { label: "价值对齐", value: `${Math.round(result.metrics.valuesSimilarity * 100)}%` },
+            { label: "互补度", value: `${Math.round(result.metrics.complementarity * 100)}%` },
+            { label: "摩擦值", value: `${Math.round(result.metrics.friction * 100)}%` },
+            { label: "判定优势", value: `${Math.round(result.confidence)} 分` },
+          ];
+        }
+
+        function topMetricsForSelf(deck) {
+          const traits = deck.profile.traits;
+          return [
+            { label: "社交能量", value: `${Math.round(traits.social)}` },
+            { label: "共情度", value: `${Math.round(traits.empathy)}` },
+            { label: "秩序感", value: `${Math.round(traits.order)}` },
+            { label: "反骨值", value: `${Math.round(traits.defiance)}` },
+            { label: "怪味指数", value: `${Math.round(traits.oddity)}` },
+          ];
+        }
+
+        function primarySecondaryForCompare(result) {
+          return {
+            primary: result.ranked.slice(0, 10),
+            secondary: result.ranked.slice(10),
+          };
+        }
+
+        const CPTICore = {
+          QUESTIONS,
+          RELATIONS,
+          createEmptyAnswers,
+          validateAnswers,
+          deriveProfile,
+          compareAnswerSets,
+          getCollectableDeck,
+          encodeShareToken,
+          decodeShareToken,
+          describeCompareResult,
+          topMetricsForCompare,
+          topMetricsForSelf,
+          primarySecondaryForCompare,
+        };
+
+        globalThis.CPTICore = CPTICore;
+      })();
+      /* CPTI_LOGIC_END */
+
+      (() => {
+        if (typeof document === "undefined") return;
+
+        const {
+          QUESTIONS,
+          createEmptyAnswers,
+          validateAnswers,
+          getCollectableDeck,
+          compareAnswerSets,
+          encodeShareToken,
+          decodeShareToken,
+          topMetricsForSelf,
+          topMetricsForCompare,
+          describeCompareResult,
+          primarySecondaryForCompare,
+        } = globalThis.CPTICore;
+
+        const state = {
+          answers: createEmptyAnswers(),
+          mode: "idle",
+          token: "",
+        };
+
+        const questionStack = document.getElementById("questionStack");
+        const shareToken = document.getElementById("shareToken");
+        const peerToken = document.getElementById("peerToken");
+        const generateStatus = document.getElementById("generateStatus");
+        const compareStatus = document.getElementById("compareStatus");
+        const summaryMode = document.getElementById("summaryMode");
+        const summaryTitle = document.getElementById("summaryTitle");
+        const summaryDescription = document.getElementById("summaryDescription");
+        const metricsNode = document.getElementById("metrics");
+        const primaryHeading = document.getElementById("primaryHeading");
+        const secondaryHeading = document.getElementById("secondaryHeading");
+        const primaryGrid = document.getElementById("primaryGrid");
+        const secondaryGrid = document.getElementById("secondaryGrid");
+        const primaryLegend = document.getElementById("primaryLegend");
+        const secondaryLegend = document.getElementById("secondaryLegend");
+
+        function setStatus(node, message, isError = false) {
+          if (!message) {
+            node.className = "status hidden";
+            node.textContent = "";
+            return;
+          }
+          node.className = `status${isError ? " error" : ""}`;
+          node.textContent = message;
+        }
+
+        function renderQuestions() {
+          const fragment = document.createDocumentFragment();
+
+          QUESTIONS.forEach((question, index) => {
+            const card = document.createElement("article");
+            card.className = "question-card";
+
+            const head = document.createElement("div");
+            head.className = "question-head";
+
+            const id = document.createElement("div");
+            id.className = "qid";
+            id.textContent = index + 1;
+
+            const copy = document.createElement("div");
+            const title = document.createElement("h3");
+            title.className = "question-title";
+            title.textContent = question.question;
+
+            const type = document.createElement("div");
+            type.className = "question-type";
+            type.textContent = question.type === "multiple" ? "MULTIPLE" : "SINGLE";
+
+            copy.append(title, type);
+            head.append(id, copy);
+            card.append(head);
+
+            if (question.id === "q27") {
+              const wrap = document.createElement("div");
+              wrap.className = "country-select-wrap";
+
+              const select = document.createElement("select");
+              select.className = "country-select";
+              select.dataset.question = question.id;
+
+              const placeholder = document.createElement("option");
+              placeholder.value = "";
+              placeholder.textContent = "请选择国家或地区";
+              select.append(placeholder);
+
+              const grouped = new Map();
+              question.options.forEach((option, optionIndex) => {
+                const groupLabel = option.tags?.[0] || "其他";
+                if (!grouped.has(groupLabel)) grouped.set(groupLabel, []);
+                grouped.get(groupLabel).push({ option, optionIndex });
+              });
+
+              grouped.forEach((items, groupLabel) => {
+                const optgroup = document.createElement("optgroup");
+                optgroup.label = groupLabel;
+                items.forEach(({ option, optionIndex }) => {
+                  const optionNode = document.createElement("option");
+                  optionNode.value = String(optionIndex);
+                  optionNode.textContent = `${option.label} / ${option.en}`;
+                  optgroup.append(optionNode);
+                });
+                select.append(optgroup);
+              });
+
+              select.addEventListener("change", () => {
+                state.answers[index] = select.value === "" ? null : Number(select.value);
+                syncSelections();
+              });
+
+              const hint = document.createElement("div");
+              hint.className = "country-select-hint";
+              hint.textContent = "已改为全球国家/地区下拉列表；国家本身会参与兴趣匹配，相同国家匹配最高，同洲次之。";
+
+              wrap.append(select, hint);
+              card.append(wrap);
+            } else {
+              const grid = document.createElement("div");
+              grid.className = "option-grid";
+              question.options.forEach((option, optionIndex) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "option-chip";
+                button.dataset.question = question.id;
+                button.dataset.index = optionIndex;
+                button.innerHTML = `<strong>${option.key}. ${option.label}</strong>`;
+                button.addEventListener("click", () => {
+                  if (question.type === "multiple") {
+                    const current = new Set(state.answers[index]);
+                    if (current.has(optionIndex)) current.delete(optionIndex);
+                    else current.add(optionIndex);
+                    state.answers[index] = [...current].sort((left, right) => left - right);
+                  } else {
+                    state.answers[index] = optionIndex;
+                  }
+                  syncSelections();
+                });
+                grid.append(button);
+              });
+              card.append(grid);
+            }
+
+            fragment.append(card);
+          });
+
+          questionStack.replaceChildren(fragment);
+          syncSelections();
+        }
+
+        function syncSelections() {
+          questionStack.querySelectorAll("select[data-question]").forEach((node) => {
+            const question = node.dataset.question;
+            const questionIndex = QUESTIONS.findIndex((item) => item.id === question);
+            const answer = state.answers[questionIndex];
+            node.value = answer === null || answer === undefined ? "" : String(answer);
+          });
+          questionStack.querySelectorAll("[data-question]").forEach((node) => {
+            if (node.tagName === "SELECT") return;
+            const { question, index } = node.dataset;
+            const questionIndex = QUESTIONS.findIndex((item) => item.id === question);
+            const answer = state.answers[questionIndex];
+            const selected = Array.isArray(answer) ? answer.includes(Number(index)) : answer === Number(index);
+            node.classList.toggle("selected", selected);
+          });
+        }
+
+        function renderMetrics(items) {
+          metricsNode.replaceChildren(
+            ...items.map((item) => {
+              const box = document.createElement("div");
+              box.className = "metric";
+              box.innerHTML = `<strong>${item.value}</strong><span>${item.label}</span>`;
+              return box;
+            }),
+          );
+        }
+
+        function createRelationCard(relation) {
+          const card = document.createElement("article");
+          card.className = "result-card";
+          card.style.setProperty("--card-a", relation.tone[0]);
+          card.style.setProperty("--card-b", relation.tone[1]);
+          card.style.setProperty("--pose-left", relation.pose[0]);
+          card.style.setProperty("--pose-right", relation.pose[1]);
+          card.innerHTML = `
+            <div class="art">
+              <div class="halo"></div>
+            </div>
+            <div class="content">
+              <strong>${relation.zh}</strong>
+              <div class="en">${relation.en}</div>
+              <div class="score"><span>匹配度 ${Math.round(relation.score)}</span></div>
+            </div>
+          `;
+          return card;
+        }
+
+        function showSelfDeck() {
+          const missing = validateAnswers(state.answers);
+          if (missing.length) {
+            setStatus(generateStatus, `还有 ${missing.length} 题未完成：${missing.join("、")}`, true);
+            return;
+          }
+
+          const deck = getCollectableDeck(state.answers);
+          state.mode = "self";
+          summaryMode.textContent = "SELF ARCHIVE";
+          summaryTitle.innerHTML = `你的关系可收集倾向<span>THEORETICAL DECK</span>`;
+          summaryDescription.textContent = `这是按你的答题画像推测出来的“理论上可收集图鉴”。它不是具体对象的关系结论，而是你更容易进入哪些关系结构。`;
+          renderMetrics(topMetricsForSelf(deck));
+          primaryHeading.textContent = "基于您的答题档案，理论上可以收集的图鉴：";
+          secondaryHeading.textContent = "其他图鉴：";
+          primaryGrid.replaceChildren(...deck.primary.map(createRelationCard));
+          secondaryGrid.replaceChildren(...deck.secondary.map(createRelationCard));
+          primaryLegend.textContent = `前 16 张卡按你的个人画像排序，越靠前表示越容易出现在你的关系生态里。`;
+          secondaryLegend.textContent = `剩余 9 张是低概率但仍可出现的关系类型。`;
+        }
+
+        async function handleGenerate() {
+          const missing = validateAnswers(state.answers);
+          if (missing.length) {
+            setStatus(generateStatus, `还有 ${missing.length} 题未完成：${missing.join("、")}`, true);
+            return;
+          }
+
+          try {
+            const token = await encodeShareToken(state.answers);
+            state.token = token;
+            shareToken.value = token;
+            setStatus(generateStatus, "密文已生成。你可以直接复制给别人，或继续粘贴别人的密文来比较。");
+            showSelfDeck();
+          } catch (error) {
+            setStatus(generateStatus, error instanceof Error ? error.message : "生成密文失败", true);
+          }
+        }
+
+        async function handleCompare() {
+          const missing = validateAnswers(state.answers);
+          if (missing.length) {
+            setStatus(compareStatus, `请先完成你自己的问卷，未完成题目：${missing.join("、")}`, true);
+            return;
+          }
+          const raw = peerToken.value.trim();
+          if (!raw) {
+            setStatus(compareStatus, "请先粘贴别人的 CPTI 密文。", true);
+            return;
+          }
+          try {
+            const peer = await decodeShareToken(raw);
+            const result = compareAnswerSets(state.answers, peer.answers);
+            const groups = primarySecondaryForCompare(result);
+
+            state.mode = "compare";
+            summaryMode.textContent = "PAIR COMPARISON";
+            summaryTitle.innerHTML = `${result.top.zh}<span>${result.top.en}</span>`;
+            summaryDescription.textContent = describeCompareResult(result);
+            renderMetrics(topMetricsForCompare(result));
+            primaryHeading.textContent = "你们最像的关系：";
+            secondaryHeading.textContent = "其他高匹配关系：";
+            primaryGrid.replaceChildren(...groups.primary.map(createRelationCard));
+            secondaryGrid.replaceChildren(...groups.secondary.map(createRelationCard));
+            primaryLegend.textContent = `第一名是当前这对答卷的主关系判定，后续卡片按综合得分从高到低排列。`;
+            secondaryLegend.textContent = `这些不是“错误答案”，而是次一级也能解释你们相处结构的关系类型。`;
+            setStatus(compareStatus, `比较完成：主关系为 ${result.top.zh}，判定优势 ${Math.round(result.confidence)} 分。`);
+          } catch (error) {
+            setStatus(compareStatus, error instanceof Error ? error.message : "解密或比较失败", true);
+          }
+        }
+
+        async function copyTokenToClipboard() {
+          if (!shareToken.value.trim()) {
+            setStatus(generateStatus, "还没有可复制的密文，请先生成。", true);
+            return;
+          }
+          try {
+            await navigator.clipboard.writeText(shareToken.value.trim());
+            setStatus(generateStatus, "密文已复制到剪贴板。");
+          } catch {
+            shareToken.select();
+            document.execCommand("copy");
+            setStatus(generateStatus, "已尝试复制；如果浏览器拦截，请手动复制文本框内容。");
+          }
+        }
+
+        document.getElementById("generateButton").addEventListener("click", handleGenerate);
+        document.getElementById("copyButton").addEventListener("click", copyTokenToClipboard);
+        document.getElementById("compareButton").addEventListener("click", handleCompare);
+        document.getElementById("showSelfButton").addEventListener("click", () => {
+          setStatus(compareStatus, "");
+          showSelfDeck();
+        });
+
+        renderQuestions();
+      })();
+    </script>
+  </body>
+</html>
