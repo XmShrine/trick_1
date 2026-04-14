@@ -346,6 +346,13 @@
         margin-top: 14px;
       }
 
+      .slot-note {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
       button,
       .ghost-button {
         appearance: none;
@@ -760,6 +767,7 @@
               <button class="secondary-button" id="copyButton">复制密文</button>
             </div>
             <textarea id="shareToken" readonly placeholder="生成后会在这里出现你的加密档案"></textarea>
+            <div class="slot-note">这个文本框是“我的档案槽位”。刷新后页面会优先从这里恢复你的答卷。</div>
             <div class="status hidden" id="generateStatus"></div>
           </div>
 
@@ -771,6 +779,11 @@
               <button class="primary-button" id="compareButton">比较关系</button>
               <button class="secondary-button" id="showSelfButton">只看我的可收集图鉴</button>
             </div>
+            <div class="button-row">
+              <button class="secondary-button" id="adoptPeerButton">设为我的档案</button>
+              <button class="secondary-button" id="swapSlotsButton">交换上下槽位</button>
+            </div>
+            <div class="slot-note">如果你把自己的密文误贴到了下方，可以直接“设为我的档案”；两个槽位放反了就用“交换上下槽位”。</div>
             <div class="status hidden" id="compareStatus"></div>
           </div>
 
@@ -1789,6 +1802,7 @@
           mode: "idle",
           token: "",
         };
+        const STORAGE_KEY = "cpti-offline-slots-v1";
 
         const questionStack = document.getElementById("questionStack");
         const shareToken = document.getElementById("shareToken");
@@ -1805,6 +1819,8 @@
         const secondaryGrid = document.getElementById("secondaryGrid");
         const primaryLegend = document.getElementById("primaryLegend");
         const secondaryLegend = document.getElementById("secondaryLegend");
+        const adoptPeerButton = document.getElementById("adoptPeerButton");
+        const swapSlotsButton = document.getElementById("swapSlotsButton");
 
         function setStatus(node, message, isError = false) {
           if (!message) {
@@ -1814,6 +1830,87 @@
           }
           node.className = `status${isError ? " error" : ""}`;
           node.textContent = message;
+        }
+
+        function readStoredSlots() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return { selfToken: "", peerToken: "" };
+            const parsed = JSON.parse(raw);
+            return {
+              selfToken: typeof parsed.selfToken === "string" ? parsed.selfToken : "",
+              peerToken: typeof parsed.peerToken === "string" ? parsed.peerToken : "",
+            };
+          } catch {
+            return { selfToken: "", peerToken: "" };
+          }
+        }
+
+        function writeStoredSlots() {
+          try {
+            localStorage.setItem(
+              STORAGE_KEY,
+              JSON.stringify({
+                selfToken: shareToken.value.trim(),
+                peerToken: peerToken.value.trim(),
+              }),
+            );
+          } catch {}
+        }
+
+        function sameAnswerSet(leftAnswers, rightAnswers) {
+          return JSON.stringify(leftAnswers) === JSON.stringify(rightAnswers);
+        }
+
+        function applySelfArchive(deck, message = "") {
+          state.mode = "self";
+          summaryMode.textContent = "SELF ARCHIVE";
+          summaryTitle.innerHTML = `你的关系可收集倾向<span>THEORETICAL DECK</span>`;
+          summaryDescription.textContent = `这是按你的答题画像推测出来的“理论上可收集图鉴”。它不是具体对象的关系结论，而是你更容易进入哪些关系结构。`;
+          renderMetrics(topMetricsForSelf(deck));
+          primaryHeading.textContent = "基于您的答题档案，理论上可以收集的图鉴：";
+          secondaryHeading.textContent = "其他图鉴：";
+          primaryGrid.replaceChildren(...deck.primary.map(createRelationCard));
+          secondaryGrid.replaceChildren(...deck.secondary.map(createRelationCard));
+          primaryLegend.textContent = `前 16 张卡按你的个人画像排序，越靠前表示越容易出现在你的关系生态里。`;
+          secondaryLegend.textContent = `剩余 9 张是低概率但仍可出现的关系类型。`;
+          if (message) setStatus(generateStatus, message);
+        }
+
+        async function restoreSelfFromToken(token, message = "") {
+          const archive = await decodeShareToken(token);
+          state.answers = archive.answers.map((answer) => (Array.isArray(answer) ? [...answer] : answer));
+          state.token = token;
+          syncSelections();
+          applySelfArchive(getCollectableDeck(state.answers), message);
+          return archive;
+        }
+
+        function applyCompareResult(result, statusMessage) {
+          const groups = primarySecondaryForCompare(result);
+          state.mode = "compare";
+          summaryMode.textContent = "PAIR COMPARISON";
+          summaryTitle.innerHTML = `${result.top.zh}<span>${result.top.en}</span>`;
+          summaryDescription.textContent = describeCompareResult(result);
+          renderMetrics(topMetricsForCompare(result));
+          primaryHeading.textContent = "你们最像的关系：";
+          secondaryHeading.textContent = "其他高匹配关系：";
+          primaryGrid.replaceChildren(...groups.primary.map(createRelationCard));
+          secondaryGrid.replaceChildren(...groups.secondary.map(createRelationCard));
+          primaryLegend.textContent = `第一名是当前这对答卷的主关系判定，后续卡片按综合得分从高到低排列。`;
+          secondaryLegend.textContent = `这些不是“错误答案”，而是次一级也能解释你们相处结构的关系类型。`;
+          setStatus(compareStatus, statusMessage);
+        }
+
+        async function compareAgainstPeerToken(token, statusPrefix = "比较完成") {
+          const peer = await decodeShareToken(token);
+          const result = compareAnswerSets(state.answers, peer.answers);
+          const duplicateHint = sameAnswerSet(state.answers, peer.answers) ? " 检测到两份档案完全相同，可能是在和自己比较。" : "";
+          applyCompareResult(
+            result,
+            `${statusPrefix}：主关系为 ${result.top.zh}，判定优势 ${Math.round(result.confidence)} 分。${duplicateHint}`,
+          );
+          return result;
         }
 
         function renderQuestions() {
@@ -1973,19 +2070,7 @@
             setStatus(generateStatus, `还有 ${missing.length} 题未完成：${missing.join("、")}`, true);
             return;
           }
-
-          const deck = getCollectableDeck(state.answers);
-          state.mode = "self";
-          summaryMode.textContent = "SELF ARCHIVE";
-          summaryTitle.innerHTML = `你的关系可收集倾向<span>THEORETICAL DECK</span>`;
-          summaryDescription.textContent = `这是按你的答题画像推测出来的“理论上可收集图鉴”。它不是具体对象的关系结论，而是你更容易进入哪些关系结构。`;
-          renderMetrics(topMetricsForSelf(deck));
-          primaryHeading.textContent = "基于您的答题档案，理论上可以收集的图鉴：";
-          secondaryHeading.textContent = "其他图鉴：";
-          primaryGrid.replaceChildren(...deck.primary.map(createRelationCard));
-          secondaryGrid.replaceChildren(...deck.secondary.map(createRelationCard));
-          primaryLegend.textContent = `前 16 张卡按你的个人画像排序，越靠前表示越容易出现在你的关系生态里。`;
-          secondaryLegend.textContent = `剩余 9 张是低概率但仍可出现的关系类型。`;
+          applySelfArchive(getCollectableDeck(state.answers));
         }
 
         async function handleGenerate() {
@@ -1999,6 +2084,7 @@
             const token = await encodeShareToken(state.answers);
             state.token = token;
             shareToken.value = token;
+            writeStoredSlots();
             setStatus(generateStatus, "密文已生成。你可以直接复制给别人，或继续粘贴别人的密文来比较。");
             showSelfDeck();
           } catch (error) {
@@ -2018,22 +2104,8 @@
             return;
           }
           try {
-            const peer = await decodeShareToken(raw);
-            const result = compareAnswerSets(state.answers, peer.answers);
-            const groups = primarySecondaryForCompare(result);
-
-            state.mode = "compare";
-            summaryMode.textContent = "PAIR COMPARISON";
-            summaryTitle.innerHTML = `${result.top.zh}<span>${result.top.en}</span>`;
-            summaryDescription.textContent = describeCompareResult(result);
-            renderMetrics(topMetricsForCompare(result));
-            primaryHeading.textContent = "你们最像的关系：";
-            secondaryHeading.textContent = "其他高匹配关系：";
-            primaryGrid.replaceChildren(...groups.primary.map(createRelationCard));
-            secondaryGrid.replaceChildren(...groups.secondary.map(createRelationCard));
-            primaryLegend.textContent = `第一名是当前这对答卷的主关系判定，后续卡片按综合得分从高到低排列。`;
-            secondaryLegend.textContent = `这些不是“错误答案”，而是次一级也能解释你们相处结构的关系类型。`;
-            setStatus(compareStatus, `比较完成：主关系为 ${result.top.zh}，判定优势 ${Math.round(result.confidence)} 分。`);
+            writeStoredSlots();
+            await compareAgainstPeerToken(raw);
           } catch (error) {
             setStatus(compareStatus, error instanceof Error ? error.message : "解密或比较失败", true);
           }
@@ -2054,15 +2126,92 @@
           }
         }
 
+        async function handleAdoptPeer() {
+          const raw = peerToken.value.trim();
+          if (!raw) {
+            setStatus(compareStatus, "下方槽位还是空的，没有可设为“我的档案”的密文。", true);
+            return;
+          }
+          try {
+            shareToken.value = raw;
+            peerToken.value = "";
+            writeStoredSlots();
+            await restoreSelfFromToken(raw, "已将下方密文设为“我的档案”，并恢复了问卷状态。");
+            setStatus(compareStatus, "");
+          } catch (error) {
+            setStatus(compareStatus, error instanceof Error ? error.message : "无法把下方密文设为我的档案", true);
+          }
+        }
+
+        async function handleSwapSlots() {
+          const upper = shareToken.value.trim();
+          const lower = peerToken.value.trim();
+          if (!upper && !lower) {
+            setStatus(compareStatus, "上下两个槽位都是空的，没有可交换的内容。", true);
+            return;
+          }
+          shareToken.value = lower;
+          peerToken.value = upper;
+          writeStoredSlots();
+          setStatus(compareStatus, "");
+          if (!shareToken.value.trim()) {
+            state.answers = createEmptyAnswers();
+            state.token = "";
+            syncSelections();
+            setStatus(generateStatus, "已交换槽位；新的“我的档案”槽位为空，所以未恢复答卷。");
+            return;
+          }
+          try {
+            await restoreSelfFromToken(shareToken.value.trim(), "已交换上下槽位，并从新的“我的档案”恢复了答卷。");
+            if (peerToken.value.trim()) {
+              await compareAgainstPeerToken(peerToken.value.trim(), "交换后已自动重新比较");
+            }
+          } catch (error) {
+            setStatus(generateStatus, error instanceof Error ? error.message : "交换后无法恢复我的档案", true);
+          }
+        }
+
+        async function restoreSlotsOnLoad() {
+          const stored = readStoredSlots();
+          if (!shareToken.value.trim() && stored.selfToken) shareToken.value = stored.selfToken;
+          if (!peerToken.value.trim() && stored.peerToken) peerToken.value = stored.peerToken;
+          writeStoredSlots();
+
+          const selfRaw = shareToken.value.trim();
+          const peerRaw = peerToken.value.trim();
+          if (!selfRaw) return;
+
+          try {
+            await restoreSelfFromToken(selfRaw, "已从“我的档案”槽位恢复刷新前的答卷状态。");
+          } catch (error) {
+            setStatus(generateStatus, error instanceof Error ? error.message : "无法恢复我的档案", true);
+            return;
+          }
+
+          if (!peerRaw) return;
+          try {
+            await compareAgainstPeerToken(peerRaw, "已从刷新前的两个槽位恢复并重新比较");
+          } catch (error) {
+            setStatus(compareStatus, error instanceof Error ? error.message : "无法恢复对方档案", true);
+          }
+        }
+
         document.getElementById("generateButton").addEventListener("click", handleGenerate);
         document.getElementById("copyButton").addEventListener("click", copyTokenToClipboard);
         document.getElementById("compareButton").addEventListener("click", handleCompare);
+        adoptPeerButton.addEventListener("click", handleAdoptPeer);
+        swapSlotsButton.addEventListener("click", handleSwapSlots);
+        peerToken.addEventListener("input", () => {
+          writeStoredSlots();
+          setStatus(compareStatus, "");
+        });
         document.getElementById("showSelfButton").addEventListener("click", () => {
           setStatus(compareStatus, "");
           showSelfDeck();
         });
 
         renderQuestions();
+        restoreSlotsOnLoad();
       })();
     </script>
   </body>
