@@ -723,7 +723,7 @@
         <div class="hero-grid">
           <div class="hero-pill">
             <strong>1. 建立档案</strong>
-            <span>答完 30 题后，生成本人的加密结果串。</span>
+            <span>答完 40 题后，生成本人的加密结果串。</span>
           </div>
           <div class="hero-pill">
             <strong>2. 复制密文</strong>
@@ -745,7 +745,7 @@
           <div class="panel-inner">
             <h2 class="section-title">问卷档案</h2>
             <p class="section-subtitle">
-              单选题点一个选项即可，多选题可选多个。建议先全部答完再生成档案；没有完成时页面会提醒缺失题目。
+              本版问卷共 40 题，均为单选。建议先全部答完再生成档案；没有完成时页面会提醒缺失题目。
             </p>
             <div class="question-stack" id="questionStack"></div>
           </div>
@@ -862,37 +862,51 @@
 
         const COUNTRY_OPTIONS = buildCountryOptions();
 
+        function fx(abstract = 0, social = 0, warmth = 0, conflict = 0, order = 0, lead = 0, attach = 0, weird = 0) {
+          return { abstract, social, warmth, conflict, order, lead, attach, weird };
+        }
+
         const QUESTIONS = [
-          { id: "q1", type: "single", question: "有界闭紧在任何时候都是紧集吗？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "什么是有界闭紧" }] },
-          { id: "q2", type: "single", question: "对举报大学考试作弊的态度是？", options: [{ key: "A", label: "涉及切身利益等-举报，反之-不举报" }, { key: "B", label: "无论如何不举报" }, { key: "C", label: "无论如何举报" }, { key: "D", label: "不知道" }] },
-          { id: "q3", type: "multiple", question: "出去玩大多以什么为目的？", options: [{ key: "A", label: "食物" }, { key: "B", label: "景色" }, { key: "C", label: "纯遛弯" }, { key: "D", label: "其他" }, { key: "E", label: "不出去玩" }] },
-          { id: "q4", type: "single", question: "对网络空间实名制的态度是（全球的网络空间）？", options: [{ key: "A", label: "支持" }, { key: "B", label: "反对" }, { key: "C", label: "什么是网络空间实名制" }] },
-          { id: "q5", type: "single", question: "喜欢偏向背诵的学科（此处以医学类为例）还是偏向理解的学科（此处以计算机类为例）？（此处强调学习时的偏好，不涉及学科本身的难易程度或倾向）", options: [{ key: "A", label: "偏向背诵" }, { key: "B", label: "偏向理解" }, { key: "C", label: "不知道" }] },
-          { id: "q6", type: "single", question: "是否有阅读长篇以自然语言为主要内容的材料的兴趣（指以自然语言为主要内容的材料，如小说、长篇文章等，而非以代码或公式为主的材料）？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
-          { id: "q7", type: "single", question: "喜欢睡觉吗？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "无所谓" }] },
-          { id: "q8", type: "single", question: "会理解对方所描述问题后再给出回答吗？", options: [{ key: "A", label: "总是这样" }, { key: "B", label: "不这样" }, { key: "C", label: "根据问题内容而定" }, { key: "D", label: "不知道" }] },
-          { id: "q9", type: "single", question: "是否可以快速与陌生人建立联系并进行交流？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "遇不到陌生人" }, { key: "D", label: "不知道" }] },
-          { id: "q10", type: "single", question: "遇到不合理（主观上）的规定，会想要绕过去？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "没遇到过不合理的规定" }, { key: "D", label: "不知道" }] },
-          { id: "q11", type: "single", question: "一些较为重要的事情需要亲力亲为，了解细节？（本题摘自“是否要求自己制定旅行攻略”）可以引申为多种情况，如工作、学习等方面的事情，本题重点在于细节二字", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
-          { id: "q12", type: "single", question: "是否会记得朋友随口说起的小事？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "有可能" }, { key: "D", label: "不知道" }] },
-          { id: "q13", type: "single", question: "总体来说（按自身经历占比决定）交往新朋友是带来兴奋还是疲惫？", options: [{ key: "A", label: "兴奋" }, { key: "B", label: "疲惫" }, { key: "C", label: "占比一样" }, { key: "D", label: "不知道" }] },
-          { id: "q14", type: "single", question: "别人（这里可以抽象为一个主体）说「这个不行」，会想要反驳或尝试吗？（按占比决定）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "D", label: "不知道" }] },
-          { id: "q15", type: "single", question: "周末别人邀请你出去玩，你会想要拒绝吗？（按你遇到过的情况中的占比决定）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "没被邀请出去过或很少被邀请出去玩" }, { key: "D", label: "不知道" }] },
-          { id: "q16", type: "single", question: "是否会直接反驳你不认同的上级观点？（按占比决定）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "D", label: "不知道" }] },
-          { id: "q17", type: "single", question: "在持有一定观点时，是否容易被说服？（根据经历来判定）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
-          { id: "q18", type: "single", question: "选择你对墙的观点（最贴近你观点的选项）", options: [{ key: "A", label: "反对，认为墙是对网络空间的限制和控制，不利于信息自由流通和个人隐私保护" }, { key: "B", label: "支持，认为墙是维护国家安全和社会稳定的必要措施" }, { key: "C", label: "反对，但是认为墙在某些情况下可能有其合理性和必要性" }, { key: "D", label: "支持，但希望自己没有这种限制" }, { key: "E", label: "没有符合的观点" }] },
-          { id: "q19", type: "single", question: "你喜欢什么系统（电脑）", options: [{ key: "A", label: "macOS" }, { key: "B", label: "鸿蒙 OS" }, { key: "C", label: "Windows" }, { key: "D", label: "Linux" }, { key: "E", label: "什么是电脑" }] },
-          { id: "q20", type: "single", question: "朋友圈子比较广泛，什么人都有", options: [{ key: "A", label: "是" }, { key: "B", label: "不是" }] },
-          { id: "q21", type: "single", question: "你更喜欢自己主导，而不是执行别人的计划？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "无所谓" }] },
-          { id: "q22", type: "single", question: "社交结束后，你需要独处一段时间？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
-          { id: "q23", type: "single", question: "和别人意见不同时，你倾向于顺着对方，避免产生矛盾？", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "不知道" }] },
-          { id: "q24", type: "single", question: "有时一时冲动做出后悔的事情？", options: [{ key: "A", label: "有过" }, { key: "B", label: "没有" }] },
-          { id: "q25", type: "single", question: "做新事情前，习惯先搞清楚流程再做（此处指你看重的事情，忽略你根本不愿意做的事情）", options: [{ key: "A", label: "是的" }, { key: "B", label: "不是" }, { key: "C", label: "无所谓" }] },
-          { id: "q26", type: "single", question: "大型聚会 or 小范围（2-3人）聚会", options: [{ key: "A", label: "大型聚会" }, { key: "B", label: "小范围聚会" }, { key: "C", label: "什么是聚会" }] },
-          { id: "q27", type: "single", question: "如果现在给你一笔充足的资金，并限定你去一个地方旅游（广义上的），请问你最想去哪里？", options: COUNTRY_OPTIONS.map((item) => ({ key: item.key, label: item.label, en: item.en, continent: item.continent, tags: item.tags })) },
-          { id: "q28", type: "single", question: "喜好：法无规则皆可为 or 法有规则才可为（纯个人喜欢，不指代对其他人的要求）", options: [{ key: "A", label: "法无规则皆可为" }, { key: "B", label: "法有规则才可为" }, { key: "C", label: "不知道" }] },
-          { id: "q29", type: "multiple", question: "选择你喜欢的翘课模式：", options: [{ key: "A", label: "直接翘课，完全不去上课" }, { key: "B", label: "只翘水课，不翘专业课" }, { key: "C", label: "只翘专业课，不翘水课" }, { key: "D", label: "只翘不点名的课" }, { key: "E", label: "只翘点名的课" }, { key: "F", label: "只翘不喜欢的课" }, { key: "G", label: "只翘喜欢的课" }, { key: "H", label: "不翘课" }] },
+          { id: "q1", type: "single", question: "如果不额外限定语境，你会怎样回答“有界闭集这题”这类问题？", options: [{ key: "A", label: "先按常见语境给一个直接答案" }, { key: "B", label: "先追问定义和空间条件" }, { key: "C", label: "记不清，但直觉上没那么简单" }, { key: "D", label: "先别拿有界闭集吓我" }] },
+          { id: "q2", type: "single", question: "听别人讲一件复杂的事时，你最先抓住的是什么？", options: [{ key: "A", label: "逻辑链条" }, { key: "B", label: "情绪和处境" }, { key: "C", label: "两者一起" }, { key: "D", label: "当时的气氛" }] },
+          { id: "q3", type: "single", question: "解释一个概念时，你更自然的起手式是？", options: [{ key: "A", label: "先下定义" }, { key: "B", label: "先举例子" }, { key: "C", label: "先找个比喻" }, { key: "D", label: "先说结论，细节以后再补" }] },
+          { id: "q4", type: "single", question: "面对一个很大的未知问题，你更像哪种人？", options: [{ key: "A", label: "先搭模型再动" }, { key: "B", label: "先推进再说" }, { key: "C", label: "边推边修" }, { key: "D", label: "先怀疑这题值不值得做" }] },
+          { id: "q5", type: "single", question: "碰到明显不合理的规则时，你最像？", options: [{ key: "A", label: "改进它" }, { key: "B", label: "绕过它" }, { key: "C", label: "质疑它存在的前提" }, { key: "D", label: "看心情" }] },
+          { id: "q6", type: "single", question: "和陌生人处在同一空间时，你通常会？", options: [{ key: "A", label: "主动开口" }, { key: "B", label: "等别人先说" }, { key: "C", label: "只对少数人会主动" }, { key: "D", label: "先感受对方气场" }] },
+          { id: "q7", type: "single", question: "高密度社交一天后，你更常见的状态是？", options: [{ key: "A", label: "更兴奋了" }, { key: "B", label: "需要独处回血" }, { key: "C", label: "看对象" }, { key: "D", label: "直接失联" }] },
+          { id: "q8", type: "single", question: "你更喜欢哪种社交场景？", options: [{ key: "A", label: "人多热闹的场合" }, { key: "B", label: "四五人的小圈子" }, { key: "C", label: "一对一" }, { key: "D", label: "能不出现最好" }] },
+          { id: "q9", type: "single", question: "一段关系里，你更在意哪件事？", options: [{ key: "A", label: "聊得来" }, { key: "B", label: "处得稳" }, { key: "C", label: "彼此需要" }, { key: "D", label: "一起发疯" }] },
+          { id: "q10", type: "single", question: "刚认识一个人时，你更容易先做什么？", options: [{ key: "A", label: "观察" }, { key: "B", label: "互动" }, { key: "C", label: "试探边界" }, { key: "D", label: "判断对方怪不怪" }] },
+          { id: "q11", type: "single", question: "当你喜欢一个人时，更像哪种表达？", options: [{ key: "A", label: "直接说出来" }, { key: "B", label: "用行动表达" }, { key: "C", label: "先藏着" }, { key: "D", label: "等对方先示意" }] },
+          { id: "q12", type: "single", question: "别人情绪明显失控时，你第一反应通常是？", options: [{ key: "A", label: "先安抚" }, { key: "B", label: "先分析问题" }, { key: "C", label: "陪着，但不多说" }, { key: "D", label: "先撤开一点" }] },
+          { id: "q13", type: "single", question: "别人随口提过的偏好、小习惯，你通常会？", options: [{ key: "A", label: "记得很牢" }, { key: "B", label: "重要的会记" }, { key: "C", label: "经常忘" }, { key: "D", label: "基本不记" }] },
+          { id: "q14", type: "single", question: "看到别人露出脆弱的一面时，你更像？", options: [{ key: "A", label: "想保护" }, { key: "B", label: "想理解" }, { key: "C", label: "有点压力" }, { key: "D", label: "想转移话题" }] },
+          { id: "q15", type: "single", question: "当你想念一个人时，你通常会？", options: [{ key: "A", label: "直接联系" }, { key: "B", label: "找个由头联系" }, { key: "C", label: "等对方先来" }, { key: "D", label: "不联系" }] },
+          { id: "q16", type: "single", question: "被人当面否定时，你更容易？", options: [{ key: "A", label: "立刻顶回去" }, { key: "B", label: "讲清楚原因" }, { key: "C", label: "先记着" }, { key: "D", label: "先退一步" }] },
+          { id: "q17", type: "single", question: "和别人意见相左时，你更常用的处理方式是？", options: [{ key: "A", label: "争到底" }, { key: "B", label: "找折中" }, { key: "C", label: "先让过去" }, { key: "D", label: "以后再谈" }] },
+          { id: "q18", type: "single", question: "你对长期“针锋相对式相处”的直觉更接近？", options: [{ key: "A", label: "会上头" }, { key: "B", label: "能接受" }, { key: "C", label: "偶尔挺有意思" }, { key: "D", label: "完全不想" }] },
+          { id: "q19", type: "single", question: "你在关系里更怕什么？", options: [{ key: "A", label: "被控制" }, { key: "B", label: "被忽略" }, { key: "C", label: "被误解" }, { key: "D", label: "被看穿" }] },
+          { id: "q20", type: "single", question: "你会不会故意试探别人的边界？", options: [{ key: "A", label: "经常" }, { key: "B", label: "偶尔" }, { key: "C", label: "基本不会" }, { key: "D", label: "从不" }] },
+          { id: "q21", type: "single", question: "对重要的事情，你通常怎么开头？", options: [{ key: "A", label: "先列流程" }, { key: "B", label: "边做边补" }, { key: "C", label: "先找人聊" }, { key: "D", label: "拖到最后" }] },
+          { id: "q22", type: "single", question: "别人迟到、失约、临时改计划时，你更像？", options: [{ key: "A", label: "非常敏感" }, { key: "B", label: "看理由" }, { key: "C", label: "对熟人更敏感" }, { key: "D", label: "通常不计较" }] },
+          { id: "q23", type: "single", question: "你理想里的关系边界更接近？", options: [{ key: "A", label: "越清晰越好" }, { key: "B", label: "自然流动" }, { key: "C", label: "看关系深浅" }, { key: "D", label: "我自己也说不准" }] },
+          { id: "q24", type: "single", question: "对私人空间的需求，你更像？", options: [{ key: "A", label: "每天都要有" }, { key: "B", label: "适中就好" }, { key: "C", label: "有人陪着也行" }, { key: "D", label: "几乎不需要" }] },
+          { id: "q25", type: "single", question: "关系开始变乱时，你更倾向于？", options: [{ key: "A", label: "把规则重新梳理清楚" }, { key: "B", label: "直接切断" }, { key: "C", label: "装作没事" }, { key: "D", label: "等它自己恢复" }] },
+          { id: "q26", type: "single", question: "在一个团队里，你更常站在哪个位置？", options: [{ key: "A", label: "接管节奏的人" }, { key: "B", label: "辅助推进的人" }, { key: "C", label: "只做我那部分" }, { key: "D", label: "能躲就躲" }] },
+          { id: "q27", type: "single", question: "如果只能和最重要的人去一个国家长期生活，你直觉最想选哪里？", options: COUNTRY_OPTIONS.map((item) => ({ key: item.key, label: item.label, en: item.en, continent: item.continent, tags: item.tags })) },
+          { id: "q28", type: "single", question: "当别人犹豫不决时，你会不会替对方拍板？", options: [{ key: "A", label: "会，而且很自然" }, { key: "B", label: "必要时会" }, { key: "C", label: "尽量不替人决定" }, { key: "D", label: "基本不会" }] },
+          { id: "q29", type: "single", question: "在双人关系里，你更接受哪种带路方式？", options: [{ key: "A", label: "我带对方" }, { key: "B", label: "对方带我" }, { key: "C", label: "轮流带" }, { key: "D", label: "谁都别带谁" }] },
           { id: "q30", type: "single", question: "你是什么性别？", options: [{ key: "A", label: "男" }, { key: "B", label: "女" }] },
+          { id: "q31", type: "single", question: "你理想中的亲密结构更像？", options: [{ key: "A", label: "并肩" }, { key: "B", label: "依赖" }, { key: "C", label: "互依" }, { key: "D", label: "若即若离" }] },
+          { id: "q32", type: "single", question: "你舒服的联系频率更接近？", options: [{ key: "A", label: "几乎每天" }, { key: "B", label: "隔天或稳定高频" }, { key: "C", label: "有事再说" }, { key: "D", label: "别催我回" }] },
+          { id: "q33", type: "single", question: "关系对你最重要的价值更像？", options: [{ key: "A", label: "情绪落点" }, { key: "B", label: "行动伙伴" }, { key: "C", label: "思想共振" }, { key: "D", label: "安静共处" }] },
+          { id: "q34", type: "single", question: "你对“占有欲”这件事的感受更接近？", options: [{ key: "A", label: "会警惕" }, { key: "B", label: "一点点可以接受" }, { key: "C", label: "看是谁" }, { key: "D", label: "某种程度上反而安心" }] },
+          { id: "q35", type: "single", question: "你更容易被什么吸引？", options: [{ key: "A", label: "和我很像的人" }, { key: "B", label: "和我不同的人" }, { key: "C", label: "能让我成长的人" }, { key: "D", label: "让我捉摸不透的人" }] },
+          { id: "q36", type: "single", question: "一段关系如果太“普通”，你会不会很快失去兴趣？", options: [{ key: "A", label: "会" }, { key: "B", label: "不会" }, { key: "C", label: "看有没有深度" }, { key: "D", label: "看稳不稳定" }] },
+          { id: "q37", type: "single", question: "你会不会故意说点怪话、冷话来测试对方是不是同类？", options: [{ key: "A", label: "经常" }, { key: "B", label: "偶尔" }, { key: "C", label: "基本不" }, { key: "D", label: "完全不会" }] },
+          { id: "q38", type: "single", question: "面对冷门、荒诞、只有少数人会笑的东西时，你更像？", options: [{ key: "A", label: "会强烈共振" }, { key: "B", label: "能理解但不沉迷" }, { key: "C", label: "无感" }, { key: "D", label: "会排斥" }] },
+          { id: "q39", type: "single", question: "你理想中的关系气味更接近？", options: [{ key: "A", label: "正常且稳定" }, { key: "B", label: "有点偏，但不离谱" }, { key: "C", label: "越偏越好" }, { key: "D", label: "表面正常，内里很怪" }] },
+          { id: "q40", type: "single", question: "如果只能选一个词来形容你最想要的关系，你会选？", options: [{ key: "A", label: "镜像" }, { key: "B", label: "默契" }, { key: "C", label: "对抗" }, { key: "D", label: "保护" }] },
         ];
 
         const QUESTION_MAP = Object.fromEntries(QUESTIONS.map((question, index) => [question.id, { question, index }]));
@@ -928,6 +942,57 @@
 
         const RELATION_MAP = Object.fromEntries(RELATIONS.map((item) => [item.label, item]));
 
+        const QUESTION_EFFECTS = {
+          q1: { A: fx(10, 0, 0, 0, 4, 0, 0, 0), B: fx(18, 0, 0, 0, 4, 0, 0, 2), C: fx(-4, 0, 0, 0, 0, 0, 0, 8), D: fx(-8, 0, 0, 0, 0, 0, 0, 12) },
+          q2: { A: fx(12, 0, -6, 0, 4, 0, 0, 0), B: fx(-4, 0, 12, 0, 0, 0, 6, 0), C: fx(4, 0, 4, 0, 2, 0, 2, 0), D: fx(0, 2, 0, 0, 0, 0, 0, 4) },
+          q3: { A: fx(10, 0, 0, 0, 4, 0, 0, 0), B: fx(0, 2, 4, 0, 0, 0, 0, 0), C: fx(6, 0, 2, 0, 0, 0, 0, 6), D: fx(0, 0, 0, 4, -4, 4, 0, 4) },
+          q4: { A: fx(10, -2, 0, 0, 6, 0, 0, 0), B: fx(0, 0, 0, 2, -2, 10, 0, 0), C: fx(4, 0, 0, 0, 0, 4, 0, 0), D: fx(0, -4, 0, 0, 0, 0, 0, 6) },
+          q5: { A: fx(0, 0, 0, 0, 12, 0, 0, 0), B: fx(0, 0, 0, 10, -8, 0, 0, 0), C: fx(8, 0, 0, 6, 0, 0, 0, 2), D: fx(0, 0, 2, 0, -4, 0, 0, 0) },
+          q6: { A: fx(0, 14, 0, 0, 0, 4, 0, 0), B: fx(0, -12, 0, 0, 0, 0, 0, 0), C: fx(0, -4, 4, 0, 0, 0, 0, 0), D: fx(0, 0, 0, 0, 0, 0, 0, 4) },
+          q7: { A: fx(0, 12, 0, 0, 0, 0, 0, 0), B: fx(2, -10, 0, 0, 0, 0, 0, 0), C: fx(0, 0, 4, 0, 0, 0, 0, 0), D: fx(0, -14, 0, 0, 0, 0, 0, 4) },
+          q8: { A: fx(0, 12, 0, 0, 0, 0, 0, 0), B: fx(0, -2, 4, 0, 0, 0, 0, 0), C: fx(0, -4, 0, 0, 0, 0, 4, 0), D: fx(0, -14, 0, 0, 0, 0, 0, 2) },
+          q9: { A: fx(6, 0, 0, 0, 0, 0, 0, 0), B: fx(0, 0, 4, 0, 8, 0, 0, 0), C: fx(0, 0, 4, 0, 0, 0, 10, 0), D: fx(0, 6, 0, 0, 0, 0, 0, 6) },
+          q10: { A: fx(6, -4, 0, 0, 4, 0, 0, 0), B: fx(0, 10, 0, 0, 0, 0, 0, 0), C: fx(0, 0, 0, 8, 0, 0, 0, 4), D: fx(0, 0, 0, 0, 0, 0, 0, 10) },
+          q11: { A: fx(0, 0, 8, 0, 0, 4, 6, 0), B: fx(0, 0, 6, 0, 2, 0, 4, 0), C: fx(0, 0, -4, 0, 0, 0, -4, 0), D: fx(0, 0, 0, 0, 0, 0, 2, 0) },
+          q12: { A: fx(0, 0, 14, 0, 0, 0, 6, 0), B: fx(8, 0, -4, 0, 0, 0, 0, 0), C: fx(2, 0, 8, 0, 0, 0, 2, 0), D: fx(0, 0, -10, 0, 0, 0, -6, 0) },
+          q13: { A: fx(0, 0, 12, 0, 0, 0, 6, 0), B: fx(0, 0, 4, 0, 6, 0, 2, 0), C: fx(0, 0, -6, 0, 0, 0, 0, 0), D: fx(0, 0, -10, 0, 0, 0, -8, 0) },
+          q14: { A: fx(0, 0, 8, 0, 0, 8, 6, 0), B: fx(0, 0, 10, 0, 0, 0, 8, 0), C: fx(0, 0, -2, 0, 0, 0, -4, 0), D: fx(0, 0, -10, 0, 0, 0, -8, 0) },
+          q15: { A: fx(0, 0, 6, 0, 0, 0, 10, 0), B: fx(0, 0, 4, 0, 0, 0, 6, 0), C: fx(0, 0, 0, 0, 0, 0, -4, 0), D: fx(0, 0, -4, 0, 0, 0, -10, 0) },
+          q16: { A: fx(0, 0, 0, 12, 0, 8, 0, 0), B: fx(4, 0, 0, 4, 0, 0, 0, 0), C: fx(4, 0, -2, 2, 0, 0, 0, 0), D: fx(0, 0, 0, 2, 4, 0, 0, 0) },
+          q17: { A: fx(0, 0, 0, 10, 0, 4, 0, 0), B: fx(0, 0, 6, 0, 4, 0, 0, 0), C: fx(0, 0, 4, -4, 0, 0, 2, 0), D: fx(4, 0, 0, 0, 2, 0, 0, 0) },
+          q18: { A: fx(0, 0, 0, 10, 0, 4, 0, 0), B: fx(0, 0, 0, 4, 0, 0, 0, 0), C: fx(0, 0, 0, 2, 0, 0, 0, 4), D: fx(0, 0, 4, -8, 0, 0, 0, 0) },
+          q19: { A: fx(0, 0, 0, 6, 0, 0, -4, 0), B: fx(0, 0, 4, 0, 0, 0, 8, 0), C: fx(6, 0, 2, 0, 0, 0, 0, 0), D: fx(0, 0, 0, 0, 0, 0, 2, 6) },
+          q20: { A: fx(0, 0, 0, 12, 0, 0, 0, 4), B: fx(0, 0, 0, 6, 0, 0, 0, 0), C: fx(0, 0, 0, 0, 4, 0, 0, 0), D: fx(0, 0, 0, -6, 8, 0, 0, 0) },
+          q21: { A: fx(4, 0, 0, 0, 14, 0, 0, 0), B: fx(0, 0, 0, 0, -4, 6, 0, 0), C: fx(0, 4, 4, 0, 0, 0, 0, 0), D: fx(0, 0, 0, 0, -10, 0, 0, 4) },
+          q22: { A: fx(0, 0, 0, 4, 10, 0, 0, 0), B: fx(0, 0, 4, 0, 4, 0, 0, 0), C: fx(0, 0, 0, 0, 0, 0, 4, 0), D: fx(0, 0, 2, -2, -8, 0, 0, 0) },
+          q23: { A: fx(0, 0, 0, 0, 10, 0, -2, 0), B: fx(0, 0, 6, 0, -4, 0, 6, 0), C: fx(2, 0, 0, 0, 0, 0, 4, 0), D: fx(0, 0, 0, 0, 0, 0, 0, 6) },
+          q24: { A: fx(4, -8, 0, 0, 6, 0, 0, 0), B: fx(0, 0, 0, 0, 0, 0, 0, 0), C: fx(0, 0, 4, 0, 0, 0, 6, 0), D: fx(0, 2, 0, 0, -4, 0, 10, 0) },
+          q25: { A: fx(0, 0, 0, 0, 10, 4, 0, 0), B: fx(0, 0, -6, 8, 6, 0, -2, 0), C: fx(0, 0, -2, 0, 0, 0, -2, 0), D: fx(0, 0, 4, 0, -4, 0, 4, 0) },
+          q26: { A: fx(0, 0, 0, 0, 4, 12, 0, 0), B: fx(0, 0, 4, 0, 4, 0, 0, 0), C: fx(2, -2, 0, 0, 0, 0, 0, 0), D: fx(0, -8, 0, 0, 0, -6, 0, 0) },
+          q28: { A: fx(0, 0, 0, 4, 0, 12, 0, 0), B: fx(0, 0, 2, 0, 0, 6, 0, 0), C: fx(0, 0, 4, 0, 0, -4, 0, 0), D: fx(0, 0, 0, 0, 2, -8, 0, 0) },
+          q29: { A: fx(0, 0, 0, 0, 0, 10, 2, 0), B: fx(0, 0, 0, 0, 0, -6, 6, 0), C: fx(0, 0, 4, 0, 2, 0, 0, 0), D: fx(0, 0, 0, 6, 0, 0, 0, 2) },
+          q31: { A: fx(0, 0, 4, 0, 0, 4, 0, 0), B: fx(0, 0, 6, 0, 0, 0, 10, 0), C: fx(0, 0, 8, 0, 0, 0, 12, 0), D: fx(0, 0, 0, 0, 0, 0, -4, 6) },
+          q32: { A: fx(0, 0, 6, 0, 0, 0, 12, 0), B: fx(0, 0, 2, 0, 0, 0, 8, 0), C: fx(0, 0, 0, 0, 2, 0, -2, 0), D: fx(0, 0, 0, 0, 4, 0, -10, 0) },
+          q33: { A: fx(0, 0, 10, 0, 0, 0, 8, 0), B: fx(0, 0, 4, 0, 0, 8, 0, 0), C: fx(10, 0, 0, 0, 0, 0, 4, 0), D: fx(4, 0, 0, 0, 4, 0, 0, 0) },
+          q34: { A: fx(0, 0, 0, 0, 6, 0, -6, 0), B: fx(0, 0, 0, 0, 0, 0, 4, 0), C: fx(2, 0, 0, 0, 0, 0, 0, 0), D: fx(0, 0, 2, 0, 0, 0, 10, 0) },
+          q35: { A: fx(0, 0, 0, 0, 4, 0, 4, 0), B: fx(0, 0, 0, 2, 0, 0, 0, 4), C: fx(6, 0, 2, 0, 0, 0, 0, 0), D: fx(0, 0, 0, 2, 0, 0, 0, 8) },
+          q36: { A: fx(0, 0, 0, 0, 0, 0, 0, 10), B: fx(0, 0, 2, 0, 6, 0, 0, 0), C: fx(8, 0, 0, 0, 0, 0, 0, 2), D: fx(0, 0, 0, 0, 4, 0, 0, 0) },
+          q37: { A: fx(0, 0, 0, 4, 0, 0, 0, 12), B: fx(0, 0, 0, 0, 0, 0, 0, 6), C: fx(0, 0, 0, 0, 0, 0, 0, -2), D: fx(0, 0, 0, 0, 0, 0, 0, -6) },
+          q38: { A: fx(4, 0, 0, 0, 0, 0, 0, 12), B: fx(0, 0, 0, 0, 0, 0, 0, 6), C: fx(0, 0, 0, 0, 0, 0, 0, -4), D: fx(0, 0, 0, 0, 4, 0, 0, -8) },
+          q39: { A: fx(0, 0, 0, 0, 8, 0, 0, -6), B: fx(0, 0, 2, 0, 0, 0, 0, 6), C: fx(0, 0, 0, 2, 0, 0, 0, 12), D: fx(4, 0, 0, 0, 0, 0, 0, 8) },
+          q40: { A: fx(4, 0, 0, 0, 0, 0, 0, 0), B: fx(0, 0, 6, 0, 4, 0, 0, 0), C: fx(0, 0, 0, 10, 0, 6, 0, 0), D: fx(0, 0, 10, 0, 0, 6, 4, 0) },
+        };
+
+        const CONTINENT_EFFECTS = {
+          africa: fx(2, 2, 4, 0, 0, 0, 2, 0),
+          asia: fx(2, 0, 0, 0, 6, 0, 0, 0),
+          europe: fx(6, 0, 0, 0, 6, 0, 0, 0),
+          northAmerica: fx(0, 4, 0, 0, 2, 6, 0, 0),
+          southAmerica: fx(0, 4, 6, 0, 0, 0, 2, 0),
+          oceania: fx(4, 0, 4, 0, 0, 0, 0, 0),
+          polar: fx(4, -8, 0, 0, 0, 0, 0, 14),
+        };
+
         function clamp(value, min, max) {
           return Math.max(min, Math.min(max, value));
         }
@@ -962,13 +1027,10 @@
         }
 
         function createEmptyAnswers() {
-          return QUESTIONS.map((question) => (question.type === "multiple" ? [] : null));
+          return QUESTIONS.map(() => null);
         }
 
         function answerToKey(question, answer) {
-          if (question.type === "multiple") {
-            return answer.map((index) => question.options[index]?.key).filter(Boolean);
-          }
           if (answer === null || answer === undefined || answer < 0) return null;
           return question.options[answer]?.key ?? null;
         }
@@ -986,346 +1048,52 @@
           traits[key] = clamp(traits[key] + amount, 0, 100);
         }
 
+        function applyEffect(traits, effect) {
+          if (!effect) return;
+          Object.entries(effect).forEach(([key, value]) => delta(traits, key, value));
+        }
+
+        function normalizeTraits(traits) {
+          return {
+            abstract: traits.abstract / 100,
+            social: traits.social / 100,
+            warmth: traits.warmth / 100,
+            conflict: traits.conflict / 100,
+            order: traits.order / 100,
+            lead: traits.lead / 100,
+            attach: traits.attach / 100,
+            weird: traits.weird / 100,
+          };
+        }
+
         function deriveProfile(answers) {
           const traits = {
+            abstract: 50,
             social: 50,
-            empathy: 50,
-            order: 50,
-            defiance: 50,
-            depth: 50,
             warmth: 50,
+            conflict: 50,
+            order: 50,
             lead: 50,
-            oddity: 12,
+            attach: 50,
+            weird: 18,
           };
 
           const meta = {
-            answers,
-            q3: getAnswerById(answers, "q3") || [],
-            q19: getAnswerById(answers, "q19"),
+            answerKeys: Object.fromEntries(QUESTIONS.map((question) => [question.id, getAnswerById(answers, question.id)])),
             q27: getAnswerById(answers, "q27"),
-            q29: getAnswerById(answers, "q29") || [],
             q30: getAnswerById(answers, "q30"),
-            ideology: {
-              q4: getAnswerById(answers, "q4"),
-              q18: getAnswerById(answers, "q18"),
-              q28: getAnswerById(answers, "q28"),
-            },
           };
 
-          const genderGroup = meta.q30 === "A" ? "male" : meta.q30 === "B" ? "female" : "other";
-          meta.gender = genderGroup;
-
-          const q1 = getAnswerById(answers, "q1");
-          if (q1 === "B") delta(traits, "depth", 10);
-          if (q1 === "A") delta(traits, "depth", 4);
-          if (q1 === "C") {
-            delta(traits, "depth", -10);
-            delta(traits, "oddity", 4);
-          }
-
-          const q2 = getAnswerById(answers, "q2");
-          if (q2 === "A") {
-            delta(traits, "order", 2);
-            delta(traits, "depth", 2);
-          }
-          if (q2 === "B") delta(traits, "empathy", -6);
-          if (q2 === "C") {
-            delta(traits, "order", 8);
-            delta(traits, "lead", 6);
-          }
-
-          meta.q3.forEach((key) => {
-            if (key === "A") {
-              delta(traits, "warmth", 4);
-              delta(traits, "social", 4);
-            }
-            if (key === "B") delta(traits, "depth", 6);
-            if (key === "C") {
-              delta(traits, "warmth", 2);
-              delta(traits, "order", 2);
-            }
-            if (key === "D") delta(traits, "oddity", 6);
-            if (key === "E") delta(traits, "social", -8);
+          QUESTIONS.forEach((question) => {
+            if (question.id === "q27" || question.id === "q30") return;
+            applyEffect(traits, QUESTION_EFFECTS[question.id]?.[meta.answerKeys[question.id]]);
           });
 
-          const q4 = getAnswerById(answers, "q4");
-          if (q4 === "A") {
-            delta(traits, "order", 8);
-            delta(traits, "defiance", -10);
-          }
-          if (q4 === "B") {
-            delta(traits, "defiance", 10);
-            delta(traits, "depth", 4);
-          }
-          if (q4 === "C") delta(traits, "depth", -6);
+          meta.gender = meta.q30 === "A" ? "male" : meta.q30 === "B" ? "female" : "unknown";
+          meta.regionInfo = getRegionInfo(meta.q27);
+          applyEffect(traits, CONTINENT_EFFECTS[meta.regionInfo?.continent]);
 
-          const q5 = getAnswerById(answers, "q5");
-          if (q5 === "A") {
-            delta(traits, "order", 4);
-            delta(traits, "depth", -6);
-          }
-          if (q5 === "B") delta(traits, "depth", 10);
-
-          const q6 = getAnswerById(answers, "q6");
-          if (q6 === "A") {
-            delta(traits, "empathy", 6);
-            delta(traits, "depth", 12);
-          }
-          if (q6 === "B") {
-            delta(traits, "depth", -8);
-            delta(traits, "empathy", -4);
-          }
-
-          const q7 = getAnswerById(answers, "q7");
-          if (q7 === "A") delta(traits, "warmth", 4);
-          if (q7 === "B") {
-            delta(traits, "warmth", -4);
-            delta(traits, "order", 2);
-          }
-          if (q7 === "C") delta(traits, "oddity", 4);
-
-          const q8 = getAnswerById(answers, "q8");
-          if (q8 === "A") {
-            delta(traits, "empathy", 18);
-            delta(traits, "order", 8);
-          }
-          if (q8 === "B") {
-            delta(traits, "empathy", -18);
-            delta(traits, "lead", 4);
-          }
-          if (q8 === "C") {
-            delta(traits, "empathy", 4);
-            delta(traits, "depth", 4);
-          }
-
-          const q9 = getAnswerById(answers, "q9");
-          if (q9 === "A") {
-            delta(traits, "social", 18);
-            delta(traits, "lead", 6);
-          }
-          if (q9 === "B") delta(traits, "social", -18);
-          if (q9 === "C") {
-            delta(traits, "social", -10);
-            delta(traits, "oddity", 2);
-          }
-
-          const q10 = getAnswerById(answers, "q10");
-          if (q10 === "A") {
-            delta(traits, "defiance", 18);
-            delta(traits, "order", -8);
-          }
-          if (q10 === "B") {
-            delta(traits, "defiance", -12);
-            delta(traits, "order", 6);
-          }
-
-          const q11 = getAnswerById(answers, "q11");
-          if (q11 === "A") {
-            delta(traits, "order", 18);
-            delta(traits, "lead", 10);
-          }
-          if (q11 === "B") delta(traits, "order", -14);
-
-          const q12 = getAnswerById(answers, "q12");
-          if (q12 === "A") {
-            delta(traits, "empathy", 18);
-            delta(traits, "warmth", 10);
-          }
-          if (q12 === "B") {
-            delta(traits, "empathy", -14);
-            delta(traits, "warmth", -8);
-          }
-          if (q12 === "C") {
-            delta(traits, "empathy", 6);
-            delta(traits, "warmth", 4);
-          }
-
-          const q13 = getAnswerById(answers, "q13");
-          if (q13 === "A") {
-            delta(traits, "social", 16);
-            delta(traits, "warmth", 6);
-          }
-          if (q13 === "B") delta(traits, "social", -16);
-
-          const q14 = getAnswerById(answers, "q14");
-          if (q14 === "A") {
-            delta(traits, "defiance", 12);
-            delta(traits, "lead", 10);
-          }
-          if (q14 === "B") delta(traits, "defiance", -8);
-
-          const q15 = getAnswerById(answers, "q15");
-          if (q15 === "A") {
-            delta(traits, "social", -10);
-            delta(traits, "warmth", -4);
-          }
-          if (q15 === "B") {
-            delta(traits, "social", 10);
-            delta(traits, "warmth", 8);
-          }
-          if (q15 === "C") delta(traits, "social", -4);
-
-          const q16 = getAnswerById(answers, "q16");
-          if (q16 === "A") {
-            delta(traits, "defiance", 14);
-            delta(traits, "lead", 12);
-          }
-          if (q16 === "B") delta(traits, "defiance", -12);
-
-          const q17 = getAnswerById(answers, "q17");
-          if (q17 === "A") {
-            delta(traits, "warmth", 6);
-            delta(traits, "empathy", 4);
-            delta(traits, "lead", -6);
-          }
-          if (q17 === "B") {
-            delta(traits, "lead", 6);
-            delta(traits, "defiance", 4);
-          }
-
-          const q18 = getAnswerById(answers, "q18");
-          if (q18 === "A") {
-            delta(traits, "defiance", 18);
-            delta(traits, "depth", 6);
-          }
-          if (q18 === "B") {
-            delta(traits, "defiance", -14);
-            delta(traits, "order", 8);
-          }
-          if (q18 === "C") {
-            delta(traits, "defiance", 10);
-            delta(traits, "depth", 12);
-          }
-          if (q18 === "D") {
-            delta(traits, "defiance", 2);
-            delta(traits, "order", -4);
-          }
-          if (q18 === "E") delta(traits, "depth", 4);
-
-          const q19 = meta.q19;
-          if (q19 === "A") {
-            delta(traits, "depth", 6);
-            delta(traits, "order", 4);
-          }
-          if (q19 === "B") delta(traits, "order", 6);
-          if (q19 === "D") {
-            delta(traits, "depth", 12);
-            delta(traits, "defiance", 6);
-          }
-          if (q19 === "E") {
-            delta(traits, "oddity", 16);
-            delta(traits, "depth", -16);
-          }
-
-          const q20 = getAnswerById(answers, "q20");
-          if (q20 === "A") {
-            delta(traits, "social", 16);
-            delta(traits, "warmth", 6);
-          }
-          if (q20 === "B") delta(traits, "social", -16);
-
-          const q21 = getAnswerById(answers, "q21");
-          if (q21 === "A") {
-            delta(traits, "lead", 18);
-            delta(traits, "order", 6);
-          }
-          if (q21 === "B") delta(traits, "lead", -12);
-
-          const q22 = getAnswerById(answers, "q22");
-          if (q22 === "A") {
-            delta(traits, "social", -18);
-            delta(traits, "depth", 4);
-          }
-          if (q22 === "B") delta(traits, "social", 14);
-
-          const q23 = getAnswerById(answers, "q23");
-          if (q23 === "A") {
-            delta(traits, "warmth", 10);
-            delta(traits, "empathy", 8);
-            delta(traits, "defiance", -8);
-          }
-          if (q23 === "B") {
-            delta(traits, "warmth", -6);
-            delta(traits, "defiance", 6);
-          }
-
-          const q24 = getAnswerById(answers, "q24");
-          if (q24 === "A") {
-            delta(traits, "order", -14);
-            delta(traits, "warmth", 2);
-          }
-          if (q24 === "B") delta(traits, "order", 10);
-
-          const q25 = getAnswerById(answers, "q25");
-          if (q25 === "A") {
-            delta(traits, "order", 18);
-            delta(traits, "depth", 4);
-          }
-          if (q25 === "B") delta(traits, "order", -14);
-
-          const q26 = getAnswerById(answers, "q26");
-          if (q26 === "A") delta(traits, "social", 12);
-          if (q26 === "B") {
-            delta(traits, "social", -10);
-            delta(traits, "warmth", 2);
-          }
-          if (q26 === "C") delta(traits, "oddity", 4);
-
-          const regionInfo = getRegionInfo(meta.q27);
-          if (regionInfo?.traits) {
-            Object.entries(regionInfo.traits).forEach(([key, amount]) => delta(traits, key, amount));
-          }
-          meta.regionTags = regionInfo?.tags ?? [];
-
-          const q28 = getAnswerById(answers, "q28");
-          if (q28 === "A") delta(traits, "defiance", 18);
-          if (q28 === "B") {
-            delta(traits, "order", 12);
-            delta(traits, "defiance", -16);
-          }
-
-          meta.q29.forEach((key) => {
-            if (key === "A") {
-              delta(traits, "defiance", 14);
-              delta(traits, "order", -10);
-              delta(traits, "social", 4);
-            }
-            if (key === "B") {
-              delta(traits, "defiance", 8);
-              delta(traits, "order", 2);
-            }
-            if (key === "C") {
-              delta(traits, "defiance", 10);
-              delta(traits, "order", -2);
-            }
-            if (key === "D") {
-              delta(traits, "defiance", 6);
-              delta(traits, "order", 4);
-            }
-            if (key === "E") {
-              delta(traits, "oddity", 8);
-              delta(traits, "defiance", 6);
-            }
-            if (key === "F") {
-              delta(traits, "defiance", 8);
-              delta(traits, "warmth", -2);
-            }
-            if (key === "G") {
-              delta(traits, "oddity", 8);
-              delta(traits, "warmth", 2);
-            }
-            if (key === "H") {
-              delta(traits, "order", 12);
-              delta(traits, "defiance", -14);
-            }
-          });
-
-          meta.assertive = avg([traits.lead / 100, traits.defiance / 100]);
-          meta.playful = clamp01(avg([(100 - traits.order) / 100, traits.social / 100, traits.warmth / 100]));
-          meta.signature = traits.lead + traits.order + traits.depth;
-          meta.regionInfo = regionInfo;
-
-          return { traits, meta };
+          return { traits, meta, normalized: normalizeTraits(traits) };
         }
 
         function regionMatch(leftKey, rightKey) {
@@ -1350,145 +1118,150 @@
           return 0.22;
         }
 
-        function osMatch(left, right) {
-          if (!left || !right) return 0.5;
-          if (left === right) return 1;
-          const unixLike = new Set(["A", "D"]);
-          if (unixLike.has(left) && unixLike.has(right)) return 0.72;
-          if (left === "E" || right === "E") return 0.12;
-          if ((left === "B" && right === "C") || (left === "C" && right === "B")) return 0.4;
-          return 0.32;
+        function answerDistance(questionId, leftKey, rightKey) {
+          const question = QUESTION_MAP[questionId]?.question;
+          if (!question || !question.options.length || !leftKey || !rightKey) return 0.5;
+          const leftIndex = question.options.findIndex((option) => option.key === leftKey);
+          const rightIndex = question.options.findIndex((option) => option.key === rightKey);
+          if (leftIndex < 0 || rightIndex < 0) return 0.5;
+          return clamp01(Math.abs(leftIndex - rightIndex) / Math.max(1, question.options.length - 1));
         }
 
-        function ideologyPosition(id, key) {
-          if (!key) return 0.5;
-          const maps = {
-            q4: { A: 0.12, B: 0.9, C: 0.5 },
-            q18: { A: 0.95, B: 0.05, C: 0.78, D: 0.4, E: 0.52 },
-            q28: { A: 0.92, B: 0.08, C: 0.5 },
-          };
-          return maps[id]?.[key] ?? 0.5;
+        function answerCloseness(questionId, leftKey, rightKey) {
+          return 1 - answerDistance(questionId, leftKey, rightKey);
         }
 
         function buildPairMetrics(left, right) {
-          const leftTraits = left.traits;
-          const rightTraits = right.traits;
-          const overallSimilarity = avg([
-            closeness(leftTraits.social, rightTraits.social),
-            closeness(leftTraits.empathy, rightTraits.empathy),
-            closeness(leftTraits.order, rightTraits.order),
-            closeness(leftTraits.defiance, rightTraits.defiance),
-            closeness(leftTraits.depth, rightTraits.depth),
-            closeness(leftTraits.warmth, rightTraits.warmth),
-            closeness(leftTraits.lead, rightTraits.lead),
+          const similarity = avg([
+            closeness(left.traits.abstract, right.traits.abstract),
+            closeness(left.traits.social, right.traits.social),
+            closeness(left.traits.warmth, right.traits.warmth),
+            closeness(left.traits.conflict, right.traits.conflict),
+            closeness(left.traits.order, right.traits.order),
+            closeness(left.traits.lead, right.traits.lead),
+            closeness(left.traits.attach, right.traits.attach),
+            closeness(left.traits.weird, right.traits.weird),
           ]);
-          const valuesSimilarity = avg([
-            closeness(leftTraits.order, rightTraits.order),
-            closeness(leftTraits.defiance, rightTraits.defiance),
-            closeness(leftTraits.depth, rightTraits.depth),
+          const warmthAverage = avg([left.normalized.warmth, right.normalized.warmth]);
+          const attachAverage = avg([left.normalized.attach, right.normalized.attach]);
+          const socialAverage = avg([left.normalized.social, right.normalized.social]);
+          const conflictAverage = avg([left.normalized.conflict, right.normalized.conflict]);
+          const orderAverage = avg([left.normalized.order, right.normalized.order]);
+          const leadAverage = avg([left.normalized.lead, right.normalized.lead]);
+          const weirdAverage = avg([left.normalized.weird, right.normalized.weird]);
+          const parity = avg([
+            closeness(left.traits.lead, right.traits.lead),
+            closeness(left.traits.conflict, right.traits.conflict),
           ]);
-          const socialSimilarity = closeness(leftTraits.social, rightTraits.social);
-          const careSimilarity = avg([
-            closeness(leftTraits.empathy, rightTraits.empathy),
-            closeness(leftTraits.warmth, rightTraits.warmth),
-          ]);
-          const interestMatch = avg([
-            jaccard(left.meta.q3, right.meta.q3),
-            jaccard(left.meta.q29, right.meta.q29),
-            osMatch(left.meta.q19, right.meta.q19),
-            regionMatch(left.meta.q27, right.meta.q27),
-          ]);
-          const ideologyClash = avg([
-            Math.abs(ideologyPosition("q4", left.meta.ideology.q4) - ideologyPosition("q4", right.meta.ideology.q4)),
-            Math.abs(ideologyPosition("q18", left.meta.ideology.q18) - ideologyPosition("q18", right.meta.ideology.q18)),
-            Math.abs(ideologyPosition("q28", left.meta.ideology.q28) - ideologyPosition("q28", right.meta.ideology.q28)),
-          ]);
-          const assertiveMin = Math.min(left.meta.assertive, right.meta.assertive);
-          const assertiveMax = Math.max(left.meta.assertive, right.meta.assertive);
-          const powerClash = clamp01(assertiveMin * closeness(leftTraits.lead, rightTraits.lead, 60));
-          const warmthAverage = avg([
-            leftTraits.warmth / 100,
-            rightTraits.warmth / 100,
-            leftTraits.empathy / 100,
-            rightTraits.empathy / 100,
-          ]);
-          const orderAverage = avg([leftTraits.order / 100, rightTraits.order / 100]);
-          const socialAverage = avg([leftTraits.social / 100, rightTraits.social / 100]);
-          const depthBond = avg([
-            Math.min(leftTraits.depth, rightTraits.depth) / 100,
-            closeness(leftTraits.depth, rightTraits.depth),
-          ]);
-          const leadGap = Math.abs(leftTraits.lead - rightTraits.lead) / 100;
-          const orderGap = Math.abs(leftTraits.order - rightTraits.order) / 100;
-          const depthGap = Math.abs(leftTraits.depth - rightTraits.depth) / 100;
-          const complementarity = clamp01(
-            leadGap * 0.44 +
-              orderGap * 0.18 +
-              (1 - socialSimilarity) * 0.08 +
-              careSimilarity * 0.18 +
-              warmthAverage * 0.12 -
-              ideologyClash * 0.22 -
-              powerClash * 0.12,
+          const hierarchy = clamp01(
+            0.6 * (Math.abs(left.traits.lead - right.traits.lead) / 100) +
+              0.25 * (Math.abs(left.traits.order - right.traits.order) / 100) +
+              0.15 * (Math.abs(left.traits.attach - right.traits.attach) / 100),
           );
+          const complementarity = avg([
+            clamp01(1 - Math.abs(Math.abs(left.normalized.lead - right.normalized.lead) - 0.22) / 0.22),
+            clamp01(1 - Math.abs(Math.abs(left.normalized.social - right.normalized.social) - 0.18) / 0.18),
+            clamp01(1 - Math.abs(Math.abs(left.normalized.order - right.normalized.order) - 0.14) / 0.14),
+          ]);
+          const valueAlignment = avg([
+            closeness(left.traits.abstract, right.traits.abstract),
+            closeness(left.traits.order, right.traits.order),
+            answerCloseness("q33", left.meta.answerKeys.q33, right.meta.answerKeys.q33),
+            answerCloseness("q40", left.meta.answerKeys.q40, right.meta.answerKeys.q40),
+          ]);
+          const desireMatch = avg([
+            answerCloseness("q31", left.meta.answerKeys.q31, right.meta.answerKeys.q31),
+            answerCloseness("q32", left.meta.answerKeys.q32, right.meta.answerKeys.q32),
+            answerCloseness("q34", left.meta.answerKeys.q34, right.meta.answerKeys.q34),
+          ]);
+          const abstractBond = avg([
+            closeness(left.traits.abstract, right.traits.abstract),
+            avg([left.normalized.abstract, right.normalized.abstract]),
+          ]);
+          const countryScore = regionMatch(left.meta.q27, right.meta.q27);
+          const directClash = avg([
+            answerDistance("q4", left.meta.answerKeys.q4, right.meta.answerKeys.q4),
+            answerDistance("q5", left.meta.answerKeys.q5, right.meta.answerKeys.q5),
+            answerDistance("q16", left.meta.answerKeys.q16, right.meta.answerKeys.q16),
+            answerDistance("q17", left.meta.answerKeys.q17, right.meta.answerKeys.q17),
+            answerDistance("q18", left.meta.answerKeys.q18, right.meta.answerKeys.q18),
+            answerDistance("q20", left.meta.answerKeys.q20, right.meta.answerKeys.q20),
+            answerDistance("q23", left.meta.answerKeys.q23, right.meta.answerKeys.q23),
+            answerDistance("q35", left.meta.answerKeys.q35, right.meta.answerKeys.q35),
+            answerDistance("q40", left.meta.answerKeys.q40, right.meta.answerKeys.q40),
+          ]);
           const friction = clamp01(
-            ideologyClash * 0.46 +
-              powerClash * 0.18 +
-              (1 - careSimilarity) * 0.16 +
-              (1 - valuesSimilarity) * 0.12 +
-              (1 - warmthAverage) * 0.08,
+            0.26 * directClash +
+              0.22 * (1 - valueAlignment) +
+              0.18 * conflictAverage +
+              0.14 * (Math.abs(left.traits.lead - right.traits.lead) / 100) +
+              0.1 * (1 - warmthAverage) +
+              0.1 * (Math.abs(left.traits.attach - right.traits.attach) / 100),
           );
-          const weirdResonance = avg([
-            Math.min(leftTraits.oddity, rightTraits.oddity) / 100,
-            closeness(leftTraits.oddity, rightTraits.oddity),
-          ]);
-          const rebelliousMin = Math.min(leftTraits.defiance, rightTraits.defiance) / 100;
-          const guidanceGap = clamp01(
-            avg([leadGap, orderGap, depthGap]) * 0.72 + warmthAverage * 0.16 + careSimilarity * 0.12 - friction * 0.18,
+          const powerClash = clamp01(
+            parity * (0.45 * leadAverage + 0.35 * conflictAverage + 0.2 * answerCloseness("q40", left.meta.answerKeys.q40, right.meta.answerKeys.q40)),
           );
-          const stronger = left.meta.signature >= right.meta.signature ? "left" : "right";
-          const strongerProfile = stronger === "left" ? left : right;
-          const softerProfile = stronger === "left" ? right : left;
-          const strongerWarmth = avg([strongerProfile.traits.warmth / 100, strongerProfile.traits.empathy / 100]);
-          const strongerOrder = strongerProfile.traits.order / 100;
-          const spark = avg([
-            warmthAverage,
-            socialAverage,
-            interestMatch,
-            Math.min(leftTraits.warmth, rightTraits.warmth) / 100,
-          ]);
-          const partyBias = avg([
-            socialAverage,
-            jaccard(left.meta.q3, right.meta.q3),
-            1 - orderAverage,
-            jaccard(left.meta.q29.filter((item) => item !== "H"), right.meta.q29.filter((item) => item !== "H")),
-          ]);
+          const adhesion = clamp01(
+            0.35 * attachAverage +
+              0.28 * warmthAverage +
+              0.2 * desireMatch +
+              0.17 * answerCloseness("q15", left.meta.answerKeys.q15, right.meta.answerKeys.q15),
+          );
+          const spark = clamp01(
+            0.26 * warmthAverage +
+              0.24 * attachAverage +
+              0.16 * complementarity +
+              0.14 * countryScore +
+              0.1 * desireMatch +
+              0.1 * abstractBond,
+          );
+          const weirdResonance = clamp01(
+            0.38 * closeness(left.traits.weird, right.traits.weird) +
+              0.28 * weirdAverage +
+              0.18 * answerCloseness("q37", left.meta.answerKeys.q37, right.meta.answerKeys.q37) +
+              0.16 * avg([
+                answerCloseness("q38", left.meta.answerKeys.q38, right.meta.answerKeys.q38),
+                answerCloseness("q39", left.meta.answerKeys.q39, right.meta.answerKeys.q39),
+              ]),
+          );
+          const alliance = clamp01(
+            0.24 * conflictAverage +
+              0.22 * leadAverage +
+              0.18 * valueAlignment +
+              0.18 * (1 - friction) +
+              0.18 * countryScore,
+          );
+          const strongerProfile =
+            left.traits.lead + left.traits.order + left.traits.warmth >= right.traits.lead + right.traits.order + right.traits.warmth
+              ? left
+              : right;
+          const softerProfile = strongerProfile === left ? right : left;
 
           return {
-            overallSimilarity,
-            valuesSimilarity,
-            socialSimilarity,
-            careSimilarity,
-            interestMatch,
-            ideologyClash,
-            assertiveMin,
-            assertiveMax,
-            powerClash,
+            similarity,
             warmthAverage,
-            orderAverage,
+            attachAverage,
             socialAverage,
-            depthBond,
+            conflictAverage,
+            orderAverage,
+            leadAverage,
+            weirdAverage,
+            parity,
+            hierarchy,
             complementarity,
+            valueAlignment,
+            desireMatch,
+            abstractBond,
+            directClash,
             friction,
+            powerClash,
+            adhesion,
+            spark,
             weirdResonance,
-            rebelliousMin,
-            guidanceGap,
-            stronger,
+            alliance,
+            countryScore,
             strongerProfile,
             softerProfile,
-            strongerWarmth,
-            strongerOrder,
-            spark,
-            partyBias,
             bothMale: left.meta.gender === "male" && right.meta.gender === "male",
             bothFemale: left.meta.gender === "female" && right.meta.gender === "female",
             mixedBinary:
@@ -1498,7 +1271,7 @@
         }
 
         function relationScore(label, left, right, metrics) {
-          const w = (value) => value * 100;
+          const score = (value) => Math.round(value * 1000) / 10;
           const strongerIsMale = metrics.strongerProfile.meta.gender === "male";
           const strongerIsFemale = metrics.strongerProfile.meta.gender === "female";
           const softerIsMale = metrics.softerProfile.meta.gender === "male";
@@ -1506,250 +1279,220 @@
 
           switch (label) {
             case "TWINS":
-              return w(
-                0.32 * metrics.overallSimilarity +
-                  0.22 * metrics.valuesSimilarity +
-                  0.15 * metrics.interestMatch +
-                  0.14 * metrics.socialSimilarity +
-                  0.1 * (1 - metrics.ideologyClash) +
-                  0.07 * (1 - metrics.friction),
-              ) + (left.meta.gender === right.meta.gender ? 8 : -18);
+              return score(
+                0.56 * metrics.similarity +
+                  0.14 * metrics.valueAlignment +
+                  0.1 * metrics.desireMatch +
+                  0.08 * metrics.countryScore +
+                  0.12 * (1 - metrics.friction),
+              ) + (left.meta.gender === right.meta.gender ? 8 : -6) - (metrics.weirdAverage > 0.72 ? 10 : 0);
             case "ECHO":
-              return w(
-                0.24 * metrics.overallSimilarity +
-                  0.18 * metrics.socialSimilarity +
-                  0.18 * metrics.careSimilarity +
-                  0.12 * metrics.interestMatch +
-                  0.1 * (1 - metrics.ideologyClash) +
-                  0.18 * (1 - metrics.friction),
-              ) + (metrics.bothFemale ? 18 : -34) + (metrics.socialAverage > 0.56 ? 4 : 0);
+              return score(
+                0.36 * metrics.similarity +
+                  0.18 * metrics.socialAverage +
+                  0.18 * metrics.warmthAverage +
+                  0.12 * metrics.desireMatch +
+                  0.16 * (1 - metrics.friction),
+              ) + (metrics.bothFemale ? 22 : -40);
             case "SOUL":
-              return w(
-                0.21 * metrics.overallSimilarity +
-                  0.25 * metrics.depthBond +
-                  0.22 * metrics.careSimilarity +
-                  0.12 * metrics.complementarity +
-                  0.1 * (1 - metrics.ideologyClash) +
-                  0.1 * (1 - metrics.friction),
-              );
-            case "SYNC":
-              return w(
-                0.28 * metrics.overallSimilarity +
-                  0.22 * metrics.valuesSimilarity +
-                  0.14 * metrics.socialSimilarity +
-                  0.14 * metrics.interestMatch +
-                  0.1 * (1 - metrics.ideologyClash) +
+              return score(
+                0.18 * metrics.similarity +
+                  0.26 * metrics.abstractBond +
+                  0.16 * metrics.warmthAverage +
+                  0.14 * metrics.attachAverage +
+                  0.14 * metrics.valueAlignment +
                   0.12 * (1 - metrics.friction),
               );
+            case "SYNC":
+              return score(
+                0.34 * metrics.similarity +
+                  0.24 * metrics.valueAlignment +
+                  0.14 * metrics.orderAverage +
+                  0.14 * metrics.desireMatch +
+                  0.14 * (1 - metrics.friction),
+              );
             case "SETTLED":
-              return w(
-                0.24 * metrics.overallSimilarity +
-                  0.2 * metrics.complementarity +
-                  0.18 * metrics.valuesSimilarity +
-                  0.18 * metrics.warmthAverage +
-                  0.1 * (1 - metrics.ideologyClash) +
-                  0.1 * (1 - metrics.friction),
+              return score(
+                0.2 * metrics.similarity +
+                  0.24 * metrics.warmthAverage +
+                  0.18 * metrics.attachAverage +
+                  0.18 * metrics.orderAverage +
+                  0.08 * metrics.countryScore +
+                  0.12 * (1 - metrics.friction),
               );
             case "UNITED":
-              return w(
-                0.22 * metrics.overallSimilarity +
+              return score(
+                0.18 * metrics.similarity +
+                  0.18 * metrics.complementarity +
                   0.22 * metrics.warmthAverage +
-                  0.18 * metrics.careSimilarity +
-                  0.1 * (1 - metrics.ideologyClash) +
-                  0.1 * (1 - metrics.friction) +
-                  0.18 * (1 - metrics.assertiveMin),
+                  0.2 * metrics.valueAlignment +
+                  0.22 * metrics.alliance,
               );
             case "HOMIES":
-              return w(
-                0.22 * metrics.overallSimilarity +
+              return score(
+                0.22 * metrics.socialAverage +
                   0.22 * metrics.warmthAverage +
-                  0.2 * metrics.socialAverage +
-                  0.18 * metrics.interestMatch +
-                  0.08 * (1 - metrics.ideologyClash) +
-                  0.1 * (1 - metrics.friction),
+                  0.18 * metrics.similarity +
+                  0.12 * metrics.countryScore +
+                  0.12 * metrics.desireMatch +
+                  0.14 * (1 - metrics.friction),
               );
             case "BROS":
-              return (
-                w(
-                  0.22 * metrics.overallSimilarity +
-                    0.25 * metrics.warmthAverage +
-                    0.18 * metrics.socialAverage +
-                    0.12 * metrics.partyBias +
-                    0.08 * (1 - metrics.ideologyClash) +
-                    0.15 * (1 - metrics.friction),
-                ) + (metrics.bothMale ? 16 : -20)
-              );
-            case "SISTERS":
-              return (
-                w(
-                  0.2 * metrics.overallSimilarity +
-                    0.2 * metrics.warmthAverage +
-                    0.18 * metrics.careSimilarity +
-                    0.2 * metrics.assertiveMin +
-                    0.08 * (1 - metrics.ideologyClash) +
-                    0.14 * (1 - metrics.friction),
-                ) + (metrics.bothFemale ? 18 : -26)
-              );
-            case "GLUED":
-              return (
-                w(
-                  0.24 * metrics.overallSimilarity +
-                    0.25 * metrics.warmthAverage +
-                    0.22 * metrics.careSimilarity +
-                    0.14 * metrics.socialSimilarity +
-                    0.06 * (1 - metrics.ideologyClash) +
-                    0.09 * (1 - metrics.friction),
-                ) + (metrics.bothFemale ? 14 : -18)
-              );
-            case "LOVERS":
-              return w(
-                0.18 * metrics.overallSimilarity +
+              return score(
+                0.2 * metrics.socialAverage +
+                  0.22 * metrics.leadAverage +
                   0.18 * metrics.warmthAverage +
-                  0.16 * metrics.careSimilarity +
-                  0.14 * metrics.depthBond +
-                  0.16 * metrics.spark +
-                  0.1 * metrics.interestMatch +
+                  0.18 * metrics.alliance +
+                  0.1 * metrics.similarity +
+                  0.12 * (1 - metrics.friction),
+              ) + (metrics.bothMale ? 18 : -20);
+            case "SISTERS":
+              return score(
+                0.18 * metrics.similarity +
+                  0.22 * metrics.warmthAverage +
+                  0.18 * metrics.attachAverage +
+                  0.18 * metrics.parity +
+                  0.12 * metrics.socialAverage +
+                  0.12 * (1 - metrics.friction),
+              ) + (metrics.bothFemale ? 18 : -26);
+            case "GLUED":
+              return score(
+                0.3 * metrics.adhesion +
+                  0.24 * metrics.warmthAverage +
+                  0.16 * metrics.attachAverage +
+                  0.14 * metrics.socialAverage +
+                  0.16 * (1 - metrics.friction),
+              ) + (metrics.bothFemale ? 16 : -18);
+            case "LOVERS":
+              return score(
+                0.34 * metrics.spark +
+                  0.2 * metrics.warmthAverage +
+                  0.16 * metrics.attachAverage +
                   0.08 * metrics.complementarity +
-                  0.06 * (1 - metrics.ideologyClash) +
-                  0.04 * (1 - metrics.friction),
-              ) + (metrics.mixedBinary ? 4 : 0);
+                  0.06 * metrics.abstractBond +
+                  0.06 * metrics.countryScore +
+                  0.1 * metrics.desireMatch,
+              ) + (metrics.mixedBinary ? 14 : 0);
             case "PARTY":
-              return w(
-                0.28 * metrics.socialAverage +
-                  0.24 * metrics.partyBias +
-                  0.14 * metrics.interestMatch +
-                  0.14 * metrics.spark +
-                  0.2 * (1 - metrics.friction),
+              return score(
+                0.34 * metrics.socialAverage +
+                  0.16 * metrics.warmthAverage +
+                  0.14 * metrics.countryScore +
+                  0.12 * metrics.spark +
+                  0.12 * metrics.alliance +
+                  0.12 * (1 - metrics.friction),
               );
             case "PLASTIC":
-              return (
-                w(
-                  0.22 * metrics.socialSimilarity +
-                    0.18 * metrics.overallSimilarity +
-                    0.2 * (1 - metrics.depthBond) +
-                    0.18 * (1 - metrics.careSimilarity) +
-                    0.12 * metrics.interestMatch +
-                    0.1 * (1 - metrics.friction),
-                ) + (metrics.bothFemale ? 14 : -22)
-              );
+              return score(
+                0.22 * metrics.socialAverage +
+                  0.2 * (1 - metrics.abstractBond) +
+                  0.18 * (1 - metrics.attachAverage) +
+                  0.16 * metrics.similarity +
+                  0.12 * metrics.countryScore +
+                  0.12 * (1 - metrics.friction),
+              ) + (metrics.bothFemale ? 12 : -16);
             case "RIVALS":
-              return w(
-                0.24 * metrics.powerClash +
-                  0.2 * metrics.assertiveMin +
-                  0.18 * metrics.overallSimilarity +
-                  0.16 * closeness(left.traits.order, right.traits.order) +
-                  0.12 * (1 - metrics.ideologyClash) +
-                  0.1 * metrics.friction,
-              );
+              return score(
+                0.28 * metrics.powerClash +
+                  0.2 * metrics.parity +
+                  0.16 * metrics.leadAverage +
+                  0.14 * metrics.conflictAverage +
+                  0.12 * metrics.valueAlignment +
+                  0.1 * clamp01(1 - Math.abs(metrics.directClash - 0.38) / 0.38),
+              ) + (left.meta.answerKeys.q40 === "C" && right.meta.answerKeys.q40 === "C" ? 8 : 0);
             case "ENEMIES":
-              return w(
-                0.35 * metrics.friction +
-                  0.3 * metrics.ideologyClash +
-                  0.18 * metrics.assertiveMin +
-                  0.1 * (1 - metrics.warmthAverage) +
-                  0.07 * metrics.powerClash,
+              return score(
+                0.28 * metrics.friction +
+                  0.24 * metrics.directClash +
+                  0.12 * (1 - metrics.valueAlignment) +
+                  0.18 * metrics.conflictAverage +
+                  0.14 * (1 - metrics.warmthAverage) +
+                  0.16 * (1 - metrics.countryScore),
               );
             case "INMATE":
-              return w(
-                0.28 * metrics.rebelliousMin +
+              return score(
+                0.24 * metrics.conflictAverage +
                   0.18 * (1 - metrics.orderAverage) +
-                  0.16 * metrics.overallSimilarity +
-                  0.14 * jaccard(left.meta.q29, right.meta.q29) +
-                  0.12 * metrics.weirdResonance +
-                  0.12 * (1 - metrics.friction / 2),
+                  0.16 * metrics.weirdResonance +
+                  0.12 * metrics.similarity +
+                  0.14 * answerCloseness("q20", left.meta.answerKeys.q20, right.meta.answerKeys.q20) +
+                  0.16 * answerCloseness("q29", left.meta.answerKeys.q29, right.meta.answerKeys.q29),
               );
             case "ALLIES":
-              return w(
-                0.24 * metrics.rebelliousMin +
-                  0.22 * metrics.valuesSimilarity +
-                  0.14 * metrics.assertiveMin +
-                  0.2 * (1 - metrics.friction) +
-                  0.2 * metrics.overallSimilarity,
+              return score(
+                0.28 * metrics.alliance +
+                  0.18 * metrics.valueAlignment +
+                  0.18 * metrics.leadAverage +
+                  0.14 * metrics.conflictAverage +
+                  0.1 * metrics.countryScore +
+                  0.12 * (1 - metrics.friction),
               );
             case "MENTOR":
-              return w(
-                0.34 * metrics.guidanceGap +
-                  0.18 * metrics.strongerWarmth +
-                  0.16 * metrics.strongerOrder +
-                  0.14 * metrics.overallSimilarity +
-                  0.18 * (1 - metrics.friction),
+              return score(
+                0.34 * metrics.hierarchy +
+                  0.18 * metrics.strongerProfile.normalized.order +
+                  0.16 * metrics.strongerProfile.normalized.abstract +
+                  0.16 * metrics.strongerProfile.normalized.warmth +
+                  0.16 * (1 - metrics.friction),
               );
             case "DAD-SON":
-              return (
-                w(
-                  0.34 * metrics.guidanceGap +
-                    0.22 * metrics.strongerWarmth +
-                    0.2 * metrics.strongerOrder +
-                    0.14 * (1 - metrics.friction) +
-                    0.1 * metrics.overallSimilarity,
-                ) + (strongerIsMale && softerIsMale ? 18 : -20) + (metrics.guidanceGap > 0.43 ? 6 : -4)
-              );
+              return score(
+                0.34 * metrics.hierarchy +
+                  0.22 * metrics.strongerProfile.normalized.warmth +
+                  0.18 * metrics.strongerProfile.normalized.order +
+                  0.14 * metrics.countryScore +
+                  0.12 * (1 - metrics.friction),
+              ) + (strongerIsMale && softerIsMale ? 20 : -20);
             case "DAD-DAU":
-              return (
-                w(
-                  0.34 * metrics.guidanceGap +
-                    0.22 * metrics.strongerWarmth +
-                    0.2 * metrics.strongerOrder +
-                    0.14 * (1 - metrics.friction) +
-                    0.1 * metrics.overallSimilarity,
-                ) + (strongerIsMale && softerIsFemale ? 18 : -20) + (metrics.guidanceGap > 0.43 ? 8 : -4)
-              );
+              return score(
+                0.34 * metrics.hierarchy +
+                  0.22 * metrics.strongerProfile.normalized.warmth +
+                  0.18 * metrics.strongerProfile.normalized.order +
+                  0.14 * metrics.countryScore +
+                  0.12 * (1 - metrics.friction),
+              ) + (strongerIsMale && softerIsFemale ? 20 : -20);
             case "MOM-SON":
-              return (
-                w(
-                  0.34 * metrics.guidanceGap +
-                    0.24 * metrics.strongerWarmth +
-                    0.16 * metrics.strongerOrder +
-                    0.14 * (1 - metrics.friction) +
-                    0.12 * metrics.overallSimilarity,
-                ) + (strongerIsFemale && softerIsMale ? 18 : -20) + (metrics.guidanceGap > 0.43 ? 8 : -4)
-              );
+              return score(
+                0.34 * metrics.hierarchy +
+                  0.24 * metrics.strongerProfile.normalized.warmth +
+                  0.16 * metrics.strongerProfile.normalized.attach +
+                  0.14 * metrics.countryScore +
+                  0.12 * (1 - metrics.friction),
+              ) + (strongerIsFemale && softerIsMale ? 20 : -20);
             case "MOM-DAU":
-              return (
-                w(
-                  0.34 * metrics.guidanceGap +
-                    0.24 * metrics.strongerWarmth +
-                    0.16 * metrics.strongerOrder +
-                    0.14 * (1 - metrics.friction) +
-                    0.12 * metrics.overallSimilarity,
-                ) + (strongerIsFemale && softerIsFemale ? 18 : -20) + (metrics.guidanceGap > 0.43 ? 6 : -4)
-              );
+              return score(
+                0.34 * metrics.hierarchy +
+                  0.24 * metrics.strongerProfile.normalized.warmth +
+                  0.16 * metrics.strongerProfile.normalized.attach +
+                  0.14 * metrics.countryScore +
+                  0.12 * (1 - metrics.friction),
+              ) + (strongerIsFemale && softerIsFemale ? 20 : -20);
             case "GUARD":
-              return (
-                w(
-                  0.2 * metrics.complementarity +
-                    0.18 * metrics.warmthAverage +
-                    0.16 * metrics.careSimilarity +
-                    0.12 * metrics.overallSimilarity +
-                    0.12 * metrics.socialSimilarity +
-                    0.1 * (1 - metrics.friction),
-                ) +
-                (strongerIsMale && softerIsFemale ? 18 : -16) +
-                (metrics.guidanceGap > 0.32 && metrics.guidanceGap < 0.44 ? 8 : -8) +
-                (metrics.spark < 0.65 ? 6 : -12)
-              );
+              return score(
+                0.22 * metrics.complementarity +
+                  0.2 * metrics.warmthAverage +
+                  0.16 * metrics.attachAverage +
+                  0.14 * metrics.hierarchy +
+                  0.12 * metrics.countryScore +
+                  0.16 * (1 - metrics.friction),
+              ) + (strongerIsMale && softerIsFemale ? 16 : -16);
             case "KEEPER":
-              return (
-                w(
-                  0.2 * metrics.complementarity +
-                    0.2 * metrics.warmthAverage +
-                    0.16 * metrics.careSimilarity +
-                    0.12 * metrics.overallSimilarity +
-                    0.1 * metrics.socialSimilarity +
-                    0.1 * (1 - metrics.friction),
-                ) +
-                (strongerIsFemale && softerIsMale ? 18 : -16) +
-                (metrics.guidanceGap > 0.32 && metrics.guidanceGap < 0.44 ? 8 : -8) +
-                (metrics.spark < 0.65 ? 6 : -12)
-              );
+              return score(
+                0.22 * metrics.complementarity +
+                  0.2 * metrics.warmthAverage +
+                  0.16 * metrics.attachAverage +
+                  0.14 * metrics.hierarchy +
+                  0.12 * metrics.countryScore +
+                  0.16 * (1 - metrics.friction),
+              ) + (strongerIsFemale && softerIsMale ? 16 : -16);
             case "WEIRDOS":
-              return w(
-                0.42 * metrics.weirdResonance +
-                  0.18 * metrics.overallSimilarity +
-                  0.12 * metrics.interestMatch +
-                  0.1 * metrics.depthBond +
-                  0.08 * (1 - metrics.friction) +
-                  0.1 * jaccard(left.meta.q29, right.meta.q29),
+              return score(
+                0.44 * metrics.weirdResonance +
+                  0.16 * metrics.similarity +
+                  0.1 * metrics.abstractBond +
+                  0.1 * metrics.countryScore +
+                  0.1 * answerCloseness("q35", left.meta.answerKeys.q35, right.meta.answerKeys.q35) +
+                  0.1 * (1 - metrics.friction),
               );
             default:
               return 0;
@@ -1758,23 +1501,24 @@
 
         function relationModifier(label, metrics) {
           let modifier = 1;
-          const oddityAverage =
-            (metrics.strongerProfile.traits.oddity + metrics.softerProfile.traits.oddity) / 200;
-          if (metrics.ideologyClash > 0.65 && metrics.friction > 0.55) {
-            if (["TWINS", "ECHO", "SOUL", "SYNC", "SETTLED", "UNITED", "HOMIES", "BROS", "GLUED", "LOVERS"].includes(label)) {
-              modifier *= 0.72;
-            }
-            if (["ENEMIES", "RIVALS"].includes(label)) {
-              modifier *= 1.12;
-            }
+          if (label === "RIVALS") {
+            if (metrics.directClash > 0.2) modifier *= 0.68;
+            if (metrics.countryScore < 0.18) modifier *= 0.82;
           }
-          if (metrics.weirdResonance > 0.62) {
-            if (label === "WEIRDOS") modifier *= oddityAverage > 0.58 ? 1.34 : 1.18;
-            if (["TWINS", "SYNC", "SETTLED", "ECHO", "GLUED"].includes(label)) modifier *= oddityAverage > 0.58 ? 0.78 : 0.92;
+          if (label === "ENEMIES") {
+            if (metrics.directClash > 0.2 && metrics.countryScore < 0.18) modifier *= 1.55;
           }
-          if (metrics.guidanceGap > 0.42) {
-            if (["MENTOR", "DAD-SON", "DAD-DAU", "MOM-SON", "MOM-DAU"].includes(label)) modifier *= 1.06;
-            if (["TWINS", "ECHO"].includes(label)) modifier *= 0.9;
+          if (metrics.weirdAverage > 0.72) {
+            if (label === "WEIRDOS") modifier *= 1.24;
+            if (["TWINS", "SYNC", "SETTLED", "ECHO", "GLUED"].includes(label)) modifier *= 0.82;
+          }
+          if (metrics.friction > 0.62) {
+            if (["ENEMIES", "RIVALS"].includes(label)) modifier *= 1.1;
+            if (["LOVERS", "SETTLED", "SYNC", "TWINS", "GLUED"].includes(label)) modifier *= 0.82;
+          }
+          if (metrics.hierarchy > 0.48) {
+            if (["MENTOR", "DAD-SON", "DAD-DAU", "MOM-SON", "MOM-DAU", "GUARD", "KEEPER"].includes(label)) modifier *= 1.08;
+            if (["TWINS", "ECHO"].includes(label)) modifier *= 0.86;
           }
           return modifier;
         }
@@ -1798,70 +1542,60 @@
         }
 
         function collectableScore(label, profile) {
-          const t = profile.traits;
+          const t = profile.normalized;
           const gender = profile.meta.gender;
-          const n = {
-            social: t.social / 100,
-            empathy: t.empathy / 100,
-            order: t.order / 100,
-            defiance: t.defiance / 100,
-            depth: t.depth / 100,
-            warmth: t.warmth / 100,
-            lead: t.lead / 100,
-            oddity: t.oddity / 100,
-          };
 
           switch (label) {
             case "TWINS":
-              return 100 * (0.3 * n.depth + 0.24 * n.order + 0.2 * n.empathy + 0.12 * (1 - Math.abs(n.social - 0.5)) + 0.14 * (1 - n.oddity));
+              return 100 * (0.28 * t.abstract + 0.2 * t.order + 0.16 * (1 - Math.abs(t.social - 0.5)) + 0.16 * (1 - t.weird * 0.45) + 0.2 * (profile.meta.answerKeys.q40 === "A" ? 1 : 0.4));
             case "ECHO":
-              return 100 * (0.24 * n.social + 0.2 * n.warmth + 0.2 * n.empathy + 0.16 * (1 - n.order * 0.3) + 0.2 * (gender === "female" ? 1 : 0.18));
+              return 100 * (0.22 * t.social + 0.22 * t.warmth + 0.16 * t.attach + 0.18 * (gender === "female" ? 1 : 0.2) + 0.22 * (profile.meta.answerKeys.q40 === "A" ? 1 : 0.35));
             case "SOUL":
-              return 100 * (0.3 * n.depth + 0.24 * n.empathy + 0.22 * n.warmth + 0.12 * (1 - Math.abs(n.social - 0.45)) + 0.12 * (1 - n.oddity * 0.3));
+              return 100 * (0.28 * t.abstract + 0.22 * t.warmth + 0.22 * t.attach + 0.14 * (profile.meta.answerKeys.q33 === "C" ? 1 : 0.4) + 0.14 * (1 - t.weird * 0.25));
             case "SYNC":
-              return 100 * (0.3 * n.order + 0.22 * n.depth + 0.18 * n.empathy + 0.16 * (1 - n.defiance * 0.45) + 0.14 * (1 - Math.abs(n.social - 0.45)));
+              return 100 * (0.3 * t.order + 0.2 * t.abstract + 0.18 * t.warmth + 0.16 * (profile.meta.answerKeys.q40 === "B" ? 1 : 0.35) + 0.16 * (1 - t.conflict * 0.45));
             case "SETTLED":
-              return 100 * (0.26 * n.order + 0.22 * n.warmth + 0.2 * n.depth + 0.18 * n.empathy + 0.14 * (1 - n.defiance * 0.4));
+              return 100 * (0.28 * t.order + 0.24 * t.warmth + 0.22 * t.attach + 0.14 * (profile.meta.answerKeys.q32 === "A" || profile.meta.answerKeys.q32 === "B" ? 1 : 0.35) + 0.12 * (1 - t.conflict * 0.4));
             case "UNITED":
-              return 100 * (0.22 * n.warmth + 0.24 * n.empathy + 0.18 * (1 - n.defiance * 0.3) + 0.18 * n.social + 0.18 * n.order);
+              return 100 * (0.22 * t.warmth + 0.22 * t.lead + 0.18 * t.order + 0.18 * t.conflict + 0.2 * (1 - t.attach * 0.15));
             case "HOMIES":
-              return 100 * (0.28 * n.social + 0.24 * n.warmth + 0.16 * n.empathy + 0.18 * (1 - n.order * 0.25) + 0.14 * (1 - n.depth * 0.2));
+              return 100 * (0.28 * t.social + 0.22 * t.warmth + 0.16 * (1 - t.order * 0.25) + 0.16 * (profile.meta.answerKeys.q8 === "A" || profile.meta.answerKeys.q8 === "B" ? 1 : 0.4) + 0.18 * (1 - t.attach * 0.25));
             case "BROS":
-              return 100 * (0.26 * n.social + 0.24 * n.warmth + 0.18 * (1 - n.order * 0.2) + 0.16 * n.lead + 0.16 * (gender === "male" ? 1 : 0.4));
+              return 100 * (0.24 * t.social + 0.22 * t.lead + 0.18 * t.warmth + 0.18 * t.conflict + 0.18 * (gender === "male" ? 1 : 0.35));
             case "SISTERS":
-              return 100 * (0.24 * n.warmth + 0.2 * n.empathy + 0.16 * n.defiance + 0.16 * n.social + 0.24 * (gender === "female" ? 1 : 0.14));
+              return 100 * (0.22 * t.warmth + 0.22 * t.attach + 0.18 * t.social + 0.16 * t.conflict + 0.22 * (gender === "female" ? 1 : 0.15));
             case "GLUED":
-              return 100 * (0.3 * n.warmth + 0.24 * n.empathy + 0.18 * n.social + 0.14 * (1 - n.defiance * 0.25) + 0.14 * (gender === "female" ? 1 : 0.22));
+              return 100 * (0.3 * t.attach + 0.26 * t.warmth + 0.18 * (profile.meta.answerKeys.q32 === "A" ? 1 : 0.45) + 0.12 * t.social + 0.14 * (gender === "female" ? 1 : 0.22));
             case "LOVERS":
-              return 100 * (0.24 * n.warmth + 0.2 * n.empathy + 0.18 * n.depth + 0.18 * n.social + 0.2 * (1 - n.oddity * 0.2));
+              return 100 * (0.28 * t.warmth + 0.24 * t.attach + 0.16 * t.abstract + 0.16 * (profile.meta.answerKeys.q31 === "B" || profile.meta.answerKeys.q31 === "C" ? 1 : 0.45) + 0.16 * (profile.meta.answerKeys.q34 !== "A" ? 1 : 0.3));
             case "PARTY":
-              return 100 * (0.34 * n.social + 0.2 * (1 - n.order) + 0.18 * n.warmth + 0.14 * n.lead + 0.14 * (profile.meta.q3.includes("A") ? 1 : 0.55));
+              return 100 * (0.34 * t.social + 0.18 * t.warmth + 0.16 * t.lead + 0.16 * (1 - t.order) + 0.16 * (profile.meta.answerKeys.q8 === "A" ? 1 : 0.4));
             case "PLASTIC":
-              return 100 * (0.28 * n.social + 0.18 * (1 - n.depth) + 0.18 * (1 - n.empathy) + 0.18 * n.warmth + 0.18 * (gender === "female" ? 1 : 0.2));
+              return 100 * (0.28 * t.social + 0.2 * (1 - t.abstract) + 0.18 * (1 - t.attach) + 0.16 * t.warmth + 0.18 * (gender === "female" ? 1 : 0.2));
             case "RIVALS":
-              return 100 * (0.28 * n.lead + 0.24 * n.defiance + 0.18 * n.order + 0.16 * n.depth + 0.14 * (1 - n.warmth * 0.25));
+              return 100 * (0.28 * t.lead + 0.24 * t.conflict + 0.18 * t.order + 0.16 * t.abstract + 0.14 * (profile.meta.answerKeys.q40 === "C" ? 1 : 0.35));
             case "ENEMIES":
-              return 100 * (0.3 * n.defiance + 0.22 * n.lead + 0.16 * (1 - n.warmth) + 0.16 * (1 - n.empathy) + 0.16 * (1 - n.order * 0.15));
+              return 100 * (0.3 * t.conflict + 0.22 * t.lead + 0.16 * (1 - t.warmth) + 0.16 * (1 - t.attach) + 0.16 * (profile.meta.answerKeys.q20 === "A" ? 1 : 0.45));
             case "INMATE":
-              return 100 * (0.3 * n.defiance + 0.2 * (1 - n.order) + 0.16 * n.oddity + 0.16 * (profile.meta.q29.length ? 1 : 0.5) + 0.18 * (1 - n.warmth * 0.3));
+              return 100 * (0.28 * t.conflict + 0.22 * (1 - t.order) + 0.18 * t.weird + 0.14 * (profile.meta.answerKeys.q20 === "A" ? 1 : 0.4) + 0.18 * (profile.meta.answerKeys.q29 === "D" ? 1 : 0.35));
             case "ALLIES":
-              return 100 * (0.28 * n.defiance + 0.2 * n.lead + 0.18 * n.order + 0.16 * n.depth + 0.18 * n.warmth);
+              return 100 * (0.24 * t.conflict + 0.22 * t.lead + 0.18 * t.order + 0.18 * t.abstract + 0.18 * t.warmth);
             case "MENTOR":
-              return 100 * (0.28 * n.lead + 0.24 * n.order + 0.2 * n.depth + 0.18 * n.empathy + 0.1 * n.warmth);
+              return 100 * (0.3 * t.lead + 0.24 * t.order + 0.18 * t.abstract + 0.14 * t.warmth + 0.14 * (profile.meta.answerKeys.q29 === "A" ? 1 : 0.35));
             case "DAD-SON":
-              return 100 * (0.28 * n.lead + 0.24 * n.order + 0.18 * n.warmth + 0.12 * n.empathy + 0.18 * (gender === "male" ? 1 : 0.35));
+              return 100 * (0.28 * t.lead + 0.22 * t.order + 0.18 * t.warmth + 0.14 * t.attach + 0.18 * (gender === "male" ? 1 : 0.35));
             case "DAD-DAU":
-              return 100 * (0.28 * n.lead + 0.22 * n.order + 0.22 * n.warmth + 0.1 * n.empathy + 0.18 * (gender === "male" ? 1 : 0.35));
+              return 100 * (0.28 * t.lead + 0.22 * t.order + 0.22 * t.warmth + 0.1 * t.attach + 0.18 * (gender === "male" ? 1 : 0.35));
             case "MOM-SON":
-              return 100 * (0.22 * n.lead + 0.18 * n.order + 0.28 * n.warmth + 0.18 * n.empathy + 0.14 * (gender === "female" ? 1 : 0.35));
+              return 100 * (0.22 * t.lead + 0.18 * t.order + 0.28 * t.warmth + 0.18 * t.attach + 0.14 * (gender === "female" ? 1 : 0.35));
             case "MOM-DAU":
-              return 100 * (0.2 * n.lead + 0.16 * n.order + 0.3 * n.warmth + 0.2 * n.empathy + 0.14 * (gender === "female" ? 1 : 0.35));
+              return 100 * (0.2 * t.lead + 0.16 * t.order + 0.3 * t.warmth + 0.2 * t.attach + 0.14 * (gender === "female" ? 1 : 0.35));
             case "GUARD":
-              return 100 * (0.24 * n.lead + 0.22 * n.warmth + 0.18 * n.empathy + 0.16 * n.order + 0.2 * (gender === "male" ? 1 : 0.4));
+              return 100 * (0.24 * t.lead + 0.22 * t.warmth + 0.18 * t.attach + 0.16 * t.order + 0.2 * (gender === "male" ? 1 : 0.4));
             case "KEEPER":
-              return 100 * (0.18 * n.lead + 0.26 * n.warmth + 0.22 * n.empathy + 0.14 * n.order + 0.2 * (gender === "female" ? 1 : 0.4));
+              return 100 * (0.18 * t.lead + 0.26 * t.warmth + 0.22 * t.attach + 0.14 * t.order + 0.2 * (gender === "female" ? 1 : 0.4));
             case "WEIRDOS":
-              return 100 * (0.46 * n.oddity + 0.18 * n.depth + 0.12 * (1 - n.order * 0.2) + 0.12 * n.defiance + 0.12 * (1 - Math.abs(n.social - 0.5)));
+              return 100 * (0.44 * t.weird + 0.18 * t.abstract + 0.12 * (1 - t.order * 0.2) + 0.12 * t.conflict + 0.14 * (profile.meta.answerKeys.q39 !== "A" ? 1 : 0.25));
             default:
               return 0;
           }
@@ -1885,9 +1619,7 @@
           const missing = [];
           QUESTIONS.forEach((question, index) => {
             const answer = answers[index];
-            if (question.type === "multiple") {
-              if (!Array.isArray(answer) || answer.length === 0) missing.push(question.id);
-            } else if (answer === null || answer === undefined || answer < 0) {
+            if (answer === null || answer === undefined || answer < 0) {
               missing.push(question.id);
             }
           });
@@ -1981,16 +1713,16 @@
         function describeCompareResult(result) {
           const relation = RELATION_MAP[result.top.label];
           const frictionLabel =
-            result.metrics.friction > 0.62 ? "高摩擦" : result.metrics.friction > 0.38 ? "有摩擦" : "低摩擦";
+            result.metrics.friction > 0.62 ? "高摩擦" : result.metrics.friction > 0.38 ? "中等摩擦" : "低摩擦";
           const syncLabel =
-            result.metrics.overallSimilarity > 0.78 ? "高相似" : result.metrics.overallSimilarity > 0.6 ? "中高相似" : "偏互补";
+            result.metrics.similarity > 0.8 ? "高镜像" : result.metrics.similarity > 0.62 ? "同频" : "偏互补";
           return `${relation.summary} 当前结构更接近 ${syncLabel}、${frictionLabel} 的组合。`;
         }
 
         function topMetricsForCompare(result) {
           return [
-            { label: "整体相似", value: `${Math.round(result.metrics.overallSimilarity * 100)}%` },
-            { label: "价值对齐", value: `${Math.round(result.metrics.valuesSimilarity * 100)}%` },
+            { label: "整体相似", value: `${Math.round(result.metrics.similarity * 100)}%` },
+            { label: "价值对齐", value: `${Math.round(result.metrics.valueAlignment * 100)}%` },
             { label: "互补度", value: `${Math.round(result.metrics.complementarity * 100)}%` },
             { label: "摩擦值", value: `${Math.round(result.metrics.friction * 100)}%` },
             { label: "判定优势", value: `${Math.round(result.confidence)} 分` },
@@ -2000,11 +1732,11 @@
         function topMetricsForSelf(deck) {
           const traits = deck.profile.traits;
           return [
+            { label: "抽象度", value: `${Math.round(traits.abstract)}` },
             { label: "社交能量", value: `${Math.round(traits.social)}` },
-            { label: "共情度", value: `${Math.round(traits.empathy)}` },
-            { label: "秩序感", value: `${Math.round(traits.order)}` },
-            { label: "反骨值", value: `${Math.round(traits.defiance)}` },
-            { label: "怪味指数", value: `${Math.round(traits.oddity)}` },
+            { label: "温度", value: `${Math.round(traits.warmth)}` },
+            { label: "主导欲", value: `${Math.round(traits.lead)}` },
+            { label: "怪味值", value: `${Math.round(traits.weird)}` },
           ];
         }
 
