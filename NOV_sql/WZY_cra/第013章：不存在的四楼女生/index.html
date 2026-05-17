@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Immersive Reader</title>
+
+    <!-- 1. 引入 KaTeX CSS (数学公式样式) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    
+    <!-- 2. 引入 KaTeX JS (去除 defer，强制优先加载) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+
+    <!-- 3. 引入 Marked JS (Markdown 解析，使用 cdnjs 源) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+
+    <style>
+        /* --- iOS Future Dark Theme --- */
+        :root {
+            --bg-color: #000000;
+            --text-primary: #F2F2F7;
+            --text-secondary: #8E8E93;
+            --text-reading: #D1D1D6;
+            --accent: #0A84FF;
+            --border-light: rgba(255, 255, 255, 0.12);
+            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            --safe-area-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-reading);
+            font-family: var(--font-stack);
+            margin: 0;
+            padding: 0;
+            line-height: 1.8;
+            font-size: 19px;
+            overflow-x: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: 50px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid var(--border-light);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100; transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .header-title {
+            font-size: 14px; font-weight: 600; color: var(--text-primary);
+            opacity: 0.8; max-width: 80%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* --- Main Content --- */
+        main {
+            max-width: 700px; margin: 0 auto; padding: 80px 24px 150px;
+            min-height: 100vh; opacity: 0; transition: opacity 0.5s ease;
+        }
+
+        /* Typography */
+        h1, h2, h3 { color: var(--text-primary); font-weight: 700; margin-top: 2em; }
+        h1 { font-size: 2em; border-bottom: 1px solid var(--border-light); padding-bottom: 0.3em; }
+        h2 { font-size: 1.5em; }
+        p { margin-bottom: 1.5em; text-align: justify; }
+        a { color: var(--accent); text-decoration: none; }
+        img { max-width: 100%; border-radius: 8px; }
+        
+        /* Math & Code */
+        .katex-display { overflow-x: auto; padding: 10px 0; }
+        pre {
+            background: #1C1C1E; border-radius: 14px; padding: 16px;
+            overflow-x: auto; border: 1px solid var(--border-light); margin: 1.5em 0;
+        }
+        code { color: #FF9F0A; font-family: monospace; font-size: 0.9em; }
+        pre code { color: inherit; }
+
+        /* --- Scrubber --- */
+        .control-bar {
+            position: fixed; bottom: calc(20px + var(--safe-area-bottom)); left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px; height: 50px;
+            background: rgba(35, 35, 35, 0.85);
+            backdrop-filter: blur(25px) saturate(180%); -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-radius: 25px; border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            display: flex; align-items: center; padding: 0 20px;
+            z-index: 200; transition: opacity 0.3s, transform 0.3s;
+        }
+        .control-bar.hidden { opacity: 0.3; transform: translateX(-50%) translateY(10px) scale(0.95); pointer-events: none; }
+        .control-bar:hover, .control-bar.active { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); pointer-events: auto; }
+
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; height: 100%; cursor: pointer; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #ffffff; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.4); transition: transform 0.1s; }
+        input[type=range]:active::-webkit-slider-thumb { transform: scale(1.3); }
+
+        .page-info {
+            position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); padding: 4px 12px; border-radius: 12px;
+            font-size: 12px; color: var(--text-primary); opacity: 0; transition: opacity 0.2s; pointer-events: none;
+        }
+        .control-bar:active .page-info { opacity: 1; }
+
+        /* Loading / Error */
+        #error-msg { text-align: center; margin-top: 100px; display: none; padding: 20px; color: #FF453A; }
+    </style>
+</head>
+<body>
+
+    <header id="header">
+        <div class="header-title" id="book-title">Preparing...</div>
+    </header>
+
+    <div id="error-msg"></div>
+    <main id="content"></main>
+
+    <div class="control-bar" id="control-bar">
+        <div class="page-info" id="page-info">0%</div>
+        <input type="range" id="scrubber" min="0" max="100" value="0" step="0.01">
+    </div>
+
+    <script>
+        // 关键修复：确保页面完全加载后再执行
+        window.addEventListener('load', function() {
+            
+            // 检查库是否加载成功
+            if (typeof marked === 'undefined') {
+                document.getElementById('error-msg').style.display = 'block';
+                document.getElementById('error-msg').innerHTML = '<h3>资源加载失败</h3><p>Marked.js 库未能加载，请检查网络连接。</p>';
+                document.getElementById('book-title').innerText = "Error";
+                return;
+            }
+
+            // 初始化配置
+            const urlParams = new URLSearchParams(window.location.search);
+            const CONTENT_FILE = urlParams.get('file') || 'content.md';
+            
+            const contentDiv = document.getElementById('content');
+            const titleElem = document.getElementById('book-title');
+            const errorDiv = document.getElementById('error-msg');
+
+            titleElem.innerText = "Loading Content...";
+
+            // 开始加载
+            loadNovel();
+
+            async function loadNovel() {
+                try {
+                    const response = await fetch(CONTENT_FILE);
+                    
+                    if (!response.ok) {
+                        throw new Error(`无法找到文件 (Code: ${response.status})`);
+                    }
+
+                    const markdownText = await response.text();
+                    
+                    // 提取标题
+                    const lines = markdownText.trim().split('\n');
+                    if(lines.length > 0 && lines[0].startsWith('#')) {
+                        titleElem.innerText = lines[0].replace(/#+\s*/, '');
+                        document.title = titleElem.innerText;
+                    } else {
+                        titleElem.innerText = "Reader";
+                    }
+
+                    // 1. Markdown 转 HTML
+                    contentDiv.innerHTML = marked.parse(markdownText, {
+                        breaks: true,
+                        gfm: true
+                    });
+
+                    // 2. 渲染公式 (带检查)
+                    if (typeof renderMathInElement !== 'undefined') {
+                        renderMathInElement(contentDiv, {
+                            delimiters: [
+                                {left: '$$', right: '$$', display: true},
+                                {left: '$', right: '$', display: false},
+                                {left: '\\(', right: '\\)', display: false},
+                                {left: '\\[', right: '\\]', display: true}
+                            ],
+                            throwOnError : false
+                        });
+                    }
+
+                    contentDiv.style.opacity = '1';
+
+                } catch (err) {
+                    console.error(err);
+                    contentDiv.style.display = 'none';
+                    errorDiv.style.display = 'block';
+                    errorDiv.innerHTML = `<h3 style="color:#FF453A">无法加载小说</h3><p>${err.message}</p><p style="font-size:0.8em; color:#666">请确保文件 content.md 存在，且使用服务器模式(http://)访问。</p>`;
+                }
+            }
+
+            // --- 交互逻辑 ---
+            const scrubber = document.getElementById('scrubber');
+            const header = document.getElementById('header');
+            const controlBar = document.getElementById('control-bar');
+            const pageInfo = document.getElementById('page-info');
+            let isDragging = false;
+            let scrollTimeout;
+            let lastScrollY = window.scrollY;
+
+            function getMaxScroll() {
+                return document.documentElement.scrollHeight - window.innerHeight;
+            }
+
+            window.addEventListener('scroll', () => {
+                if (!isDragging) {
+                    const max = getMaxScroll();
+                    if (max > 0) {
+                        const percent = (window.scrollY / max) * 100;
+                        scrubber.value = percent;
+                        pageInfo.innerText = Math.round(percent) + "%";
+                    }
+                }
+                
+                // UI 显隐逻辑
+                const currentScrollY = window.scrollY;
+                if (currentScrollY > lastScrollY && currentScrollY > 50) {
+                    header.style.transform = 'translateY(-100%)';
+                } else {
+                    header.style.transform = 'translateY(0)';
+                }
+                
+                controlBar.classList.add('hidden');
+                controlBar.classList.remove('active');
+                
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    controlBar.classList.remove('hidden');
+                    controlBar.classList.add('active');
+                }, 600);
+                
+                lastScrollY = currentScrollY;
+            });
+
+            scrubber.addEventListener('input', (e) => {
+                isDragging = true;
+                const max = getMaxScroll();
+                window.scrollTo(0, (e.target.value / 100) * max);
+                pageInfo.innerText = Math.round(e.target.value) + "%";
+                
+                controlBar.classList.remove('hidden');
+                controlBar.classList.add('active');
+                clearTimeout(scrollTimeout);
+            });
+
+            scrubber.addEventListener('change', () => { isDragging = false; });
+            scrubber.addEventListener('touchstart', () => { isDragging = true; });
+            scrubber.addEventListener('touchend', () => { isDragging = false; });
+            
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.control-bar')) {
+                    controlBar.classList.remove('hidden');
+                    controlBar.classList.add('active');
+                    header.style.transform = 'translateY(0)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
