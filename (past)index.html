@@ -22,7 +22,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </a>
-            <a href="https://faster-preference-approve-wife.trycloudflare.com" target="_blank" class="icon-btn" title="问卷箱" onclick="openSurvey(event)">
+            <a href="https://faster-preference-approve-wife.trycloudflare.com" target="_blank" class="icon-btn" title="问卷箱">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
@@ -211,79 +211,6 @@
 
         </div>
     </div>
-
-    <!-- 问卷箱：连接 / 已下线 提示框 -->
-    <div class="modal" id="surveyModal">
-        <div class="modal-content">
-            <div style="font-size:40px; margin-bottom:8px;" id="surveyIcon">📮</div>
-            <h2 id="surveyTitle">正在连接问卷箱…</h2>
-            <p style="color:rgba(235,235,245,0.6); font-size:14px; margin-bottom:20px;" id="surveyDesc">稍等片刻</p>
-            <div class="modal-btns" id="surveyBtns" style="display:none;">
-                <button class="btn btn-cancel" onclick="closeSurvey()">知道了</button>
-                <button class="btn btn-confirm" onclick="retrySurvey()">重试</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 问卷箱公网地址（更换隧道后改这里；与上方按钮 href 保持一致即可）。
-        const SURVEY_URL = "https://faster-preference-approve-wife.trycloudflare.com";
-
-        function showSurveyModal() {
-            const m = document.getElementById('surveyModal');
-            m.style.display = 'block';
-            requestAnimationFrame(() => m.classList.add('show'));
-        }
-        function closeSurvey() {
-            const m = document.getElementById('surveyModal');
-            m.classList.remove('show');
-            setTimeout(() => (m.style.display = 'none'), 300);
-        }
-        function setSurveyState(state) {
-            const icon = document.getElementById('surveyIcon');
-            const title = document.getElementById('surveyTitle');
-            const desc = document.getElementById('surveyDesc');
-            const btns = document.getElementById('surveyBtns');
-            if (state === 'checking') {
-                icon.textContent = '📮';
-                title.textContent = '正在连接问卷箱…';
-                desc.textContent = '正在检测服务器是否在线';
-                btns.style.display = 'none';
-            } else if (state === 'offline') {
-                icon.textContent = '🚫';
-                title.textContent = '服务器已下线';
-                desc.textContent = '问卷箱目前没有运行，请稍后再来～';
-                btns.style.display = 'flex';
-            }
-        }
-
-        async function openSurvey(e) {
-            if (e) e.preventDefault();
-            showSurveyModal();
-            setSurveyState('checking');
-            const ok = await surveyAlive();
-            if (ok) {
-                closeSurvey();
-                // 新标签打开；若被弹窗拦截则退回本标签跳转。
-                const w = window.open(SURVEY_URL, '_blank');
-                if (!w) window.location.href = SURVEY_URL;
-            } else {
-                setSurveyState('offline');
-            }
-        }
-        function retrySurvey() { openSurvey(); }
-
-        // 探测：能成功读到带 CORS 的 /api/health 才算在线。
-        // 服务器没开（域名不存在）或 Cloudflare 530（无 CORS 头）都会让 fetch 失败 → 视为下线。
-        function surveyAlive() {
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 5000);
-            return fetch(SURVEY_URL + '/api/health', { signal: ctrl.signal, cache: 'no-store' })
-                .then(r => r.ok)
-                .catch(() => false)
-                .finally(() => clearTimeout(timer));
-        }
-    </script>
 
 </body>
 </html>
