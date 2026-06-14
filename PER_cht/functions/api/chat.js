@@ -1,20 +1,20 @@
 // ============================================================================
 //  Cloudflare Pages Function —— /api/chat 多供应商代理
 //
-//  前端 POST 过来 { provider: "<id>", body: <已组好的请求体> }，
-//  这里按 provider 找到上游地址，从环境变量里取出对应的 key 注入请求头，
-//  转发到真正的大模型接口，并把流式响应原样透传回前端。
-//  好处：key 只存在服务端环境变量里，永远不出现在浏览器里；同时绕开 CORS。
+//  前端 POST 过来 { provider, model, body }（body 是已组好的请求体），
+//  这里按 provider 找到上游地址，从环境变量里取出对应 key 注入，转发并把
+//  流式响应原样透传回去。key 只存在服务端环境变量里，不出现在浏览器。
 //
-//  部署时在 Cloudflare Pages → Settings → Environment variables 里，
-//  按你要用的供应商添加对应的环境变量（建议设为 Secret / 加密）：
+//  这是仓库根目录的 functions —— Cloudflare Pages 以仓库根作为项目根来构建，
+//  所以真正生效的就是这个文件（PER_cht/functions 下那份是给单独部署用的副本）。
+//
+//  环境变量（按需配置，没配的供应商被选中时会返回提示，互不影响）：
 //    DEEPSEEK_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY
 //    DASHSCOPE_API_KEY / ZHIPU_API_KEY / MINIMAX_API_KEY / OPENCODE_API_KEY
-//  没配的供应商在前端选了也会返回提示，互不影响。
 // ============================================================================
 
-// 上游地址 / 取 key 的环境变量名 / 鉴权方式。
 // url 固定在服务端，不接受前端传入，避免被当成任意转发器（SSRF）。
+// auth: bearer = Authorization: Bearer；anthropic = x-api-key 头；gemini = key 进 ?key=。
 const PROVIDERS = {
   deepseek: {
     url: "https://api.deepseek.com/chat/completions",
@@ -32,9 +32,10 @@ const PROVIDERS = {
     auth: "anthropic",
   },
   gemini: {
-    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    // 只到 .../models，真正地址在下面按模型拼成 .../<模型>:streamGenerateContent
+    url: "https://generativelanguage.googleapis.com/v1beta/models",
     env: "GEMINI_API_KEY",
-    auth: "bearer",
+    auth: "gemini",
   },
   qwen: {
     url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
@@ -61,7 +62,7 @@ const PROVIDERS = {
 function jsonError(message, status) {
   return new Response(JSON.stringify({ error: { message } }), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
 
@@ -75,10 +76,10 @@ export async function onRequest({ request, env }) {
     return jsonError("请求体不是合法 JSON。", 400);
   }
 
-  // 正常形态：{ provider, body }。
-  // 兼容老前端：如果直接发来 OpenAI 形的裸 body（带 messages、没 provider），
+  // 正常形态：{ provider, model, body }。
+  // 兼容老前端 / 老调用方：直接发来 OpenAI 形的裸 body（带 messages、没 provider），
   // 当作 deepseek 处理，避免把整包当成聊天体转发导致 “messages 为空”。
-  let { provider: providerId, body } = payload || {};
+  let { provider: providerId, model, body } = payload || {};
   if (!providerId && payload && Array.isArray(payload.messages)) {
     providerId = "deepseek";
     body = payload;
@@ -95,8 +96,18 @@ export async function onRequest({ request, env }) {
       500
     );
 
+  let url = cfg.url;
   const headers = { "Content-Type": "application/json" };
-  if (cfg.auth === "anthropic") {
+
+  if (cfg.auth === "gemini") {
+    const m = model || body.model || "gemini-2.0-flash";
+    url =
+      cfg.url +
+      "/" +
+      encodeURIComponent(m) +
+      ":streamGenerateContent?alt=sse&key=" +
+      encodeURIComponent(key);
+  } else if (cfg.auth === "anthropic") {
     headers["x-api-key"] = key;
     headers["anthropic-version"] = "2023-06-01";
   } else {
@@ -105,7 +116,7 @@ export async function onRequest({ request, env }) {
 
   let upstream;
   try {
-    upstream = await fetch(cfg.url, {
+    upstream = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify(body),

@@ -45,11 +45,12 @@ const PROVIDERS = [
   {
     id: "gemini",
     name: "Gemini · Google",
-    format: "openai", // 走 Google 的 OpenAI 兼容端点
-    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    format: "gemini", // 走 Gemini 原生接口：key 放 ?key= 查询参数，不是 Bearer 头
+    // baseURL 只到 .../models，真正地址是 baseURL/<模型>:streamGenerateContent?alt=sse
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/models",
     model: "gemini-2.0-flash",
     proxyEnv: "GEMINI_API_KEY",
-    keyHint: "在 aistudio.google.com 申请 API key。",
+    keyHint: "在 aistudio.google.com 申请，形如 AIza...（和 sk- 不一样，放在 ?key= 里）。",
   },
   {
     id: "qwen",

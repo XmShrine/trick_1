@@ -1,50 +1,131 @@
 // ============================================================================
-//  Cloudflare Pages Function —— DeepSeek 代理
-//  路径: /api/chat
-//  作用: 前端不带 key 调这里，本函数在服务端注入 key 再转发给 DeepSeek，
-//        并把流式响应原样透传回去。key 存在环境变量 DEEPSEEK_API_KEY 里。
+//  Cloudflare Pages Function —— /api/chat 多供应商代理
+//
+//  前端 POST 过来 { provider, model, body }（body 是已组好的请求体），
+//  这里按 provider 找到上游地址，从环境变量里取出对应 key 注入，转发并把
+//  流式响应原样透传回去。key 只存在服务端环境变量里，不出现在浏览器。
+//
+//  这是仓库根目录的 functions —— Cloudflare Pages 以仓库根作为项目根来构建，
+//  所以真正生效的就是这个文件（PER_cht/functions 下那份是给单独部署用的副本）。
+//
+//  环境变量（按需配置，没配的供应商被选中时会返回提示，互不影响）：
+//    DEEPSEEK_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY
+//    DASHSCOPE_API_KEY / ZHIPU_API_KEY / MINIMAX_API_KEY / OPENCODE_API_KEY
 // ============================================================================
 
-const UPSTREAM = "https://api.deepseek.com/chat/completions";
+// url 固定在服务端，不接受前端传入，避免被当成任意转发器（SSRF）。
+// auth: bearer = Authorization: Bearer；anthropic = x-api-key 头；gemini = key 进 ?key=。
+const PROVIDERS = {
+  deepseek: {
+    url: "https://api.deepseek.com/chat/completions",
+    env: "DEEPSEEK_API_KEY",
+    auth: "bearer",
+  },
+  openai: {
+    url: "https://api.openai.com/v1/chat/completions",
+    env: "OPENAI_API_KEY",
+    auth: "bearer",
+  },
+  claude: {
+    url: "https://api.anthropic.com/v1/messages",
+    env: "ANTHROPIC_API_KEY",
+    auth: "anthropic",
+  },
+  gemini: {
+    // 只到 .../models，真正地址在下面按模型拼成 .../<模型>:streamGenerateContent
+    url: "https://generativelanguage.googleapis.com/v1beta/models",
+    env: "GEMINI_API_KEY",
+    auth: "gemini",
+  },
+  qwen: {
+    url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    env: "DASHSCOPE_API_KEY",
+    auth: "bearer",
+  },
+  glm: {
+    url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    env: "ZHIPU_API_KEY",
+    auth: "bearer",
+  },
+  minimax: {
+    url: "https://api.minimaxi.com/v1/text/chatcompletion_v2",
+    env: "MINIMAX_API_KEY",
+    auth: "bearer",
+  },
+  opencode: {
+    url: "https://opencode.ai/zen/v1/chat/completions",
+    env: "OPENCODE_API_KEY",
+    auth: "bearer",
+  },
+};
 
-export async function onRequestPost(context) {
-  const { request, env } = context;
-  const key = env.DEEPSEEK_API_KEY;
+function jsonError(message, status) {
+  return new Response(JSON.stringify({ error: { message } }), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
+}
 
-  if (!key) {
-    return json({ error: { message: "服务端未配置 DEEPSEEK_API_KEY 环境变量。" } }, 500);
-  }
+export async function onRequest({ request, env }) {
+  if (request.method !== "POST") return jsonError("只支持 POST。", 405);
 
-  // 解析并约束请求体，避免这个端点被当成任意模型的公开代理
   let payload;
   try {
     payload = await request.json();
   } catch (_) {
-    return json({ error: { message: "请求体不是合法 JSON。" } }, 400);
+    return jsonError("请求体不是合法 JSON。", 400);
   }
 
-  const safeBody = {
-    model: "deepseek-chat",
-    messages: Array.isArray(payload.messages) ? payload.messages : [],
-    stream: payload.stream !== false,
-    temperature: clamp(payload.temperature, 0, 2, 1.1),
-    max_tokens: clamp(payload.max_tokens, 1, 4096, 1024),
-  };
-
-  if (safeBody.messages.length === 0) {
-    return json({ error: { message: "messages 不能为空。" } }, 400);
+  // 正常形态：{ provider, model, body }。
+  // 兼容老前端 / 老调用方：直接发来 OpenAI 形的裸 body（带 messages、没 provider），
+  // 当作 deepseek 处理，避免把整包当成聊天体转发导致 “messages 为空”。
+  let { provider: providerId, model, body } = payload || {};
+  if (!providerId && payload && Array.isArray(payload.messages)) {
+    providerId = "deepseek";
+    body = payload;
   }
 
-  const upstream = await fetch(UPSTREAM, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + key,
-    },
-    body: JSON.stringify(safeBody),
-  });
+  const cfg = PROVIDERS[providerId];
+  if (!cfg) return jsonError("未知的供应商：" + providerId, 400);
+  if (!body) return jsonError("缺少请求体 body。", 400);
 
-  // 流式 / 非流式都原样透传
+  const key = env[cfg.env];
+  if (!key)
+    return jsonError(
+      `后端未配置 ${cfg.env}，请在 Cloudflare 环境变量里添加该供应商的 key。`,
+      500
+    );
+
+  let url = cfg.url;
+  const headers = { "Content-Type": "application/json" };
+
+  if (cfg.auth === "gemini") {
+    const m = model || body.model || "gemini-2.0-flash";
+    url =
+      cfg.url +
+      "/" +
+      encodeURIComponent(m) +
+      ":streamGenerateContent?alt=sse&key=" +
+      encodeURIComponent(key);
+  } else if (cfg.auth === "anthropic") {
+    headers["x-api-key"] = key;
+    headers["anthropic-version"] = "2023-06-01";
+  } else {
+    headers["Authorization"] = "Bearer " + key;
+  }
+
+  let upstream;
+  try {
+    upstream = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    return jsonError("连接上游失败：" + err.message, 502);
+  }
+
+  // 原样透传上游的状态码与流式响应体（成功是 SSE，失败是 JSON 错误）。
   return new Response(upstream.body, {
     status: upstream.status,
     headers: {
@@ -52,18 +133,5 @@ export async function onRequestPost(context) {
         upstream.headers.get("Content-Type") || "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache",
     },
-  });
-}
-
-function clamp(v, min, max, dflt) {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return dflt;
-  return Math.min(max, Math.max(min, n));
-}
-
-function json(obj, status) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }

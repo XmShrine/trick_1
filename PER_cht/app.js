@@ -259,6 +259,21 @@ function buildPayload(provider, persona, history) {
     };
   }
 
+  if (provider.format === "gemini") {
+    // Gemini 原生接口：system 放 system_instruction；role 是 user / model；
+    // 模型名和 stream 都在 URL 上，不进 body。contents 首条最好是 user。
+    const contents = recent.map((m) => ({
+      role: m.role === "user" ? "user" : "model",
+      parts: [{ text: m.content }],
+    }));
+    while (contents.length && contents[0].role === "model") contents.shift();
+    return {
+      system_instruction: { parts: [{ text: persona.system }] },
+      contents,
+      generationConfig: { temperature: 1.1 },
+    };
+  }
+
   // OpenAI 兼容接口：system 放进 messages 第一条。
   return {
     model,
@@ -280,19 +295,33 @@ async function streamChat(provider, payload, onDelta) {
   const headers = { "Content-Type": "application/json" };
 
   if (direct) {
-    url = provider.baseURL;
-    if (provider.format === "anthropic") {
+    if (provider.format === "gemini") {
+      // Gemini：模型名进 URL，key 进 ?key=，没有鉴权头。
+      url =
+        provider.baseURL +
+        "/" +
+        encodeURIComponent(modelFor(provider)) +
+        ":streamGenerateContent?alt=sse&key=" +
+        encodeURIComponent(key);
+    } else if (provider.format === "anthropic") {
+      url = provider.baseURL;
       headers["x-api-key"] = key;
       headers["anthropic-version"] = "2023-06-01";
       headers["anthropic-dangerous-direct-browser-access"] = "true";
     } else {
+      url = provider.baseURL;
       headers["Authorization"] = "Bearer " + key;
     }
     body = JSON.stringify(payload);
   } else {
-    // 走代理：把 provider id + 已组好的请求体交给后端，由后端补上 key。
+    // 走代理：把 provider id + 模型 + 已组好的请求体交给后端，由后端补上 key。
+    // （model 单独带一份，是因为 Gemini 的模型名要拼进 URL，不在 body 里。）
     url = PROXY_URL;
-    body = JSON.stringify({ provider: provider.id, body: payload });
+    body = JSON.stringify({
+      provider: provider.id,
+      model: modelFor(provider),
+      body: payload,
+    });
   }
 
   const res = await fetch(url, { method: "POST", headers, body });
@@ -354,6 +383,13 @@ function extractDelta(format, json) {
       json.delta.type === "text_delta"
     )
       return json.delta.text || "";
+    return "";
+  }
+  if (format === "gemini") {
+    if (json.error) throw new Error(json.error.message || "Gemini 流式错误");
+    const cand = json.candidates && json.candidates[0];
+    const parts = cand && cand.content && cand.content.parts;
+    if (Array.isArray(parts)) return parts.map((p) => p.text || "").join("");
     return "";
   }
   // openai 兼容
