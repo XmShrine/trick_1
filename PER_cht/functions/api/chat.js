@@ -75,7 +75,15 @@ export async function onRequest({ request, env }) {
     return jsonError("请求体不是合法 JSON。", 400);
   }
 
-  const { provider: providerId, body } = payload || {};
+  // 正常形态：{ provider, body }。
+  // 兼容老前端：如果直接发来 OpenAI 形的裸 body（带 messages、没 provider），
+  // 当作 deepseek 处理，避免把整包当成聊天体转发导致 “messages 为空”。
+  let { provider: providerId, body } = payload || {};
+  if (!providerId && payload && Array.isArray(payload.messages)) {
+    providerId = "deepseek";
+    body = payload;
+  }
+
   const cfg = PROVIDERS[providerId];
   if (!cfg) return jsonError("未知的供应商：" + providerId, 400);
   if (!body) return jsonError("缺少请求体 body。", 400);
