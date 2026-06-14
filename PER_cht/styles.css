@@ -270,8 +270,10 @@ body {
 }
 .modal h2 { margin: 0 0 4px; font-size: 18px; }
 .modal p { margin: 0 0 16px; font-size: 13px; color: var(--muted); line-height: 1.6; }
-.modal label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; }
-.modal input {
+.modal label { font-size: 13px; font-weight: 600; display: block; margin: 14px 0 6px; }
+.modal label:first-of-type { margin-top: 0; }
+.modal input,
+.modal select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -279,8 +281,11 @@ body {
   font-size: 14px;
   font-family: inherit;
   outline: none;
+  background: #fff;
+  color: var(--ink);
 }
-.modal input:focus { border-color: var(--accent); }
+.modal input:focus,
+.modal select:focus { border-color: var(--accent); }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
 .modal-actions button {
   border-radius: 12px;

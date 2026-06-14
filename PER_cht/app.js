@@ -1,28 +1,31 @@
 // ============================================================================
 //  性格屋 —— 主逻辑
-//  聊天后端：DeepSeek（OpenAI 兼容接口）
+//  聊天后端：可选多家大模型（见 providers.js）。
+//  默认走服务端代理 /api/chat（key 藏在 Cloudflare 环境变量里，前端不带 key）。
+//  本地用 python http.server 预览时没有代理 —— 在「⚙️ 模型设置」里填 key 临时直连。
 // ============================================================================
 
-// 默认走服务端代理 /api/chat（key 藏在 Cloudflare 环境变量里，前端不带 key）。
-// 本地用 python http.server 预览时没有代理 —— 在「⚙️ 设置」里填 key 即可临时直连。
 const PROXY_URL = "/api/chat";
-const DIRECT_URL = "https://api.deepseek.com/chat/completions";
-const MODEL = "deepseek-chat";
 
-// 留空。仅当你想把 key 硬编进前端（不推荐）时才填。
-const BUILTIN_KEY = "";
-
-const LS_KEY = "deepseek_api_key";
+const LS_KEYS = "personachat_keys_v1"; // { providerId: "key" }
+const LS_MODELS = "personachat_models_v1"; // { providerId: "模型覆盖" }
+const LS_PROVIDER = "personachat_provider"; // 当前选中的供应商 id
 const LS_HISTORY = "personachat_history_v1";
 
 // ---------------------------------------------------------------------------
 // 状态
 // ---------------------------------------------------------------------------
 let currentId = DEFAULT_PERSONA_ID;
+let currentProviderId = loadProviderId();
+let keys = loadJSON(LS_KEYS); // { providerId: key }
+let models = loadJSON(LS_MODELS); // { providerId: model }
 let histories = loadHistories(); // { personaId: [{role, content}, ...] }
 let streaming = false;
 
 const personaById = (id) => PERSONAS.find((p) => p.id === id);
+const currentProvider = () => providerById(currentProviderId);
+const modelFor = (p) => (models[p.id] || p.model).trim();
+const keyFor = (p) => (keys[p.id] || "").trim();
 
 // ---------------------------------------------------------------------------
 // DOM
@@ -41,6 +44,8 @@ const els = {
   menuBtn: $("menuBtn"),
   openSettings: $("openSettings"),
   settingsMask: $("settingsMask"),
+  providerSelect: $("providerSelect"),
+  modelInput: $("modelInput"),
   keyInput: $("keyInput"),
   keyNote: $("keyNote"),
   saveSettings: $("saveSettings"),
@@ -52,6 +57,8 @@ const els = {
 // ---------------------------------------------------------------------------
 function init() {
   renderPersonaList();
+  renderProviderOptions();
+  refreshSettingsButton();
   selectPersona(currentId, false);
 
   els.sendBtn.onclick = send;
@@ -73,6 +80,8 @@ function init() {
   els.settingsMask.onclick = (e) => {
     if (e.target === els.settingsMask) els.settingsMask.classList.remove("show");
   };
+  // 在弹窗里切换供应商时，把该供应商已存的 key/模型/提示填进去
+  els.providerSelect.onchange = () => fillProviderFields(els.providerSelect.value);
   els.saveSettings.onclick = saveSettings;
 }
 
@@ -96,6 +105,20 @@ function renderPersonaList() {
     };
     els.personaList.appendChild(card);
   });
+}
+
+function renderProviderOptions() {
+  els.providerSelect.innerHTML = "";
+  PROVIDERS.forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.name;
+    els.providerSelect.appendChild(opt);
+  });
+}
+
+function refreshSettingsButton() {
+  els.openSettings.textContent = "⚙️ 模型：" + currentProvider().name;
 }
 
 function selectPersona(id, focus = true) {
@@ -167,16 +190,15 @@ function autoGrow() {
 }
 
 // ---------------------------------------------------------------------------
-// 发送 + DeepSeek 流式调用
+// 发送 + 流式调用
 // ---------------------------------------------------------------------------
 async function send() {
   if (streaming) return;
   const text = els.input.value.trim();
   if (!text) return;
 
-  const key = getKey(); // 本地直连才需要；线上为空，自动走代理
-
   const p = personaById(currentId);
+  const provider = currentProvider();
 
   // 记录并显示用户消息
   histories[currentId].push({ role: "user", content: text });
@@ -189,15 +211,12 @@ async function send() {
   setStreaming(true);
   const bubble = addBubble("assistant", "", p, { typing: true });
 
-  // 组装发给 DeepSeek 的消息：system + 最近若干轮对话
-  const msgs = [
-    { role: "system", content: p.system },
-    ...histories[currentId].slice(-20),
-  ];
+  // 组装请求体（不同供应商格式不同，见 buildPayload）
+  const payload = buildPayload(provider, p, histories[currentId]);
 
   let acc = "";
   try {
-    await streamChat(key, msgs, (delta) => {
+    await streamChat(provider, payload, (delta) => {
       acc += delta;
       bubble.classList.remove("typing", "dot-flash");
       bubble.textContent = acc;
@@ -221,36 +240,82 @@ async function send() {
   }
 }
 
-// 流式聊天：有本地 key 就直连 DeepSeek，否则走服务端代理（key 藏在后端）
-async function streamChat(key, messages, onDelta) {
-  const direct = !!key;
-  const headers = { "Content-Type": "application/json" };
-  if (direct) headers.Authorization = "Bearer " + key;
+// 组装发给模型的请求体：system + 最近若干轮对话
+function buildPayload(provider, persona, history) {
+  const recent = history.slice(-20);
+  const model = modelFor(provider);
 
-  const res = await fetch(direct ? DIRECT_URL : PROXY_URL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
+  if (provider.format === "anthropic") {
+    // Claude 原生接口：system 单独传；messages 首条必须是 user，去掉开头的 assistant。
+    const msgs = recent.map((m) => ({ role: m.role, content: m.content }));
+    while (msgs.length && msgs[0].role === "assistant") msgs.shift();
+    return {
+      model,
+      system: persona.system,
+      messages: msgs,
+      max_tokens: 1024,
       stream: true,
-      temperature: 1.1,
-    }),
-  });
+      // 注意：claude-opus-4-8 / 4.7 不接受 temperature，传了会 400，所以这里不传。
+    };
+  }
+
+  // OpenAI 兼容接口：system 放进 messages 第一条。
+  return {
+    model,
+    messages: [
+      { role: "system", content: persona.system },
+      ...recent.map((m) => ({ role: m.role, content: m.content })),
+    ],
+    stream: true,
+    temperature: 1.1,
+  };
+}
+
+// 流式聊天：有本地 key 就直连对应供应商，否则走服务端代理（key 藏在后端）。
+async function streamChat(provider, payload, onDelta) {
+  const key = keyFor(provider);
+  const direct = !!key;
+
+  let url, body;
+  const headers = { "Content-Type": "application/json" };
+
+  if (direct) {
+    url = provider.baseURL;
+    if (provider.format === "anthropic") {
+      headers["x-api-key"] = key;
+      headers["anthropic-version"] = "2023-06-01";
+      headers["anthropic-dangerous-direct-browser-access"] = "true";
+    } else {
+      headers["Authorization"] = "Bearer " + key;
+    }
+    body = JSON.stringify(payload);
+  } else {
+    // 走代理：把 provider id + 已组好的请求体交给后端，由后端补上 key。
+    url = PROXY_URL;
+    body = JSON.stringify({ provider: provider.id, body: payload });
+  }
+
+  const res = await fetch(url, { method: "POST", headers, body });
 
   if (!res.ok) {
     let detail = res.status + " " + res.statusText;
     try {
       const j = await res.json();
-      if (j.error && j.error.message) detail = j.error.message;
+      const msg = (j.error && j.error.message) || j.message;
+      if (msg) detail = msg;
     } catch (_) {}
     if (res.status === 401) detail = "API Key 无效或未授权。";
     if (res.status === 404 && !direct)
-      detail = "代理 /api/chat 不存在。本地预览请在「设置」里填 key 直连，或用 wrangler 运行。";
+      detail = "代理 /api/chat 不存在。本地预览请在「模型设置」里填 key 直连，或用 wrangler 运行。";
     throw new Error(detail);
   }
 
-  const reader = res.body.getReader();
+  await readSSE(res.body, provider.format, onDelta);
+}
+
+// 逐行解析 SSE 流，按供应商格式取出增量文本。
+async function readSSE(stream, format, onDelta) {
+  const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buf = "";
 
@@ -264,18 +329,35 @@ async function streamChat(key, messages, onDelta) {
 
     for (const line of lines) {
       const s = line.trim();
-      if (!s || !s.startsWith("data:")) continue;
+      if (!s || !s.startsWith("data:")) continue; // 跳过 event: / 空行
       const data = s.slice(5).trim();
       if (data === "[DONE]") return;
       try {
         const json = JSON.parse(data);
-        const delta = json.choices?.[0]?.delta?.content;
+        const delta = extractDelta(format, json);
         if (delta) onDelta(delta);
       } catch (_) {
         /* 跳过不完整片段 */
       }
     }
   }
+}
+
+// 从一段 JSON 里取出本次增量文本（两种格式）。
+function extractDelta(format, json) {
+  if (format === "anthropic") {
+    if (json.type === "error")
+      throw new Error((json.error && json.error.message) || "Claude 流式错误");
+    if (
+      json.type === "content_block_delta" &&
+      json.delta &&
+      json.delta.type === "text_delta"
+    )
+      return json.delta.text || "";
+    return "";
+  }
+  // openai 兼容
+  return (json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content) || "";
 }
 
 function setStreaming(on) {
@@ -294,29 +376,58 @@ function clearCurrent() {
 }
 
 function openSettings() {
-  els.keyInput.value = localStorage.getItem(LS_KEY) || "";
-  els.keyNote.textContent = BUILTIN_KEY
-    ? "已内置一个 Key；在此填写可覆盖它。"
-    : "";
-  els.keyNote.className = "note";
+  els.providerSelect.value = currentProviderId;
+  fillProviderFields(currentProviderId);
   els.settingsMask.classList.add("show");
-  els.keyInput.focus();
+}
+
+// 把某个供应商当前已存的 key / 模型 / 提示，填进弹窗
+function fillProviderFields(providerId) {
+  const p = providerById(providerId);
+  els.modelInput.value = models[providerId] || "";
+  els.modelInput.placeholder = "默认：" + p.model;
+  els.keyInput.value = keys[providerId] || "";
+  els.keyNote.textContent = p.keyHint || "";
 }
 
 function saveSettings() {
-  const v = els.keyInput.value.trim();
-  if (v) localStorage.setItem(LS_KEY, v);
-  else localStorage.removeItem(LS_KEY);
+  const pid = els.providerSelect.value;
+  currentProviderId = pid;
+  localStorage.setItem(LS_PROVIDER, pid);
+
+  const model = els.modelInput.value.trim();
+  if (model) models[pid] = model;
+  else delete models[pid];
+  saveJSON(LS_MODELS, models);
+
+  const key = els.keyInput.value.trim();
+  if (key) keys[pid] = key;
+  else delete keys[pid];
+  saveJSON(LS_KEYS, keys);
+
+  refreshSettingsButton();
   els.settingsMask.classList.remove("show");
 }
 
-function getKey() {
-  return (localStorage.getItem(LS_KEY) || BUILTIN_KEY || "").trim();
+// ---------------------------------------------------------------------------
+// 持久化
+// ---------------------------------------------------------------------------
+function loadProviderId() {
+  const id = localStorage.getItem(LS_PROVIDER);
+  return PROVIDERS.some((p) => p.id === id) ? id : DEFAULT_PROVIDER_ID;
 }
-
-// ---------------------------------------------------------------------------
-// 历史持久化
-// ---------------------------------------------------------------------------
+function loadJSON(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || {};
+  } catch (_) {
+    return {};
+  }
+}
+function saveJSON(key, obj) {
+  try {
+    localStorage.setItem(key, JSON.stringify(obj));
+  } catch (_) {}
+}
 function loadHistories() {
   try {
     return JSON.parse(localStorage.getItem(LS_HISTORY)) || {};

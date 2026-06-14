@@ -23,7 +23,7 @@
         <!-- 人物卡片由 JS 生成 -->
       </div>
       <div class="sidebar-foot">
-        <button class="btn-settings" id="openSettings">⚙️ 设置 DeepSeek API Key</button>
+        <button class="btn-settings" id="openSettings">⚙️ 模型设置</button>
       </div>
     </aside>
 
@@ -52,10 +52,14 @@
   <!-- 设置弹窗 -->
   <div class="modal-mask" id="settingsMask">
     <div class="modal">
-      <h2>DeepSeek API Key（仅本地预览用）</h2>
-      <p>线上版本走服务端代理，key 藏在后端，无需在这里填。<br />只有用 python http.server 等本地预览、没有代理时，才在这里填 key 临时直连。仅存在本浏览器（localStorage）。</p>
-      <label for="keyInput">API Key</label>
-      <input id="keyInput" type="password" placeholder="sk-..." autocomplete="off" />
+      <h2>模型设置</h2>
+      <p>选一家大模型来聊天。线上版本走服务端代理，key 藏在后端环境变量里，前端不带 key。<br />只有用 python http.server 等本地预览、没有代理时，才需要在这里填 key 临时直连。设置只存在本浏览器（localStorage）。</p>
+      <label for="providerSelect">供应商</label>
+      <select id="providerSelect"></select>
+      <label for="modelInput">模型（留空用默认）</label>
+      <input id="modelInput" type="text" placeholder="默认模型" autocomplete="off" />
+      <label for="keyInput">API Key（仅本地直连用）</label>
+      <input id="keyInput" type="password" placeholder="留空则走服务端代理" autocomplete="off" />
       <div class="note" id="keyNote"></div>
       <div class="modal-actions">
         <button id="cancelSettings">取消</button>
@@ -64,6 +68,7 @@
     </div>
   </div>
 
+  <script src="providers.js"></script>
   <script src="personas.js"></script>
   <script src="app.js"></script>
 </body>
