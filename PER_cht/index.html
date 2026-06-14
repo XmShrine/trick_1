@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>性格屋 · 和不同性格的人聊天</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>" />
+</head>
+<body>
+  <div id="app">
+    <!-- 侧边栏：人物选择 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="logo">💬</span>
+        <div>
+          <h1>性格屋</h1>
+          <div class="sub">挑一个人，开始聊天</div>
+        </div>
+      </div>
+      <div class="persona-list" id="personaList">
+        <div class="list-label">人物</div>
+        <!-- 人物卡片由 JS 生成 -->
+      </div>
+      <div class="sidebar-foot">
+        <button class="btn-settings" id="openSettings">⚙️ 设置 DeepSeek API Key</button>
+      </div>
+    </aside>
+
+    <!-- 聊天区 -->
+    <main class="chat">
+      <header class="chat-head">
+        <button class="menu-btn" id="menuBtn">☰</button>
+        <div class="avatar" id="headAvatar">😑</div>
+        <div>
+          <div class="ht-name" id="headName">金源</div>
+          <div class="ht-tag" id="headTag"></div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn-clear" id="clearBtn">清空对话</button>
+      </header>
+
+      <div class="messages" id="messages"></div>
+
+      <div class="composer">
+        <textarea id="input" rows="1" placeholder="说点什么…（Enter 发送，Shift+Enter 换行）"></textarea>
+        <button class="btn-send" id="sendBtn">➤</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- 设置弹窗 -->
+  <div class="modal-mask" id="settingsMask">
+    <div class="modal">
+      <h2>DeepSeek API Key（仅本地预览用）</h2>
+      <p>线上版本走服务端代理，key 藏在后端，无需在这里填。<br />只有用 python http.server 等本地预览、没有代理时，才在这里填 key 临时直连。仅存在本浏览器（localStorage）。</p>
+      <label for="keyInput">API Key</label>
+      <input id="keyInput" type="password" placeholder="sk-..." autocomplete="off" />
+      <div class="note" id="keyNote"></div>
+      <div class="modal-actions">
+        <button id="cancelSettings">取消</button>
+        <button class="primary" id="saveSettings">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="personas.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
