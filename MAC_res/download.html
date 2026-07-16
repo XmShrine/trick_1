@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>文件下载</title>
+    <!-- 引入通用样式 -->
+    <link rel="stylesheet" href="../theme.css">
+    <!-- 引入通用逻辑 -->
+    <script src="../common.js" defer></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <style>
+        /* 本页专属样式：全部基于 theme.css 的 CSS 变量，保证和站点其它页面视觉统一 */
+        .dl-container {
+            max-width: 800px;
+            margin: 20px auto 0;
+            padding: 0 20px 40px;
+        }
+
+        .dl-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 4px 0 20px;
+        }
+
+        .dl-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .dl-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            border: 0.5px solid var(--card-border);
+            border-radius: 16px;
+            padding: 14px 18px;
+        }
+
+        .dl-item p {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .dl-btn {
+            background: var(--accent-color);
+            color: #fff;
+            padding: 9px 18px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: filter 0.2s, transform 0.2s;
+            white-space: nowrap;
+        }
+        .dl-btn:hover { filter: brightness(1.12); }
+        .dl-btn:active { transform: scale(0.96); }
+
+        .dl-empty {
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding: 14px 18px;
+            background: var(--card-bg);
+            border: 0.5px solid var(--card-border);
+            border-radius: 16px;
+        }
+
+        /* Markdown 正文卡片 */
+        .markdown-container {
+            background: var(--card-bg);
+            border: 0.5px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .markdown-container h1,
+        .markdown-container h2,
+        .markdown-container h3,
+        .markdown-container h4,
+        .markdown-container h5,
+        .markdown-container h6 {
+            color: var(--text-primary);
+            border-bottom: 0.5px solid var(--card-border);
+            padding-bottom: 0.3em;
+            margin-top: 1.2em;
+        }
+        .markdown-container h1:first-child { margin-top: 0; }
+        .markdown-container a { color: var(--accent-color); text-decoration: none; }
+        .markdown-container a:hover { text-decoration: underline; }
+        .markdown-container p,
+        .markdown-container ul,
+        .markdown-container ol,
+        .markdown-container blockquote { line-height: 1.7; color: var(--text-primary); }
+        .markdown-container ul, .markdown-container ol { padding-left: 20px; }
+        .markdown-container blockquote {
+            border-left: 3px solid var(--card-border);
+            padding-left: 15px;
+            color: var(--text-secondary);
+        }
+        .markdown-container table { width: 100%; border-collapse: collapse; }
+        .markdown-container th, .markdown-container td {
+            border: 0.5px solid var(--card-border);
+            padding: 8px 10px;
+            text-align: left;
+        }
+        .markdown-container pre {
+            background-color: rgba(0, 0, 0, 0.35) !important;
+            border-radius: 10px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        .markdown-container .katex { font-size: 1.05em; }
+
+        .dl-error { color: #FF453A; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="icon-btn" style="width: auto; padding-right: 12px; border-radius: 12px; gap: 4px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            <span style="font-size: 14px; font-weight: 600;">返回</span>
+        </a>
+        <div class="nav-title" style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 17px;" id="navTitle">文件下载</div>
+        <div style="width: 40px;"></div>
+    </nav>
+
+    <div class="dl-container">
+        <h1 class="dl-title" id="pageTitle">加载中…</h1>
+
+        <div class="dl-list" id="dlList">
+            <div class="dl-empty">正在加载下载列表…</div>
+        </div>
+
+        <main class="markdown-container" id="markdownContainer">
+            <div id="markdown-content">正在加载说明文档…</div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script>
+        /*
+         * 通用资源下载页模板。
+         * 用法：download.html?pkg=<文件夹名>
+         * 该文件夹内只需要放 README.md（含下方约定的 front matter）和要下载的文件，
+         * 不再需要每个资源包各自写一份 index.html。
+         *
+         * README.md 约定格式：
+         * ---
+         * title: 展示标题
+         * files:
+         *   - label: 稳定版
+         *     path: xxx.zip
+         *   - label: 测试版
+         *     path: xxx-beta.zip
+         * ---
+         * # 后面是正文 Markdown，正常写说明即可
+         */
+
+        const params = new URLSearchParams(window.location.search);
+        const pkg = params.get('pkg');
+
+        const pageTitleEl = document.getElementById('pageTitle');
+        const navTitleEl = document.getElementById('navTitle');
+        const dlListEl = document.getElementById('dlList');
+        const markdownEl = document.getElementById('markdown-content');
+
+        function parseFrontMatter(raw) {
+            const match = raw.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
+            if (!match) return { meta: { files: [] }, body: raw };
+
+            const [, fm, body] = match;
+            const meta = { files: [] };
+            let currentFile = null;
+
+            fm.split('\n').forEach(line => {
+                const titleMatch = line.match(/^title:\s*(.+)$/);
+                if (titleMatch) { meta.title = titleMatch[1].trim(); return; }
+
+                const labelMatch = line.match(/^\s*-\s*label:\s*(.+)$/);
+                if (labelMatch) { currentFile = { label: labelMatch[1].trim(), path: '' }; meta.files.push(currentFile); return; }
+
+                const pathMatch = line.match(/^\s*path:\s*(.+)$/);
+                if (pathMatch && currentFile) { currentFile.path = pathMatch[1].trim(); return; }
+            });
+
+            return { meta, body };
+        }
+
+        function renderDownloadList(files) {
+            if (!files || files.length === 0) {
+                dlListEl.innerHTML = '<div class="dl-empty">该资源包暂无可下载文件</div>';
+                return;
+            }
+            dlListEl.innerHTML = files.map(f => `
+                <div class="dl-item">
+                    <p>${DOMPurify.sanitize(f.label || f.path)}</p>
+                    <a href="${pkg}/${encodeURI(f.path)}" class="dl-btn" download>下载</a>
+                </div>
+            `).join('');
+        }
+
+        function fail(message) {
+            pageTitleEl.textContent = '加载失败';
+            navTitleEl.textContent = '加载失败';
+            dlListEl.innerHTML = `<div class="dl-empty dl-error">${message}</div>`;
+            markdownEl.innerHTML = '';
+        }
+
+        if (!pkg) {
+            fail('缺少 pkg 参数，无法确定要展示的资源包');
+        } else {
+            const renderer = {
+                code(code, lang) {
+                    if (lang === 'math') {
+                        return `<div class="math-block">${katex.renderToString(code, { displayMode: true, throwOnError: false })}</div>`;
+                    }
+                    const highlighted = hljs.highlightAuto(code).value;
+                    return `<pre><code>${highlighted}</code></pre>`;
+                },
+                codespan(code) {
+                    if (code.startsWith('$') && code.endsWith('$')) {
+                        return katex.renderToString(code.slice(1, -1), { throwOnError: false });
+                    }
+                    return `<code>${code}</code>`;
+                }
+            };
+            marked.use({ renderer });
+
+            fetch(`${pkg}/README.md`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`无法找到 ${pkg}/README.md（${res.statusText}）`);
+                    return res.text();
+                })
+                .then(raw => {
+                    const { meta, body } = parseFrontMatter(raw);
+                    const title = meta.title || pkg;
+
+                    pageTitleEl.textContent = title;
+                    navTitleEl.textContent = title;
+                    document.title = title;
+
+                    renderDownloadList(meta.files);
+
+                    const cleanHtml = DOMPurify.sanitize(marked.parse(body));
+                    markdownEl.innerHTML = cleanHtml;
+
+                    renderMathInElement(markdownEl, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false }
+                        ],
+                        throwOnError: false
+                    });
+                })
+                .catch(err => {
+                    fail(`加载说明文档失败：${err.message}`);
+                    console.error(err);
+                });
+        }
+    </script>
+</body>
+</html>

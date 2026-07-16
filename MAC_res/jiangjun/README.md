@@ -1,3 +1,9 @@
+---
+title: 将军太阳资源包
+files:
+  - label: 稳定版
+    path: jiangjun.zip
+---
 # 将军太阳资源包
 本包含以下改动：
 - 太阳变为将军
