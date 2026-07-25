@@ -15,6 +15,10 @@ files:
     path: libIPN-forge-1.21.4-6.5.1.jar
   - label: Kotlin for Forge（前置）
     path: kotlinforforge-5.12.0-all.jar
+  - label: Forgematica 投影模组
+    path: forgematica-0.4.4-forge+mc1.21.4.jar
+  - label: MaFgLib (投影模组前置)
+    path: mafglib-0.4.3-forge+mc1.21.4.jar
 ---
 # Minecraft 1.21.4 Forge 模组包
 
@@ -50,8 +54,9 @@ files:
 | JourneyMap | 实时小地图、全屏地图与路径点 | 无 |
 | Dynamic Lights | 手持或掉落的发光物品提供动态照明 | 无 |
 | Inventory Profiles Next | 整理背包、匹配物品、锁定槽位与装备方案 | `libIPN`、`Kotlin for Forge` |
+| Forgematica | 投影模组，用于便捷建造建筑 | `MaFgLib` |
 
-> `JourneyMap`、`Dynamic Lights`、`Inventory Profiles Next`、`libIPN` 与 `Kotlin for Forge` 为客户端功能，不需要放入服务端的 `mods/` 文件夹。
+> `Inventory Profiles Next`、`libIPN` 与 `Kotlin for Forge` 为客户端功能，不需要放入服务端的 `mods/` 文件夹。
 
 ## 模组功能速览
 
@@ -60,9 +65,10 @@ files:
 - **JourneyMap**：探索时自动记录地形，可查看小地图、全屏地图与路径点。
 - **Dynamic Lights**：手持或掉落的发光物品会照亮周围环境。
 - **Inventory Profiles Next**：快速整理物品栏、移动同类物品、批量丢弃、锁定槽位及管理装备方案。
+- **ForgeMatica**：投影模组，目前只支持客户端部分，网络部分尚且不支持
 
 ## 常见问题
 
 - **游戏或服务器无法启动**：确认 Minecraft 为 1.21.4、已使用 Forge，并运行在 Java 21 上。
-- **背包整理模组报缺少依赖**：同时安装 `libIPN-forge-1.21.4-6.5.1.jar` 与 `kotlinforforge-5.12.0-all.jar`。
+- **背包整理模组报缺少依赖**：同时安装 `libIPN-forge-1.21.4-6.5.1.jar` 与 `kotlinforforge-5.12.0-all.jar` 与 `mafglib-0.4.3-forge+mc1.21.4.jar`。
 - **客户端无法进入服务器**：客户端的 Vanilla+ 地铁与自由传送 Jar 请与服务器保持一致；仅客户端增强模组不必安装到服务器。
