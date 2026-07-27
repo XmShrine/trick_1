@@ -1,6 +1,8 @@
 ---
 title: Minecraft 1.21.4 Forge 模组包
 files:
+  - label: 一键安装
+    path: 一键安装.zip
   - label: Vanilla+ 地铁系统
     path: vanilla_metro-1.0.0.0.jar
   - label: Vanilla+ 自由传送
