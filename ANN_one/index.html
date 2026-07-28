@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#050505">
+    <meta name="description" content="神人之家一周年纪念页：从 2025 年 7 月 29 日到今天。">
+    <title>神人之家一周年</title>
+    <style>
+        :root {
+            --black: #050505;
+            --ink: #101014;
+            --white: #f5f2e9;
+            --muted: #a3a0a8;
+            --blue: #168cff;
+            --orange: #ff6b22;
+            --lime: #d9f43f;
+            --line: rgba(255,255,255,.16);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            color: var(--white);
+            background:
+                radial-gradient(circle at 82% 11%, rgba(22,140,255,.18), transparent 25rem),
+                radial-gradient(circle at 8% 42%, rgba(255,107,34,.12), transparent 30rem),
+                var(--black);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        a { color: inherit; }
+        button { font: inherit; }
+        .noise {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            pointer-events: none;
+            opacity: .045;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.75'/%3E%3C/svg%3E");
+        }
+
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 30;
+            width: 100%;
+            padding: 16px clamp(18px, 4vw, 56px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(#050505dd, transparent);
+        }
+
+        .nav-mark {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .14em;
+        }
+
+        .nav-mark i {
+            width: 10px;
+            height: 10px;
+            display: inline-block;
+            background: var(--orange);
+            border-radius: 50%;
+            box-shadow: 0 0 18px var(--orange);
+        }
+
+        .home-link {
+            padding: 9px 13px;
+            text-decoration: none;
+            font-size: 12px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: #111114aa;
+            backdrop-filter: blur(12px);
+        }
+
+        .hero {
+            position: relative;
+            min-height: 100svh;
+            padding: 110px clamp(20px, 7vw, 110px) 70px;
+            display: grid;
+            align-items: center;
+            isolation: isolate;
+        }
+
+        .hero::before {
+            content: "1";
+            position: absolute;
+            right: -1vw;
+            bottom: -17vh;
+            z-index: -2;
+            color: transparent;
+            font-size: clamp(420px, 67vw, 970px);
+            font-weight: 950;
+            line-height: .7;
+            letter-spacing: -.12em;
+            -webkit-text-stroke: 1px rgba(255,255,255,.1);
+        }
+
+        .orbit {
+            position: absolute;
+            right: clamp(10px, 8vw, 150px);
+            top: 18%;
+            z-index: -1;
+            width: min(36vw, 470px);
+            aspect-ratio: 1;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 50%;
+            animation: breathe 5s ease-in-out infinite;
+        }
+
+        .orbit::before,
+        .orbit::after {
+            content: "";
+            position: absolute;
+            inset: 13%;
+            border: 1px dashed rgba(217,244,63,.32);
+            border-radius: 50%;
+            transform: rotate(21deg);
+        }
+
+        .orbit::after {
+            inset: 39%;
+            background: var(--lime);
+            border: 0;
+            box-shadow: 0 0 60px rgba(217,244,63,.3);
+        }
+
+        .hero-copy { max-width: 980px; }
+        .title-lockup {
+            width: fit-content;
+        }
+        .eyebrow {
+            margin: 0 0 22px;
+            color: var(--lime);
+            font: 700 12px ui-monospace, "SFMono-Regular", monospace;
+            letter-spacing: .24em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            max-width: 850px;
+            font-size: clamp(58px, 11vw, 155px);
+            font-weight: 950;
+            line-height: .82;
+            letter-spacing: -.075em;
+        }
+
+        h1 > span {
+            display: block;
+            color: var(--blue);
+            text-shadow: 7px 7px 0 var(--orange);
+        }
+        h1 .ann-line {
+            display: flex;
+            align-items: center;
+            gap: .12em;
+            width: max-content;
+        }
+        .hero-emoji {
+            display: block;
+            font-size: .62em;
+            line-height: 1;
+            text-shadow: none;
+            filter: drop-shadow(6px 7px 0 rgba(255,107,34,.72));
+            transform: rotate(8deg);
+            animation: emoji-wobble 3.8s ease-in-out infinite;
+        }
+
+        .lead {
+            max-width: 620px;
+            margin: 38px 0 0;
+            color: #d4d1d7;
+            font-size: clamp(16px, 2vw, 22px);
+            line-height: 1.8;
+        }
+
+        .hero-foot {
+            position: absolute;
+            left: clamp(20px, 7vw, 110px);
+            right: clamp(20px, 7vw, 110px);
+            bottom: 28px;
+            display: flex;
+            justify-content: space-between;
+            color: var(--muted);
+            font: 11px ui-monospace, "SFMono-Regular", monospace;
+            letter-spacing: .12em;
+        }
+
+        .stats {
+            position: relative;
+            z-index: 2;
+            width: min(1180px, calc(100% - 40px));
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border: 1px solid var(--line);
+            background: #0d0d10;
+            box-shadow: 12px 12px 0 var(--blue);
+        }
+
+        .stat {
+            min-height: 180px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--line);
+        }
+
+        .stat:last-child { border-right: 0; }
+        .stat b {
+            font-size: clamp(60px, 9vw, 105px);
+            line-height: .8;
+            letter-spacing: -.07em;
+        }
+        .stat span {
+            color: var(--muted);
+            font: 12px ui-monospace, "SFMono-Regular", monospace;
+            letter-spacing: .1em;
+        }
+
+        .section {
+            width: min(1180px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 150px 0 30px;
+        }
+
+        .section-head {
+            margin-bottom: 55px;
+            display: flex;
+            gap: 30px;
+            align-items: end;
+            justify-content: space-between;
+        }
+
+        .section-kicker {
+            display: block;
+            margin-bottom: 12px;
+            color: var(--orange);
+            font: 700 11px ui-monospace, "SFMono-Regular", monospace;
+            letter-spacing: .22em;
+        }
+
+        h2 {
+            margin: 0;
+            max-width: 760px;
+            font-size: clamp(38px, 6vw, 76px);
+            line-height: .98;
+            letter-spacing: -.05em;
+        }
+
+        .section-head p {
+            max-width: 310px;
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: clamp(28px, 7vw, 94px);
+        }
+
+        .timeline::before {
+            content: "";
+            position: absolute;
+            left: 13px;
+            top: 8px;
+            bottom: 20px;
+            width: 1px;
+            background: linear-gradient(var(--blue), var(--orange), var(--lime));
+        }
+
+        .moment {
+            position: relative;
+            padding: 0 0 70px;
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 30px;
+        }
+
+        .moment::before {
+            content: "";
+            position: absolute;
+            left: calc(clamp(28px, 7vw, 94px) * -1 + 7px);
+            top: 5px;
+            width: 13px;
+            height: 13px;
+            border: 2px solid var(--black);
+            border-radius: 50%;
+            background: var(--blue);
+            box-shadow: 0 0 0 4px rgba(22,140,255,.25);
+        }
+
+        .moment:nth-child(even)::before { background: var(--orange); box-shadow: 0 0 0 4px rgba(255,107,34,.23); }
+        .moment:last-child::before { background: var(--lime); box-shadow: 0 0 0 4px rgba(217,244,63,.2); }
+        .moment time {
+            color: var(--muted);
+            font: 12px ui-monospace, "SFMono-Regular", monospace;
+        }
+        .moment h3 { margin: 0 0 9px; font-size: clamp(20px, 3vw, 32px); }
+        .moment p { max-width: 650px; margin: 0; color: #bdbac1; line-height: 1.75; }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 14px;
+        }
+
+        .project-card {
+            position: relative;
+            grid-column: span 4;
+            min-height: 370px;
+            padding: 14px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            background: #101014;
+            transition: transform .25s ease, border-color .25s ease;
+        }
+
+        .project-card:hover { transform: translateY(-5px) rotate(-.5deg); border-color: rgba(255,255,255,.4); }
+        .project-card:nth-child(1),
+        .project-card:nth-child(2) {
+            grid-column: span 6;
+            min-height: 410px;
+        }
+        .project-card:nth-child(n+3) {
+            grid-column: span 3;
+            min-height: 340px;
+        }
+        .project-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            z-index: 3;
+            height: 4px;
+            background: var(--blue);
+        }
+        .project-card:nth-child(2n)::before { background: var(--orange); }
+        .project-card:nth-child(3n)::before { background: var(--lime); }
+        .project-card::after {
+            content: attr(data-no);
+            position: absolute;
+            right: 16px;
+            bottom: 8px;
+            color: rgba(255,255,255,.08);
+            font: 900 68px ui-monospace, "SFMono-Regular", monospace;
+            letter-spacing: -.08em;
+            pointer-events: none;
+        }
+        .project-picture {
+            position: relative;
+            height: 235px;
+            margin-bottom: 18px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            background: #e8e3d9;
+            border: 1px solid #2a2630;
+        }
+        .project-card:nth-child(2) .project-picture { background: #94dfbe; }
+        .project-card:nth-child(3) .project-picture { background: #202024; }
+        .project-card:nth-child(4) .project-picture { background: #f08da7; }
+        .project-card:nth-child(5) .project-picture { background: #70506e; }
+        .project-card:nth-child(6) .project-picture { background: #d8efb8; }
+        .project-card:nth-child(n+3) .project-picture { height: 185px; }
+        .project-picture img {
+            width: 88%;
+            height: 88%;
+            object-fit: contain;
+            filter: drop-shadow(7px 9px 0 rgba(0,0,0,.18));
+            transition: transform .32s cubic-bezier(.2,.8,.2,1);
+        }
+        .project-card:hover .project-picture img { transform: scale(1.06) rotate(1deg); }
+        .project-picture img.tiny {
+            width: 135px;
+            height: 135px;
+            image-rendering: pixelated;
+        }
+        .project-picture .book {
+            font-size: 112px;
+            transform: rotate(-7deg);
+            filter: drop-shadow(7px 9px 0 rgba(0,0,0,.18));
+        }
+        .project-card h3 {
+            margin: 0 0 7px;
+            font-size: 21px;
+        }
+        .project-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.65;
+        }
+        .project-card time {
+            position: absolute;
+            right: 14px;
+            top: 14px;
+            z-index: 2;
+            padding: 5px 7px;
+            color: #111;
+            background: var(--lime);
+            font: 10px ui-monospace, "SFMono-Regular", monospace;
+            transform: rotate(2deg);
+        }
+
+        .party {
+            position: relative;
+            margin-top: 130px;
+            padding: 75px 20px;
+            text-align: center;
+            overflow: hidden;
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(90deg, #0c0c0f, #15131a, #0c0c0f);
+            transition: box-shadow .2s ease, background .2s ease;
+        }
+        .party.boom {
+            animation: party-flash .8s ease-out;
+        }
+
+        .party h2 { margin: 0 auto 20px; }
+        .party p { color: var(--muted); }
+        .party-button {
+            margin-top: 18px;
+            min-height: 48px;
+            padding: 13px 19px;
+            color: #0a0a0a;
+            font-weight: 800;
+            border: 0;
+            border-radius: 999px;
+            background: var(--lime);
+            cursor: pointer;
+            touch-action: manipulation;
+            box-shadow: 0 0 0 0 rgba(217,244,63,.4);
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+        .party-button:hover { transform: translateY(-3px) rotate(-1deg); box-shadow: 0 10px 30px rgba(217,244,63,.2); }
+        .party-count { display: block; min-height: 22px; margin-top: 13px; color: var(--lime); font-size: 12px; }
+
+        .firework-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .finale {
+            width: min(1180px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 150px 0 80px;
+        }
+
+        .game-card {
+            position: relative;
+            min-height: 580px;
+            padding: clamp(28px, 6vw, 72px);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 20px;
+            overflow: hidden;
+            color: #161015;
+            background: #ede5d5;
+            border: 2px solid #161015;
+            box-shadow: 14px 14px 0 var(--orange);
+        }
+
+        .game-card::before {
+            content: "周年实验";
+            position: absolute;
+            right: -33px;
+            top: 36px;
+            padding: 9px 42px;
+            color: #fff;
+            background: var(--orange);
+            transform: rotate(38deg);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .15em;
+        }
+
+        .game-copy { position: relative; z-index: 3; }
+        .game-copy .section-kicker { color: #663f87; }
+        .game-copy h2 { max-width: 530px; }
+        .game-copy p { max-width: 510px; margin: 24px 0 30px; color: #514951; line-height: 1.8; }
+        .game-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 20px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 900;
+            border: 2px solid #161015;
+            background: #50306d;
+            box-shadow: 5px 5px 0 var(--orange);
+            transition: transform .18s ease, box-shadow .18s ease;
+            touch-action: manipulation;
+        }
+        .game-link:hover { transform: translate(-2px,-2px); box-shadow: 8px 8px 0 var(--orange); }
+
+        .game-visual {
+            position: relative;
+            align-self: stretch;
+            min-height: 430px;
+        }
+
+        .game-visual::before {
+            content: "";
+            position: absolute;
+            inset: 13% 3% 6% 8%;
+            background: #c9d654;
+            border: 2px solid #161015;
+            transform: rotate(4deg);
+        }
+
+        .game-visual img {
+            position: absolute;
+            z-index: 2;
+            width: 54%;
+            height: 82%;
+            object-fit: contain;
+            filter: drop-shadow(8px 13px 0 rgba(22,16,21,.18));
+        }
+
+        .game-visual .mch { left: 0; bottom: 0; transform: rotate(-5deg); }
+        .game-visual .wine { right: -3%; top: 0; height: 93%; transform: rotate(7deg); }
+
+        footer {
+            padding: 0 20px 50px;
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            color: var(--muted);
+            font: 11px ui-monospace, "SFMono-Regular", monospace;
+            text-align: center;
+        }
+        footer a { text-underline-offset: 4px; }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1);
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        @keyframes breathe {
+            50% { transform: scale(1.04) rotate(5deg); opacity: .7; }
+        }
+        @keyframes emoji-wobble {
+            0%, 100% { transform: rotate(8deg) translateY(0); }
+            50% { transform: rotate(2deg) translateY(-7px); }
+        }
+        @keyframes party-flash {
+            0% { background: #fff; box-shadow: inset 0 0 0 100vw rgba(255,255,255,.8); }
+            15% { background: #2a230e; box-shadow: inset 0 0 80px rgba(217,244,63,.5); }
+            100% { background: linear-gradient(90deg, #0c0c0f, #15131a, #0c0c0f); box-shadow: none; }
+        }
+
+        @media (max-width: 980px) and (min-width: 761px) {
+            .project-card:nth-child(1),
+            .project-card:nth-child(2),
+            .project-card:nth-child(n+3) {
+                grid-column: span 6;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .nav { padding: max(13px, env(safe-area-inset-top)) 16px 13px; }
+            .hero { min-height: 94svh; padding: 105px 20px 85px; }
+            .hero::before { right: -16vw; bottom: -7vh; font-size: 116vw; }
+            .orbit { width: 72vw; right: -32vw; top: 18%; opacity: .55; }
+            h1 { font-size: clamp(58px, 21vw, 105px); }
+            h1 > span { text-shadow: 4px 4px 0 var(--orange); }
+            .hero-emoji { font-size: .58em; filter: drop-shadow(4px 4px 0 rgba(255,107,34,.72)); }
+            .lead { max-width: 88%; margin-top: 28px; font-size: 16px; }
+            .hero-foot { left: 20px; right: 20px; bottom: 20px; font-size: 9px; }
+            .stats { grid-template-columns: 1fr; box-shadow: 7px 7px 0 var(--blue); }
+            .stat { min-height: 125px; border-right: 0; border-bottom: 1px solid var(--line); }
+            .stat:last-child { border-bottom: 0; }
+            .section { padding-top: 105px; }
+            .section-head { align-items: start; flex-direction: column; margin-bottom: 42px; }
+            .moment { grid-template-columns: 1fr; gap: 9px; padding-bottom: 55px; }
+            .project-grid { grid-template-columns: 1fr; }
+            .project-card,
+            .project-card:nth-child(1),
+            .project-card:nth-child(2),
+            .project-card:nth-child(n+3) { grid-column: 1; min-height: 0; }
+            .project-card:nth-child(n+3) .project-picture { height: 220px; }
+            .party { margin-top: 95px; padding: 68px 16px; }
+            .party-button { width: min(280px, 100%); min-height: 52px; font-size: 17px; }
+            .finale { padding-top: 100px; }
+            .game-card { min-height: 730px; grid-template-columns: 1fr; align-content: start; padding: 35px 24px; box-shadow: 8px 8px 0 var(--orange); }
+            .game-visual { min-height: 360px; }
+            .game-visual img { width: 58%; }
+            .game-link { width: 100%; min-height: 52px; justify-content: center; text-align: center; }
+            footer { padding-bottom: calc(32px + env(safe-area-inset-bottom)); flex-wrap: wrap; }
+        }
+
+        @media (max-width: 420px) {
+            .home-link { padding: 8px 10px; }
+            .nav-mark { font-size: 10px; }
+            .section, .finale, .stats { width: min(100% - 28px, 1180px); }
+            .project-card { padding: 10px 10px 18px; }
+            .project-picture,
+            .project-card:nth-child(n+3) .project-picture { height: clamp(190px, 58vw, 225px); }
+            .game-card { min-height: 690px; }
+            .game-visual { min-height: 315px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+            .reveal { opacity: 1; transform: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="noise" aria-hidden="true"></div>
+    <canvas class="firework-canvas" id="fireworkCanvas" aria-hidden="true"></canvas>
+    <nav class="nav" aria-label="周年页导航">
+        <div class="nav-mark"><i></i>神人之家 / 一周年</div>
+        <a class="home-link" href="../index.html">进入普通首页 →</a>
+    </nav>
+
+    <main>
+        <section class="hero">
+            <div class="orbit" aria-hidden="true"></div>
+            <div class="hero-copy">
+                <p class="eyebrow">2025.07.29 — 2026.07.29</p>
+                <div class="title-lockup">
+                    <h1>神人之家<span class="ann-line">一周年<span class="hero-emoji" aria-hidden="true">😋</span></span></h1>
+                </div>
+                <p class="lead">去年今天，这里还是个只有几个按钮的小网页。现在已经塞进了小游戏、工具、小说、资源包，还有很多 MCH。往下翻翻这一年都加了什么。</p>
+            </div>
+            <div class="hero-foot"><span>往下翻 ↓</span><span>今天网站一岁</span></div>
+        </section>
+
+        <section class="stats reveal" aria-label="周年数据">
+            <div class="stat"><b>365</b><span>天了 😋</span></div>
+            <div class="stat"><b>40</b><span>条更新记录 🤔</span></div>
+            <div class="stat"><b>28</b><span>个可以点开的入口</span></div>
+        </section>
+
+        <section class="section">
+            <div class="section-head reveal">
+                <div><span class="section-kicker">翻了一下 UPDATE.HTML</span><h2>这一年更新了些什么🤔</h2></div>
+                <p>40 条有点长，这里挑几次变化比较大的。想看全部可以去页面最下面点更新日志。</p>
+            </div>
+
+            <div class="timeline">
+                <article class="moment reveal">
+                    <time>2025 / 07 / 29 · v0.1</time>
+                    <div><h3>终于不止一个项目了</h3><p>最开始只有一个项目，于是做了这个菜单。当天又加了“摸一摸”，顺便修好了手机上点不到按钮的问题。</p></div>
+                </article>
+                <article class="moment reveal">
+                    <time>2025 / 08 / 01 · v1.0</time>
+                    <div><h3>第一次做了个真能用的工具</h3><p>把 SPF.py 改成了网页版的多项式分解，还让页面能显示 LaTeX。它现在还在首页里。</p></div>
+                </article>
+                <article class="moment reveal">
+                    <time>2025 / 08 — 09</time>
+                    <div><h3>东西一下子多了起来</h3><p>贝斯、小蛋糕、MC 资源、大西瓜和二创小说陆续加进来。首页开始需要往下滚很久。</p></div>
+                </article>
+                <article class="moment reveal">
+                    <time>2025 / 11 / 27 · v2.0</time>
+                    <div><h3>首页重新装修</h3><p>大部分界面重做了一遍，之后又重制了戳一戳、贝斯等老项目。现在的黑色卡片首页就是这时换上的。</p></div>
+                </article>
+                <article class="moment reveal">
+                    <time>2026 / 06 / 14 · v2.15</time>
+                    <div><h3>加上评论和账户</h3><p>首页右上角多了一个入口。除了打开项目，也可以留下一点东西了。</p></div>
+                </article>
+                <article class="moment reveal">
+                    <time>2026 / 07 / 29 · YEAR 01</time>
+                    <div><h3>一周年😋</h3><p>首页现在有 28 个入口。今天又加了一个游戏：用各种酒和电泳槽保护 MCH，不让胡萝卜冲过去。</p></div>
+                </article>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-head reveal">
+                <div><span class="section-kicker">随便挑几个看看</span><h2>里面现在有这些东西😋</h2></div>
+                <p>有些是从第一周就在的老项目，有些是最近才加进来的。名字和用途基本都很直接。</p>
+            </div>
+            <div class="project-grid">
+                <article class="project-card reveal" data-no="01">
+                    <time>2025.07</time>
+                    <div class="project-picture"><img src="../KLY_head/kly.png" alt="摸一摸金源项目图片"></div>
+                    <h3>摸一摸⚱️</h3>
+                    <p>建站第一天就有的项目。主要功能就是摸一摸金源，而且后来真的修过手机触控。</p>
+                </article>
+                <article class="project-card reveal" data-no="02">
+                    <time>2025.07</time>
+                    <div class="project-picture"><img class="tiny" src="../WZY_horse/icon.png" alt="曼波丁真图标"></div>
+                    <h3>曼波丁真</h3>
+                    <p>首页早期成员。一个会播放“曼波”的诗歌剧，图标只有 30 × 30 像素，但一直用到了现在。</p>
+                </article>
+                <article class="project-card reveal" data-no="03">
+                    <time>2025.08</time>
+                    <div class="project-picture"><img src="../ZQW_bas/source.png" alt="贝斯演奏项目图片"></div>
+                    <h3>我不会弹贝斯</h3>
+                    <p>真的放进了很多贝斯音频，还分正常弹奏和轻轻弹奏。资源文件比不少完整小游戏都多。</p>
+                </article>
+                <article class="project-card reveal" data-no="04">
+                    <time>2025.08</time>
+                    <div class="project-picture"><img src="../MCH_bcc/cake.png" alt="小蛋糕项目图片"></div>
+                    <h3>小蛋糕</h3>
+                    <p>最早是 MCH 提供创意的蛋糕人，后来又发展出了轨迹、JSON 和小蛋糕组件。</p>
+                </article>
+                <article class="project-card reveal" data-no="05">
+                    <time>2025.09</time>
+                    <div class="project-picture"><span class="book" aria-hidden="true">📖</span></div>
+                    <h3>二创小说</h3>
+                    <p>从《含情脉脉》开始，后来又加入新的长篇。现在已经有很多章节，算是站里最能往下读的部分。</p>
+                </article>
+                <article class="project-card reveal" data-no="06">
+                    <time>2026.07</time>
+                    <div class="project-picture"><img src="../MCH_car/memes/meme-1.png" alt="胡萝卜酒项目表情包"></div>
+                    <h3>胡萝卜酒🥕</h3>
+                    <p>最近加入的项目，可以看到多张 MCH 表情包。然后它又顺势变成了周年塔防游戏的首领。</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="party reveal" aria-label="周年礼花互动">
+            <span class="section-kicker">顺手点一下</span>
+            <h2>给网站放个礼花😋</h2>
+            <p>这个按钮除了热闹一下，没有别的用。</p>
+            <button class="party-button" id="partyButton" type="button">砰！</button>
+            <output class="party-count" id="partyCount" aria-live="polite"></output>
+        </section>
+
+        <section class="finale">
+            <article class="game-card reveal">
+                <div class="game-copy">
+                    <span class="section-kicker">最后，玩一下新游戏吧</span>
+                    <h2>保卫 MCH🥕</h2>
+                    <p>胡萝卜、胡萝卜丝、胡萝卜汁和生物化学教材正在进攻。可以放朗姆酒、冰桶伏特加、红酒醒酒器和电泳槽。第六夜还有一瓶会召唤怪物的胡萝卜酒。</p>
+                    <a class="game-link" href="../MCH_ann/index.html">进入《保卫 MCH》 <span aria-hidden="true">→</span></a>
+                </div>
+                <div class="game-visual" aria-hidden="true">
+                    <img class="mch" src="../MCH_ann/assets/guardian.png" alt="">
+                    <img class="wine" src="../MCH_ann/assets/carrot-wine.png" alt="">
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <footer>
+        <span>神人之家一岁了 😋</span>
+        <span>—</span>
+        <a href="../update.html">查看全部更新记录</a>
+    </footer>
+
+    <script>
+        const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const revealItems = document.querySelectorAll('.reveal');
+
+        if (reducedMotion || !('IntersectionObserver' in window)) {
+            revealItems.forEach(item => item.classList.add('visible'));
+        } else {
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                });
+            }, { threshold: .12 });
+            revealItems.forEach(item => observer.observe(item));
+        }
+
+        const partyButton = document.querySelector('#partyButton');
+        const partyCount = document.querySelector('#partyCount');
+        const partySection = document.querySelector('.party');
+        const fireworkCanvas = document.querySelector('#fireworkCanvas');
+        const fireworkContext = fireworkCanvas.getContext('2d');
+        const fireworkColors = ['#168cff', '#ff6b22', '#d9f43f', '#f5f2e9', '#b55cff', '#ffcf3f'];
+        const particles = [];
+        let celebrations = 0;
+        let fireworkFrame = 0;
+        let audioContext;
+
+        function getAudioContext() {
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioContext.state === 'suspended') audioContext.resume();
+            return audioContext;
+        }
+
+        function fireworkLaunchSound(delay = 0) {
+            const context = getAudioContext();
+            const start = context.currentTime + delay;
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(310 + Math.random() * 90, start);
+            oscillator.frequency.exponentialRampToValueAtTime(1150 + Math.random() * 420, start + .32);
+            gain.gain.setValueAtTime(.0001, start);
+            gain.gain.exponentialRampToValueAtTime(.018, start + .06);
+            gain.gain.exponentialRampToValueAtTime(.0001, start + .36);
+            oscillator.connect(gain).connect(context.destination);
+            oscillator.start(start);
+            oscillator.stop(start + .38);
+        }
+
+        function fireworkBurstSound(size = 1) {
+            const context = getAudioContext();
+            const now = context.currentTime;
+            const length = Math.floor(context.sampleRate * .7);
+            const buffer = context.createBuffer(1, length, context.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < length; i += 1) {
+                const decay = Math.pow(1 - i / length, 3.1);
+                data[i] = (Math.random() * 2 - 1) * decay;
+            }
+
+            const noise = context.createBufferSource();
+            const lowpass = context.createBiquadFilter();
+            const noiseGain = context.createGain();
+            noise.buffer = buffer;
+            lowpass.type = 'lowpass';
+            lowpass.frequency.setValueAtTime(1250 + Math.random() * 650, now);
+            lowpass.frequency.exponentialRampToValueAtTime(180, now + .65);
+            noiseGain.gain.setValueAtTime(.045 * size, now);
+            noiseGain.gain.exponentialRampToValueAtTime(.0001, now + .68);
+            noise.connect(lowpass).connect(noiseGain).connect(context.destination);
+
+            const boom = context.createOscillator();
+            const boomGain = context.createGain();
+            boom.type = 'sine';
+            boom.frequency.setValueAtTime(92 + Math.random() * 34, now);
+            boom.frequency.exponentialRampToValueAtTime(38, now + .52);
+            boomGain.gain.setValueAtTime(.055 * size, now);
+            boomGain.gain.exponentialRampToValueAtTime(.0001, now + .54);
+            boom.connect(boomGain).connect(context.destination);
+
+            noise.start(now);
+            boom.start(now);
+            boom.stop(now + .56);
+
+            for (let i = 0; i < 4; i += 1) {
+                const crackle = context.createOscillator();
+                const crackleGain = context.createGain();
+                const at = now + .08 + Math.random() * .34;
+                crackle.type = 'square';
+                crackle.frequency.setValueAtTime(780 + Math.random() * 1500, at);
+                crackleGain.gain.setValueAtTime(.008 * size, at);
+                crackleGain.gain.exponentialRampToValueAtTime(.0001, at + .035);
+                crackle.connect(crackleGain).connect(context.destination);
+                crackle.start(at);
+                crackle.stop(at + .04);
+            }
+        }
+
+        function sizeFireworkCanvas() {
+            const scale = Math.min(devicePixelRatio || 1, 2);
+            fireworkCanvas.width = Math.round(innerWidth * scale);
+            fireworkCanvas.height = Math.round(innerHeight * scale);
+            fireworkCanvas.style.width = `${innerWidth}px`;
+            fireworkCanvas.style.height = `${innerHeight}px`;
+            fireworkContext.setTransform(scale, 0, 0, scale, 0, 0);
+        }
+
+        function addBurst(x, y, amount = 68) {
+            const color = fireworkColors[Math.floor(Math.random() * fireworkColors.length)];
+            for (let i = 0; i < amount; i += 1) {
+                const angle = Math.PI * 2 * i / amount + Math.random() * .08;
+                const speed = 2.8 + Math.random() * 7.2;
+                particles.push({
+                    x, y, lastX: x, lastY: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    gravity: .045 + Math.random() * .055,
+                    drag: .976 + Math.random() * .012,
+                    life: 58 + Math.random() * 42,
+                    maxLife: 100,
+                    color: Math.random() > .22 ? color : fireworkColors[Math.floor(Math.random() * fireworkColors.length)],
+                    width: 1.2 + Math.random() * 2.4
+                });
+            }
+        }
+
+        function drawFireworks() {
+            fireworkContext.clearRect(0, 0, innerWidth, innerHeight);
+            for (let i = particles.length - 1; i >= 0; i -= 1) {
+                const particle = particles[i];
+                particle.lastX = particle.x;
+                particle.lastY = particle.y;
+                particle.vx *= particle.drag;
+                particle.vy = particle.vy * particle.drag + particle.gravity;
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life -= 1;
+                if (particle.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                const alpha = Math.min(1, particle.life / 28);
+                fireworkContext.globalAlpha = alpha;
+                fireworkContext.strokeStyle = particle.color;
+                fireworkContext.lineWidth = particle.width;
+                fireworkContext.lineCap = 'round';
+                fireworkContext.beginPath();
+                fireworkContext.moveTo(particle.lastX, particle.lastY);
+                fireworkContext.lineTo(particle.x, particle.y);
+                fireworkContext.stroke();
+            }
+            fireworkContext.globalAlpha = 1;
+            if (particles.length) fireworkFrame = requestAnimationFrame(drawFireworks);
+            else fireworkFrame = 0;
+        }
+
+        function launchShow() {
+            sizeFireworkCanvas();
+            partySection.classList.remove('boom');
+            void partySection.offsetWidth;
+            partySection.classList.add('boom');
+            setTimeout(() => partySection.classList.remove('boom'), 850);
+
+            const mobile = innerWidth < 650;
+            const burstCount = mobile ? 7 : 10;
+            for (let i = 0; i < burstCount; i += 1) {
+                const delay = i * 155 + Math.random() * 90;
+                fireworkLaunchSound(Math.max(0, delay / 1000 - .3));
+                setTimeout(() => {
+                    const margin = mobile ? 34 : 90;
+                    const x = margin + Math.random() * Math.max(1, innerWidth - margin * 2);
+                    const y = 70 + Math.random() * innerHeight * .56;
+                    addBurst(x, y, mobile ? 48 : 72);
+                    fireworkBurstSound(.82 + Math.random() * .28);
+                    if (!fireworkFrame) drawFireworks();
+                }, delay);
+            }
+        }
+
+        partyButton.addEventListener('click', event => {
+            celebrations += 1;
+            partyCount.textContent = celebrations === 1
+                ? '放好了😋'
+                : `已经放了 ${celebrations} 颗，再点也可以。`;
+
+            if (!reducedMotion) launchShow();
+        });
+
+        addEventListener('resize', sizeFireworkCanvas, { passive: true });
+        sizeFireworkCanvas();
+    </script>
+</body>
+</html>
