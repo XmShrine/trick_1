@@ -21,6 +21,10 @@ files:
     path: forgematica-0.4.4-forge+mc1.21.4.jar
   - label: MaFgLib (投影模组前置)
     path: mafglib-0.4.3-forge+mc1.21.4.jar
+  - label: 灵魂出窍
+    path: astral_client-1.0.0
+  - label: 权杖工具（红石）
+    path: infinite_redstone_wands-1.0.0
 ---
 # Minecraft 1.21.4 Forge 模组包
 
