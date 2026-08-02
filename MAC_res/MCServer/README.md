@@ -25,6 +25,8 @@ files:
     path: astral_client-1.0.0
   - label: 权杖工具（红石）
     path: infinite_redstone_wands-1.0.0
+  - label: 快乐恶魂补充包（1.21.6 的内容）
+    path: happy_ghast_backport-1.1.1
 ---
 # Minecraft 1.21.4 Forge 模组包
 
