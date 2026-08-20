@@ -42,7 +42,7 @@ function avail(c, ph){
 const LS = 'nku-course-sim-v1';
 const state = Object.assign({
   phase:'pre', grade:'old', q:'', unit:'', campus:'', kinds:['major'],
-  onlyAvail:false, onlyX:false, hideEmpty:true, slot:null, picked:[], limit:60
+  onlyAvail:false, onlyX:false, hideEmpty:true, day:'all', slot:null, picked:[], limit:60
 }, JSON.parse(localStorage.getItem(LS)||'{}'));
 state.slot = null; state.limit = 60;
 const picked = new Set(state.picked);
@@ -54,6 +54,12 @@ function save(){ state.picked=[...picked]; localStorage.setItem(LS, JSON.stringi
 const slotIdx = Array.from({length:8},()=>Array.from({length:PMAX+1},()=>[]));
 CS.forEach((c,i)=>{ c.s.forEach(s=>{ if(!s.d||!s.a) return;
   for(let p=s.a;p<=Math.min(s.b,PMAX);p++) if(!slotIdx[s.d][p].includes(i)) slotIdx[s.d][p].push(i); }); });
+
+/* 窄屏（手机）只画一天，宽屏永远画整周 */
+const mqNarrow = matchMedia('(max-width:640px)');
+const isNarrow = () => mqNarrow.matches;
+const activeDay = () => isNarrow() ? state.day : 'all';
+if(isNarrow() && state.day==='all'){ const wd=new Date().getDay(); state.day = wd===0?7:wd; }
 
 /* ===================== 工具 ===================== */
 const esc = t => String(t).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
@@ -103,6 +109,12 @@ function renderTop(){
 }
 
 /* ===================== 渲染：课表 ===================== */
+function renderDaySeg(){
+  const cur = activeDay();
+  document.getElementById('dayseg').innerHTML =
+    `<button class="chip" data-day="all" aria-pressed="${cur==='all'}">全周</button>` +
+    DAYS.map((d,i)=>`<button class="chip" data-day="${i+1}" aria-pressed="${cur===i+1}">周${d}</button>`).join('');
+}
 function renderGrid(){
   const list = filtered();
   const cnt = Array.from({length:8},()=>new Array(PMAX+1).fill(0));
@@ -114,13 +126,18 @@ function renderGrid(){
     c.s.forEach(s=>{ if(!s.d||!s.a) return;
       for(let p=s.a;p<=Math.min(s.b,PMAX);p++) mine[s.d][p].push({c,s,head:p===s.a}); }); }
 
-  let h = '<div class="gh"></div>' + DAYS.map(d=>`<div class="gh">周${d}</div>`).join('');
-  const rowUsed = p => { for(let d=1;d<=7;d++) if(cnt[d][p]||mine[d][p].length) return true; return false; };
+  const cur = activeDay();
+  const days = cur==='all' ? [1,2,3,4,5,6,7] : [cur];
+  const gridEl = document.getElementById('grid');
+  gridEl.style.gridTemplateColumns = days.length>1
+    ? '46px repeat(7,minmax(122px,1fr))' : '40px minmax(0,1fr)';
+  let h = '<div class="gh"></div>' + days.map(d=>`<div class="gh">周${DAYS[d-1]}</div>`).join('');
+  const rowUsed = p => days.some(d=>cnt[d][p]||mine[d][p].length);
   for(let p=1;p<=PMAX;p++){
     if(state.hideEmpty && !rowUsed(p)) continue;
     const brk = (p===4||p===6||p===10)?' brk':'';
     h += `<div class="gp${brk}"><em>${p}</em></div>`;
-    for(let d=1;d<=7;d++){
+    for(const d of days){
       const blocks = mine[d][p];
       const covered = blocks.length>0;
       let inner = blocks.map(({c,s,head})=>{
@@ -135,9 +152,10 @@ function renderGrid(){
          + (cnt[d][p]&&!covered?`<span class="cnt">${cnt[d][p]}</span>`:'') + `</div>`;
     }
   }
-  document.getElementById('grid').innerHTML = h;
-  document.getElementById('gridSub').textContent =
-    `右下角数字＝该节次下符合当前筛选、且本阶段可选的教学班数量 · 点格子查看`;
+  gridEl.innerHTML = h;
+  document.getElementById('gridSub').textContent = isNarrow()
+    ? '数字＝该节次符合筛选的教学班数 · 点格子看有哪些课'
+    : '右下角数字＝该节次下符合当前筛选、且本阶段可选的教学班数量 · 点格子查看';
 }
 
 /* ===================== 渲染：列表 ===================== */
@@ -305,7 +323,11 @@ function take(n){
 function drop(n){ picked.delete(n); save(); renderAll(); toast('已退课：'+byNo.get(n).t); }
 
 /* ===================== 事件 ===================== */
-function renderAll(){ renderTop(); renderGrid(); renderList(); renderMine(); renderRules(); }
+function renderAll(){ renderTop(); renderDaySeg(); renderGrid(); renderList(); renderMine(); renderRules(); }
+mqNarrow.addEventListener('change', ()=>{
+  if(isNarrow() && state.day==='all'){ const wd=new Date().getDay(); state.day = wd===0?7:wd; }
+  renderDaySeg(); renderGrid();
+});
 
 document.addEventListener('click', e=>{
   const b = e.target.closest('[data-act]');
@@ -318,6 +340,9 @@ document.addEventListener('click', e=>{
   if(ph){ state.phase=ph.dataset.p; state.limit=60; save(); renderAll(); return; }
   const gr = e.target.closest('#gradeSeg button');
   if(gr){ state.grade=gr.dataset.g; save(); renderTop(); renderRules(); return; }
+  const dchip = e.target.closest('#dayseg .chip');
+  if(dchip){ const v=dchip.dataset.day; state.day = v==='all'?'all':+v; save();
+             renderDaySeg(); renderGrid(); return; }
   const chip = e.target.closest('#chips .chip');
   if(chip){
     if(chip.id==='chipEmpty'){ state.hideEmpty=!state.hideEmpty; chip.setAttribute('aria-pressed',state.hideEmpty); }

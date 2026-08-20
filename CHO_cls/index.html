@@ -192,21 +192,21 @@ input[type=search]:focus,select:focus{border-color:var(--sel)}
   .stat b{font-size:14px}
   .ghost{padding:5px 9px;font-size:12px}
   .phasebar-in{padding:7px 12px;gap:6px}
-  .card>h2{padding:11px 13px}
+  .card>h2{padding:11px 13px;flex-wrap:wrap;row-gap:2px}
   .card>h2 .sub{width:100%;margin-left:0;order:2}
   .filters{padding:11px 13px;gap:9px}
   input[type=search]{min-width:100%}
   #unit,#campus{flex:1;min-width:0}
-  .dayseg{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;
-    scrollbar-width:none;padding-bottom:2px;flex-wrap:nowrap}
-  .dayseg::-webkit-scrollbar{display:none}
-  .dayseg .chip{flex:0 0 auto;padding:5px 12px}
+  /* 星期切换用换行而不是横向滚动：横滚容器的 min-content 会把整张卡片撑宽 */
+  .dayseg{display:flex;gap:6px;flex-wrap:wrap;min-width:0;
+    border-top:1px solid var(--line2);padding-top:10px;margin-top:1px}
+  .dayseg .chip{flex:1 1 calc(25% - 6px);padding:5px 4px;text-align:center}
   .grid{min-width:0}
   .gp{font-size:10.5px}
   .cell{min-height:46px}
   .blk b{font-size:11.5px;white-space:normal}
   .item{flex-direction:column;gap:8px;padding:11px 13px}
-  .act{flex-direction:row;min-width:0}
+  .act{flex-direction:row;min-width:0;width:100%}
   .act .btn{flex:1}
   .myitem,.mycount,.rules{padding-left:13px;padding-right:13px}
   .drawer{width:100%;top:auto;height:min(86vh,860px);border-left:0;border-top:1px solid var(--line);
