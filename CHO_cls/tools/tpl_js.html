@@ -1,0 +1,371 @@
+<script>
+/* ===================== 常量与阶段规则 ===================== */
+const U = DATA.units, CS = DATA.courses;
+const DAYS = ['一','二','三','四','五','六','日'];
+const PMAX = 14;
+const HOME_UNIT = '数学科学学院';
+
+const PHASES = [
+  {id:'pre',  name:'预选',        old:'9月1日 10:00–15:00',  fresh:'9月14日 9:00–13:00'},
+  {id:'m1',   name:'正选一',      old:'9月3日 10:00–15:00',  fresh:'9月15日 13:00–17:00'},
+  {id:'m2',   name:'正选二',      old:'9月4日 10:00–15:00',  fresh:'9月16日 9:00–13:00'},
+  {id:'add',  name:'补退选',      old:'9月7日–9月11日 每日 10:00–15:00', fresh:'9月21日–9月24日 每日 10:00–15:00'},
+];
+const PHASE_DESC = {
+  pre:'初步选择，可选可退。通识必修课预选人数上限为选课名额的 110%，且只能在学院统一安排的教学班里选；专业课、通识选修课预选人数不限。结束后系统按名额和筛选规则筛选。',
+  m1:'确认并调整预选结果。通识必修课仍限统一安排的教学班；专业课与通识选修课可在所有教学班范围内选。每天 13 点放出退选名额。',
+  m2:'通识必修课、专业课、通识选修课均可在所有教学班范围内选择。本阶段起开放"重修选课"专用通道。',
+  add:'按试听结果调整。跨专业选课不再受"跨专业名额"限制，只要未达"选课名额"上限即可选。大学物理实验 CPTD0005、CPTD0007 不参与补退选。',
+};
+const KINDS = {major:'本院专业课', ge_req:'通识必修课', ge_opt:'通识选修课', other:'其他学院课程'};
+
+/* 站在数学科学学院学生的角度，判断某教学班在当前阶段能不能选 */
+function avail(c, ph){
+  if(c.k==='major')  return {s:'ok',  label:'选课名额 '+(c.q||'—'), why:'本院（数学科学学院）开设，走培养方案内的“选课名额”。'};
+  if(c.k==='ge_opt'){
+    const q = c.x||c.q;
+    return {s:'ok', label:'名额 '+(q||'—'), why:'通识选修课面向全校开放，预选阶段不限人数。'};
+  }
+  if(c.k==='ge_req'){
+    if(ph==='pre'||ph==='m1')
+      return {s:'warn', label:'限统一安排教学班', quotaNote: ph==='pre'&&c.q?('预选上限 '+Math.floor(c.q*1.1)+'（名额 '+c.q+' × 110%）'):'',
+        why:'通识必修课在'+(ph==='pre'?'预选':'正选第一阶段')+'只能在学院统一安排的教学班范围内选择。手册没有标注哪个班分给数学科学学院，请以教务系统里实际可选的班为准。'};
+    return {s:'ok', label:'选课名额 '+(c.q||c.x||'—'), why:'正选第二阶段起，通识必修课可在所有教学班范围内选择。'};
+  }
+  // other = 其他学院开设的专业课 → 对数学院学生属于跨专业选课
+  if(ph==='add') return {s:'ok', label:'选课名额 '+(c.q||'—'), why:'补退选阶段跨专业选课不再受“跨专业名额”限制，未达到“选课名额”上限的课程均可选。'};
+  if(c.x>0) return {s:'ok', label:'跨专业名额 '+c.x, why:'预选、正选期间跨专业选课只能占用“跨专业名额”。'};
+  return {s:'no', label:'无跨专业名额', why:'该教学班没有开放跨专业名额，'+(ph==='pre'?'预选':'正选')+'阶段数学科学学院的学生选不了；要等补退选阶段（跨专业不再受名额限制）。'};
+}
+
+/* ===================== 状态 ===================== */
+const LS = 'nku-course-sim-v1';
+const state = Object.assign({
+  phase:'pre', grade:'old', q:'', unit:'', campus:'', kinds:['major'],
+  onlyAvail:false, onlyX:false, hideEmpty:true, slot:null, picked:[], limit:60
+}, JSON.parse(localStorage.getItem(LS)||'{}'));
+state.slot = null; state.limit = 60;
+const picked = new Set(state.picked);
+CS.forEach((c,i)=>c.i=i);
+const byNo = new Map(CS.map(c=>[c.n,c]));
+function save(){ state.picked=[...picked]; localStorage.setItem(LS, JSON.stringify(state)); }
+
+/* 时间槽索引：slotIdx[day][period] = [课程下标...] */
+const slotIdx = Array.from({length:8},()=>Array.from({length:PMAX+1},()=>[]));
+CS.forEach((c,i)=>{ c.s.forEach(s=>{ if(!s.d||!s.a) return;
+  for(let p=s.a;p<=Math.min(s.b,PMAX);p++) if(!slotIdx[s.d][p].includes(i)) slotIdx[s.d][p].push(i); }); });
+
+/* ===================== 工具 ===================== */
+const esc = t => String(t).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const hue = t => { let h=0; for(const ch of t) h=(h*31+ch.charCodeAt(0))%360; return h; };
+function colorOf(c){ const h=hue(c.t+c.n); return {bc:`hsl(${h} 62% 48%)`, bs:`hsl(${h} 62% 48% / .13)`}; }
+function sessTxt(s){
+  if(!s.d) return '未排固定时间';
+  return `周${DAYS[s.d-1]} 第${s.a}${s.b>s.a?'–'+s.b:''}节${s.w?'（'+s.w+' 周）':''}`;
+}
+function overlap(s1,s2){ return s1.d&&s2.d&&s1.d===s2.d && s1.a<=s2.b && s2.a<=s1.b && (s1.m & s2.m)!==0; }
+function conflictsOf(c){
+  const out=[];
+  for(const n of picked){ if(n===c.n) continue; const o=byNo.get(n);
+    for(const s1 of c.s) for(const s2 of o.s) if(overlap(s1,s2)) out.push({other:o,s1,s2});
+  }
+  return out;
+}
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),2400); }
+
+/* ===================== 筛选 ===================== */
+function match(c){
+  if(state.kinds.length && !state.kinds.includes(c.k)) return false;
+  if(state.unit && U[c.u]!==state.unit) return false;
+  if(state.campus && !c.cp.includes(state.campus)) return false;
+  if(state.onlyX && !(c.x>0)) return false;
+  if(state.onlyAvail && avail(c,state.phase).s==='no') return false;
+  if(state.q){
+    const q=state.q.toLowerCase();
+    const hay=(c.n+' '+c.t+' '+c.tt.join(' ')+' '+U[c.u]+' '+c.mo+' '+c.s.map(s=>s.r).join(' ')).toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+function filtered(){ return CS.filter(match); }
+
+/* ===================== 渲染：顶栏 ===================== */
+function renderTop(){
+  document.getElementById('phaseSeg').innerHTML = PHASES.map(p=>
+    `<button data-p="${p.id}" aria-pressed="${state.phase===p.id}">${p.name}</button>`).join('');
+  document.getElementById('gradeSeg').innerHTML =
+    `<button data-g="old" aria-pressed="${state.grade==='old'}">2022–2025级</button>`+
+    `<button data-g="fresh" aria-pressed="${state.grade==='fresh'}">2026级</button>`;
+  const p = PHASES.find(x=>x.id===state.phase);
+  document.getElementById('phaseInfo').innerHTML =
+    `<b>${p.name}</b><span>${state.grade==='old'?p.old:p.fresh}</span><span>·</span><span>${PHASE_DESC[state.phase]}</span>`;
+}
+
+/* ===================== 渲染：课表 ===================== */
+function renderGrid(){
+  const list = filtered();
+  const cnt = Array.from({length:8},()=>new Array(PMAX+1).fill(0));
+  for(const c of list) for(const s of c.s){ if(!s.d||!s.a) continue;
+    for(let p=s.a;p<=Math.min(s.b,PMAX);p++) cnt[s.d][p]++; }
+
+  const mine = Array.from({length:8},()=>Array.from({length:PMAX+1},()=>[]));
+  for(const n of picked){ const c=byNo.get(n);
+    c.s.forEach(s=>{ if(!s.d||!s.a) return;
+      for(let p=s.a;p<=Math.min(s.b,PMAX);p++) mine[s.d][p].push({c,s,head:p===s.a}); }); }
+
+  let h = '<div class="gh"></div>' + DAYS.map(d=>`<div class="gh">周${d}</div>`).join('');
+  const rowUsed = p => { for(let d=1;d<=7;d++) if(cnt[d][p]||mine[d][p].length) return true; return false; };
+  for(let p=1;p<=PMAX;p++){
+    if(state.hideEmpty && !rowUsed(p)) continue;
+    const brk = (p===4||p===6||p===10)?' brk':'';
+    h += `<div class="gp${brk}"><em>${p}</em></div>`;
+    for(let d=1;d<=7;d++){
+      const blocks = mine[d][p];
+      const covered = blocks.length>0;
+      let inner = blocks.map(({c,s,head})=>{
+        const col=colorOf(c); const span=Math.min(s.b,PMAX)-s.a+1;
+        const clash = conflictsOf(c).some(cf=>cf.s1===s);
+        if(!head) return `<div class="blk cont${clash?' clash':''}" style="--bc:${col.bc};--bs:${col.bs}" data-no="${c.n}"></div>`;
+        return `<div class="blk${clash?' clash':''}" style="--bc:${col.bc};--bs:${col.bs}"
+          data-no="${c.n}"><b>${esc(c.t)}</b><span>${esc(s.r||'')}${s.g?' '+s.g:''}${span>1?' · '+s.a+'–'+s.b+'节':''}</span></div>`;
+      }).join('');
+      const clashCell = blocks.length>1 && blocks.some(({c,s})=>conflictsOf(c).some(cf=>cf.s1===s));
+      h += `<div class="cell${brk}" data-d="${d}" data-p="${p}">${clashCell?'<span class="clashmark">⚠</span>':''}${inner}`
+         + (cnt[d][p]&&!covered?`<span class="cnt">${cnt[d][p]}</span>`:'') + `</div>`;
+    }
+  }
+  document.getElementById('grid').innerHTML = h;
+  document.getElementById('gridSub').textContent =
+    `右下角数字＝该节次下符合当前筛选、且本阶段可选的教学班数量 · 点格子查看`;
+}
+
+/* ===================== 渲染：列表 ===================== */
+function courseRow(c,{compact}={}){
+  const a = avail(c,state.phase), on = picked.has(c.n);
+  const cf = on?[]:conflictsOf(c);
+  const tag = a.s==='ok'?'t-ok':a.s==='warn'?'t-warn':'t-bad';
+  const sess = c.s.map(s=>`<div><code>${s.d?'周'+DAYS[s.d-1]:'—'}</code>`+
+      `${s.a?`第 ${s.a}${s.b>s.a?'–'+s.b:''} 节`:'未排固定时间'} `+
+      `${s.w?'· 周次 '+esc(s.w)+' ':''}${s.t?'· '+esc(s.t)+' ':''}${s.r?'· '+esc(s.r):''}${s.g?' '+s.g:''}</div>`).join('');
+  return `<div class="item" data-no="${c.n}">
+    <div class="mainc">
+      <div class="tl"><span class="no">${c.n}</span><span class="nm">${esc(c.t)}</span>
+        <span class="tag ${tag}">${esc(a.label)}</span>
+        ${c.x>0?`<span class="tag t-neu">跨专业 ${c.x}</span>`:''}
+        ${on?'<span class="tag t-sel">已选</span>':''}
+        ${cf.length?`<span class="tag t-bad">与已选冲突</span>`:''}</div>
+      <div class="meta"><i>${esc(U[c.u])}</i>${c.mo?`<i>· ${esc(c.mo)}</i>`:''}
+        <i>· ${KINDS[c.k]}</i>${c.hr?`<i>· 周 ${c.hr} 学时</i>`:''}
+        ${c.nt?`<i>· ${esc(c.nt)}</i>`:''}</div>
+      <div class="sess">${sess}</div>
+    </div>
+    <div class="act">
+      <button class="btn ${on?'on':'pri'}" data-act="${on?'drop':'take'}" data-no="${c.n}">${on?'退课':'选课'}</button>
+      <button class="btn" data-act="info" data-no="${c.n}">详情</button>
+    </div></div>`;
+}
+function renderList(){
+  let list = filtered();
+  if(state.slot){ const [d,p]=state.slot;
+    const set=new Set(slotIdx[d][p]); list = list.filter(c=>set.has(c.i)); }
+  const el = document.getElementById('list');
+  const shown = list.slice(0,state.limit);
+  el.innerHTML = shown.length
+    ? shown.map(c=>courseRow(c)).join('') +
+      (list.length>shown.length?`<div class="more"><button class="btn" id="more">还有 ${list.length-shown.length} 个教学班，继续显示</button></div>`:'')
+    : `<div class="empty">没有符合条件的教学班。试试放宽筛选，或切换到别的阶段。</div>`;
+  document.getElementById('listSub').textContent =
+    (state.slot?`周${DAYS[state.slot[0]-1]} 第${state.slot[1]}节 · `:'') + `共 ${list.length} 个教学班`;
+}
+
+/* ===================== 渲染：我的选课 ===================== */
+function renderMine(){
+  const arr = [...picked].map(n=>byNo.get(n)).sort((a,b)=>a.n.localeCompare(b.n));
+  const hrs = arr.reduce((s,c)=>s+c.hr,0);
+  let clashPairs = new Set();
+  for(const c of arr) for(const cf of conflictsOf(c)) clashPairs.add([c.n,cf.other.n].sort().join('-'));
+  document.getElementById('stN').textContent = arr.length;
+  document.getElementById('stH').textContent = hrs;
+  const sc = document.getElementById('stC');
+  sc.textContent = clashPairs.size? `${clashPairs.size} 处时间冲突` : '无冲突';
+  sc.className = 'tag ' + (clashPairs.size?'t-bad':'t-ok');
+  const byKind = {};
+  arr.forEach(c=>byKind[c.k]=(byKind[c.k]||0)+1);
+  document.getElementById('myCount').innerHTML = arr.length
+    ? Object.keys(KINDS).filter(k=>byKind[k]).map(k=>`<span>${KINDS[k]} <b>${byKind[k]}</b></span>`).join('')
+    : '<span>还没有选课。点课表格子或下面的列表加课。</span>';
+  document.getElementById('mySub').textContent = arr.length?`${arr.length} 门`:'';
+  document.getElementById('myList').innerHTML = arr.map(c=>{
+    const col=colorOf(c), a=avail(c,state.phase);
+    const bad = a.s==='no';
+    return `<div class="myitem">
+      <span class="dot" style="background:${col.bc}"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${esc(c.t)} <span class="no" style="font-weight:400">${c.n}</span></div>
+        <div style="color:var(--ink2);font-size:11.5px">${c.s.map(sessTxt).join(' / ')}</div>
+        ${bad?`<div class="tag t-bad" style="margin-top:3px;display:inline-block">本阶段不可选：${esc(a.label)}</div>`:''}
+      </div>
+      <button class="x" data-act="drop" data-no="${c.n}" title="退课">×</button></div>`;
+  }).join('');
+}
+
+/* ===================== 渲染：规则 ===================== */
+function renderRules(){
+  const rows = PHASES.map(p=>`<tr class="${p.id===state.phase?'now':''}"><td>${p.name}</td>
+      <td>${state.grade==='old'?p.old:p.fresh}</td></tr>`).join('');
+  document.getElementById('rules').innerHTML = `
+  <h3>时间安排（${state.grade==='old'?'2022–2025 级':'2026 级'}，2026 年 9 月）</h3>
+  <table><tr><th>阶段</th><th>时间</th></tr>${rows}
+    <tr><td>必修课补登</td><td>9月28日 10:00 – 9月30日 12:00（全校，限大三及以上）</td></tr>
+    <tr><td>期中退课</td><td>11月2日 10:00 – 11月6日 12:00（全校）</td></tr></table>
+  <h3>作为数学科学学院的学生</h3>
+  <ul>
+    <li><b>本院课程</b>（数学科学学院开设）：用“选课名额”，各阶段都能选。</li>
+    <li><b>其他学院的专业课</b>：属于跨专业选课。预选和正选只能占“跨专业名额”，<b>名额为 0 的班这三个阶段选不了</b>；到补退选阶段不再受此限制。</li>
+    <li><b>通识必修课</b>（外语、思政、体育、军事、计算机基础、高等数学教学部等）：预选和正选第一阶段<b>只能在学院统一安排的教学班里选</b>；正选第二阶段起才放开到全部教学班。预选人数上限是名额的 110%。</li>
+    <li><b>通识选修课</b>：面向全校，预选不限人数。</li>
+  </ul>
+  <div class="note">手册没有标注“哪个通识必修课教学班分给数学科学学院”，本站对这类课统一标黄提示，实际以教务系统中能选到的班为准。</div>
+  <h3>其他要点</h3>
+  <ul>
+    <li>选课顺序建议：通识必修 → 专业必修 → 专业选修和通识选修。</li>
+    <li>每学期选课总量原则上不超过 32 学分（不含辅修）；手册未列学分，本站只统计门数与周学时。</li>
+    <li>正选实行放课制，每天 13 点放出退选的名额。</li>
+    <li>主修、微专业、辅修的课程都不允许时间冲突；冲突且符合条件的可申请自修（每学期一般不超过 2 门）。</li>
+    <li>注意八里台 / 津南校区，避免跨校区连堂。</li>
+    <li>体育课只能在主修界面选；每学期只能修一门。</li>
+  </ul>`;
+}
+
+/* ===================== 抽屉 ===================== */
+function openDrawer(title,sub,html){
+  document.getElementById('dTitle').textContent=title;
+  document.getElementById('dSub').textContent=sub||'';
+  document.getElementById('dBody').innerHTML=html;
+  document.getElementById('drawer').classList.add('on');
+  document.getElementById('scrim').classList.add('on');
+}
+function closeDrawer(){ document.getElementById('drawer').classList.remove('on');
+  document.getElementById('scrim').classList.remove('on'); }
+
+function showSlot(d,p){
+  const idxs = slotIdx[d][p];
+  const list = idxs.map(i=>CS[i]).filter(match)
+      .sort((a,b)=> (U[a.u]===U[b.u]? a.t.localeCompare(b.t,'zh') || a.n.localeCompare(b.n)
+                                    : U[a.u].localeCompare(U[b.u],'zh')));
+  const html = list.length
+    ? list.map(c=>courseRow(c)).join('')
+    : `<div class="empty">这一节没有符合当前筛选的教学班。</div>`;
+  openDrawer(`周${DAYS[d-1]} 第 ${p} 节`, `符合当前筛选 ${list.length} 个教学班（该节次全校共 ${idxs.length} 个）`, html);
+}
+function showCourse(n){
+  const c=byNo.get(n), a=avail(c,state.phase), cf=conflictsOf(c);
+  const html = `<div style="padding:14px 16px">
+    <div class="meta" style="margin-bottom:8px"><i>${esc(U[c.u])}</i><i>· ${KINDS[c.k]}</i>
+      ${c.mo?`<i>· ${esc(c.mo)}</i>`:''}${c.nt?`<i>· ${esc(c.nt)}</i>`:''}</div>
+    <div class="note" style="background:var(--${a.s==='ok'?'ok':a.s==='warn'?'warn':'bad'}-soft)">
+      <b>${PHASES.find(p=>p.id===state.phase).name}：${esc(a.label)}</b><br>${esc(a.why)}
+      ${a.quotaNote?'<br>'+esc(a.quotaNote):''}</div>
+    <table class="rules" style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <tr><th style="width:88px">选课序号</th><td>${c.n}</td></tr>
+      <tr><th>选课名额</th><td>${c.q||'—'}（培养方案内，含辅修、重修）</td></tr>
+      <tr><th>跨专业名额</th><td>${c.x||'—'}</td></tr>
+      <tr><th>教师</th><td>${esc(c.tt.join('、'))||'—'}</td></tr>
+      <tr><th>校区</th><td>${c.cp.join('、')}</td></tr>
+      <tr><th>周学时</th><td>${c.hr||'—'}</td></tr>
+    </table>
+    <h3 style="margin:14px 0 6px;font-size:13px">上课安排</h3>
+    <div class="sess">${c.s.map(s=>`<div><code>${s.d?'周'+DAYS[s.d-1]:'—'}</code>`+
+       `${s.a?`第 ${s.a}${s.b>s.a?'–'+s.b:''} 节`:'未排固定时间'} ${s.w?'· 周次 '+esc(s.w):''} `+
+       `${s.t?'· '+esc(s.t):''} ${s.r?'· '+esc(s.r):''} ${s.g?s.g:''}</div>`).join('')}</div>
+    ${cf.length?`<h3 style="margin:14px 0 6px;font-size:13px;color:var(--bad)">与已选课程冲突</h3>
+      <div class="sess">${cf.map(x=>`<div>${esc(x.other.t)}（${x.other.n}）：${sessTxt(x.s2)}</div>`).join('')}</div>`:''}
+    <h3 style="margin:14px 0 6px;font-size:13px">同名课程的其他教学班</h3>
+    <div class="sess">${CS.filter(o=>o.t===c.t&&o.n!==c.n).slice(0,14).map(o=>
+        `<div><code>${o.n}</code>${o.s.map(sessTxt).join(' / ')} · ${esc(o.tt.join('、'))} <span class="tag ${avail(o,state.phase).s==='ok'?'t-ok':avail(o,state.phase).s==='warn'?'t-warn':'t-bad'}">${esc(avail(o,state.phase).label)}</span></div>`
+      ).join('')||'<div>没有其他教学班</div>'}</div>
+    <div style="margin-top:16px"><button class="btn ${picked.has(c.n)?'on':'pri'}" data-act="${picked.has(c.n)?'drop':'take'}" data-no="${c.n}" style="width:100%">${picked.has(c.n)?'退课':'选课'}</button></div>
+  </div>`;
+  openDrawer(c.t, c.n+' · '+U[c.u], html);
+}
+
+/* ===================== 选课动作 ===================== */
+function take(n){
+  const c=byNo.get(n), a=avail(c,state.phase);
+  if(a.s==='no'){ toast('本阶段选不了：'+a.label); return; }
+  const cf=conflictsOf(c);
+  if(cf.length){
+    const t=cf[0];
+    if(!confirm(`时间冲突：\n${c.t}（${c.n}）与已选的 ${t.other.t}（${t.other.n}）在${sessTxt(t.s1)}重叠。\n\n真实系统不允许冲突选课（可对其中一门申请自修）。仍要加入模拟课表吗？`)) return;
+  }
+  picked.add(n); save(); renderAll();
+  toast(a.s==='warn' ? `已加入：${c.t} —— ${a.label}，以教务系统实际可选的班为准` : `已选：${c.t}（${c.n}）`);
+}
+function drop(n){ picked.delete(n); save(); renderAll(); toast('已退课：'+byNo.get(n).t); }
+
+/* ===================== 事件 ===================== */
+function renderAll(){ renderTop(); renderGrid(); renderList(); renderMine(); renderRules(); }
+
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]');
+  if(b){ const n=b.dataset.no;
+    if(b.dataset.act==='take') take(n);
+    else if(b.dataset.act==='drop') drop(n);
+    else if(b.dataset.act==='info') showCourse(n);
+    return; }
+  const ph = e.target.closest('#phaseSeg button');
+  if(ph){ state.phase=ph.dataset.p; state.limit=60; save(); renderAll(); return; }
+  const gr = e.target.closest('#gradeSeg button');
+  if(gr){ state.grade=gr.dataset.g; save(); renderTop(); renderRules(); return; }
+  const chip = e.target.closest('#chips .chip');
+  if(chip){
+    if(chip.id==='chipEmpty'){ state.hideEmpty=!state.hideEmpty; chip.setAttribute('aria-pressed',state.hideEmpty); }
+    else if(chip.id==='chipOnly'){ state.onlyAvail=!state.onlyAvail; chip.setAttribute('aria-pressed',state.onlyAvail); }
+    else if(chip.id==='chipX'){ state.onlyX=!state.onlyX; chip.setAttribute('aria-pressed',state.onlyX); }
+    else { const k=chip.dataset.k; const i=state.kinds.indexOf(k);
+           i<0?state.kinds.push(k):state.kinds.splice(i,1);
+           chip.setAttribute('aria-pressed', state.kinds.includes(k)); }
+    state.limit=60; save(); renderGrid(); renderList(); return; }
+  const blk = e.target.closest('.blk');
+  if(blk){ e.stopPropagation(); showCourse(blk.dataset.no); return; }
+  const cell = e.target.closest('.cell');
+  if(cell){ showSlot(+cell.dataset.d, +cell.dataset.p); return; }
+  if(e.target.id==='more'){ state.limit+=120; renderList(); return; }
+  if(e.target.id==='dClose'||e.target.id==='scrim'){ closeDrawer(); return; }
+  if(e.target.id==='btnClear'){ if(picked.size&&confirm('清空模拟课表里的全部选课？')){ picked.clear(); save(); renderAll(); } return; }
+  if(e.target.id==='btnCopy'){
+    const arr=[...picked].sort();
+    if(!arr.length){ toast('还没有选课'); return; }
+    navigator.clipboard?.writeText(arr.join(' ')).then(()=>toast('已复制 '+arr.length+' 个选课序号'),
+      ()=>prompt('选课序号：',arr.join(' ')));
+    return; }
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
+
+const qEl=document.getElementById('q'); qEl.value=state.q;
+let qt; qEl.addEventListener('input',()=>{ clearTimeout(qt); qt=setTimeout(()=>{
+  state.q=qEl.value.trim(); state.limit=60; save(); renderGrid(); renderList(); },160); });
+
+const unitEl=document.getElementById('unit');
+unitEl.innerHTML = '<option value="">全部开课单位</option>' +
+  U.slice().sort((a,b)=>a===HOME_UNIT?-1:b===HOME_UNIT?1:a.localeCompare(b,'zh'))
+   .map(u=>`<option${u===state.unit?' selected':''}>${u}</option>`).join('');
+unitEl.addEventListener('change',()=>{ state.unit=unitEl.value; state.limit=60; save(); renderGrid(); renderList(); });
+const cpEl=document.getElementById('campus'); cpEl.value=state.campus;
+cpEl.addEventListener('change',()=>{ state.campus=cpEl.value; state.limit=60; save(); renderGrid(); renderList(); });
+
+document.querySelectorAll('#chips .chip').forEach(ch=>{
+  if(ch.id==='chipEmpty') ch.setAttribute('aria-pressed',state.hideEmpty);
+  else if(ch.id==='chipOnly') ch.setAttribute('aria-pressed',state.onlyAvail);
+  else if(ch.id==='chipX') ch.setAttribute('aria-pressed',state.onlyX);
+  else ch.setAttribute('aria-pressed', state.kinds.includes(ch.dataset.k));
+});
+document.getElementById('foot').innerHTML =
+  `数据来自《南开大学 2026~2027 学年第一学期选课手册》与《南开大学 2026-2027 学年第一学期本科生选课通知》（教通字〔2026〕58 号），`+
+  `共 ${CS.length} 个教学班、${CS.reduce((s,c)=>s+c.s.length,0)} 条上课安排，由 PDF 自动解析。`+
+  `本页仅用于个人模拟排课，名额为手册公布值、不是实时余量；一切以教学管理信息系统 eamis.nankai.edu.cn 为准。`;
+
+renderAll();
+</script>
+</body></html>

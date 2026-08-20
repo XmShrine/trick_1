@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>选课模拟器 · 南开大学 2026-2027 学年第一学期</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --panel2:#fbfbfd; --line:#e3e6ec; --line2:#eef0f4;
+  --ink:#161a20; --ink2:#5b6472; --ink3:#8b94a3;
+  --accent:#7a1f2b; --accent-ink:#fff; --accent-soft:#f7ecee;
+  --ok:#1c7a4a; --ok-soft:#e8f5ee; --warn:#a8631a; --warn-soft:#fdf1e3;
+  --bad:#b3261e; --bad-soft:#fceceb; --sel:#2d5bd7; --sel-soft:#eaf0fd;
+  --shadow:0 1px 2px rgba(16,20,28,.06),0 8px 24px rgba(16,20,28,.06);
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#101318; --panel:#171b22; --panel2:#1c2129; --line:#2a313c; --line2:#232932;
+  --ink:#e8ebf0; --ink2:#a2acbb; --ink3:#6f7987;
+  --accent:#d98a96; --accent-ink:#1a1013; --accent-soft:#2a1c20;
+  --ok:#5cc48d; --ok-soft:#16281f; --warn:#e0a463; --warn-soft:#2b2116;
+  --bad:#f2867d; --bad-soft:#2c1a19; --sel:#8fb0ff; --sel-soft:#1a2236;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+a{color:var(--sel)}
+
+/* ---------- 顶栏 ---------- */
+.bar{position:sticky;top:0;z-index:40;background:var(--panel);border-bottom:1px solid var(--line);
+  box-shadow:0 1px 0 rgba(0,0,0,.02)}
+.bar-in{max-width:1360px;margin:0 auto;padding:10px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:1px;margin-right:2px}
+.brand b{font-size:15px;letter-spacing:.2px}
+.brand span{font-size:11.5px;color:var(--ink3)}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;cursor:pointer;
+  font-size:13px;color:var(--ink2);white-space:nowrap;transition:.12s}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg.small button{padding:4px 9px;font-size:12px}
+.stat{margin-left:auto;display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--ink2)}
+.stat b{color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums}
+.ghost{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 11px;
+  cursor:pointer;font-size:12.5px;color:var(--ink2)}
+.ghost:hover{border-color:var(--ink3);color:var(--ink)}
+
+/* ---------- 阶段条 ---------- */
+.phasebar{background:var(--accent-soft);border-bottom:1px solid var(--line);font-size:12.5px}
+.phasebar-in{max-width:1360px;margin:0 auto;padding:7px 18px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;color:var(--ink2)}
+.phasebar b{color:var(--ink)}
+
+main{max-width:1360px;margin:0 auto;padding:18px;display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:18px;align-items:start}
+@media (max-width:1080px){main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card>h2{margin:0;padding:12px 15px;font-size:13px;letter-spacing:.4px;color:var(--ink2);
+  border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:10px;font-weight:600}
+.card>h2 .sub{font-weight:400;color:var(--ink3);font-size:11.5px;margin-left:auto}
+
+/* ---------- 筛选 ---------- */
+.filters{padding:12px 15px;display:flex;flex-direction:column;gap:10px}
+.frow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input[type=search],select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:7px 10px;color:var(--ink);font:inherit;font-size:13px;outline:none;min-width:0}
+input[type=search]{flex:1;min-width:180px}
+input[type=search]:focus,select:focus{border-color:var(--sel)}
+.chip{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:4px 11px;
+  font-size:12.5px;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:var(--ink3)}
+.chip[aria-pressed=true]{background:var(--sel-soft);border-color:var(--sel);color:var(--sel);font-weight:600}
+.lbl{font-size:12px;color:var(--ink3);margin-right:-2px}
+
+/* ---------- 课表 ---------- */
+.gridwrap{overflow-x:auto;padding:0 0 4px}
+.grid{display:grid;grid-template-columns:46px repeat(7,minmax(122px,1fr));min-width:920px}
+.gh{position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);
+  padding:8px 4px;text-align:center;font-size:12px;color:var(--ink2);font-weight:600;z-index:2}
+.gp{border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  font-size:11px;color:var(--ink3);background:var(--panel2);font-variant-numeric:tabular-nums}
+.gp em{font-style:normal;font-size:13px;color:var(--ink2);font-weight:600}
+.cell{border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);min-height:52px;
+  padding:3px;display:flex;flex-direction:column;gap:3px;cursor:pointer;position:relative;transition:background .1s}
+.cell:hover{background:var(--panel2)}
+.cell.brk{border-bottom:2px solid var(--line)}
+.cnt{position:absolute;right:4px;bottom:3px;font-size:10.5px;color:var(--ink3);
+  font-variant-numeric:tabular-nums;pointer-events:none}
+.cell:hover .cnt{color:var(--sel)}
+.blk{border-radius:6px;padding:3px 5px;font-size:11.5px;line-height:1.35;overflow:hidden;
+  border-left:3px solid var(--bc,var(--sel));background:var(--bs,var(--sel-soft));color:var(--ink)}
+.blk b{display:block;font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk span{color:var(--ink2);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.blk.clash{outline:1.5px solid var(--bad);outline-offset:-1px}
+.blk.cont{flex:none;height:9px;padding:0;opacity:.5;border-radius:4px}
+.clashmark{position:absolute;right:4px;top:2px;font-size:10px;color:var(--bad);font-weight:700;z-index:1}
+
+/* ---------- 列表 ---------- */
+.list{padding:6px 0 10px}
+.item{padding:11px 15px;border-bottom:1px solid var(--line2);display:flex;gap:12px;align-items:flex-start}
+.item:last-child{border-bottom:0}
+.item:hover{background:var(--panel2)}
+.item .mainc{flex:1;min-width:0}
+.tl{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.tl .no{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink3);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tl .nm{font-weight:600;font-size:14px}
+.meta{color:var(--ink2);font-size:12.5px;margin-top:3px;display:flex;gap:6px;flex-wrap:wrap}
+.meta i{font-style:normal;color:var(--ink3)}
+.sess{margin-top:5px;display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--ink2)}
+.sess code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ink);
+  background:var(--panel2);border:1px solid var(--line2);border-radius:5px;padding:0 5px;margin-right:6px}
+.tag{font-size:11px;border-radius:5px;padding:1px 6px;border:1px solid transparent;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)} .t-warn{background:var(--warn-soft);color:var(--warn)}
+.t-bad{background:var(--bad-soft);color:var(--bad)} .t-neu{background:var(--panel2);color:var(--ink2);border-color:var(--line)}
+.t-sel{background:var(--sel-soft);color:var(--sel)}
+.act{display:flex;flex-direction:column;gap:6px;align-items:stretch;min-width:74px}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 10px;
+  cursor:pointer;font-size:12.5px;text-align:center;white-space:nowrap}
+.btn:hover{border-color:var(--ink3)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.on{background:var(--sel-soft);border-color:var(--sel);color:var(--sel);font-weight:600}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.empty{padding:26px 15px;text-align:center;color:var(--ink3);font-size:13px}
+.more{padding:10px;text-align:center}
+
+/* ---------- 侧栏 ---------- */
+.side{display:flex;flex-direction:column;gap:18px;position:sticky;top:104px}
+@media (max-width:1080px){.side{position:static}}
+.mycount{padding:9px 15px;font-size:12.5px;color:var(--ink2);border-bottom:1px solid var(--line2);
+  display:flex;gap:12px;flex-wrap:wrap}
+.mycount b{color:var(--ink)}
+.myitem{padding:9px 15px;border-bottom:1px solid var(--line2);display:flex;gap:10px;align-items:flex-start}
+.myitem:last-child{border-bottom:0}
+.dot{width:8px;height:8px;border-radius:3px;margin-top:6px;flex:none}
+.myitem .x{border:0;background:transparent;color:var(--ink3);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}
+.myitem .x:hover{color:var(--bad)}
+.rules{padding:13px 15px;font-size:12.5px;color:var(--ink2);line-height:1.7}
+.rules h3{margin:14px 0 5px;font-size:12.5px;color:var(--ink)}
+.rules h3:first-child{margin-top:0}
+.rules ul{margin:4px 0;padding-left:17px}
+.rules li{margin:2px 0}
+.rules table{border-collapse:collapse;width:100%;margin:6px 0;font-size:11.5px}
+.rules td,.rules th{border:1px solid var(--line2);padding:3px 6px;text-align:left}
+.rules th{background:var(--panel2);color:var(--ink2);font-weight:600}
+.rules tr.now td{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.note{background:var(--warn-soft);border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+  color:var(--ink2);font-size:12px;margin:8px 0}
+
+/* ---------- 抽屉 ---------- */
+.scrim{position:fixed;inset:0;background:rgba(10,12,16,.34);opacity:0;pointer-events:none;
+  transition:opacity .16s;z-index:50}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:var(--panel);
+  border-left:1px solid var(--line);transform:translateX(100%);transition:transform .2s cubic-bezier(.3,.7,.3,1);
+  z-index:51;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.drawer.on{transform:none}
+.dh{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.dh b{font-size:14px} .dh .sub{color:var(--ink3);font-size:12px}
+.dh button{margin-left:auto;border:0;background:transparent;font-size:20px;color:var(--ink3);cursor:pointer;line-height:1}
+.dbody{overflow-y:auto;flex:1}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--ink);
+  color:var(--bg);padding:9px 16px;border-radius:9px;font-size:13px;opacity:0;pointer-events:none;
+  transition:.18s;z-index:60;max-width:80vw;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+footer{max-width:1360px;margin:0 auto;padding:10px 18px 34px;color:var(--ink3);font-size:11.5px;line-height:1.7}
+</style>
+</head>
+<body>
+<header class="bar"><div class="bar-in">
+  <div class="brand"><b>选课模拟器</b><span>南开大学 2026–2027 学年第一学期 · 数学科学学院</span></div>
+  <div class="seg" id="phaseSeg"></div>
+  <div class="seg small" id="gradeSeg"></div>
+  <div class="stat">
+    <span>已选 <b id="stN">0</b> 门</span>
+    <span>周学时 <b id="stH">0</b></span>
+    <span id="stC" class="tag t-ok">无冲突</span>
+    <button class="ghost" id="btnCopy">复制序号</button>
+    <button class="ghost" id="btnClear">清空</button>
+  </div>
+</div></header>
+<div class="phasebar"><div class="phasebar-in" id="phaseInfo"></div></div>
+
+<main>
+<div>
+  <section class="card" style="margin-bottom:18px">
+    <h2>课表总览<span class="sub" id="gridSub"></span></h2>
+    <div class="filters" id="filters">
+      <div class="frow">
+        <input type="search" id="q" placeholder="搜索课程名 / 教师 / 选课序号 / 教室">
+        <select id="unit"></select>
+        <select id="campus">
+          <option value="">全部校区</option><option>八里台</option><option>津南</option><option>在线</option><option>泰达</option>
+        </select>
+      </div>
+      <div class="frow" id="chips">
+        <span class="lbl">快捷</span>
+        <button class="chip" data-k="major">数学科学学院</button>
+        <button class="chip" data-k="ge_opt">通识选修课</button>
+        <button class="chip" data-k="ge_req">通识必修课</button>
+        <button class="chip" data-k="other">其他学院</button>
+        <span style="width:8px"></span>
+        <button class="chip" id="chipOnly">只看本阶段可选</button>
+        <button class="chip" id="chipX">只看有跨专业名额</button>
+        <button class="chip" id="chipEmpty">隐藏空节次</button>
+      </div>
+    </div>
+    <div class="gridwrap"><div class="grid" id="grid"></div></div>
+  </section>
+
+  <section class="card">
+    <h2>课程列表<span class="sub" id="listSub"></span></h2>
+    <div class="list" id="list"></div>
+  </section>
+</div>
+
+<aside class="side">
+  <section class="card">
+    <h2>我的选课<span class="sub" id="mySub"></span></h2>
+    <div class="mycount" id="myCount"></div>
+    <div id="myList"></div>
+  </section>
+  <section class="card">
+    <h2>选课规则（数学科学学院视角）</h2>
+    <div class="rules" id="rules"></div>
+  </section>
+</aside>
+</main>
+
+<footer id="foot"></footer>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <div class="dh"><div><b id="dTitle"></b><div class="sub" id="dSub"></div></div><button id="dClose">×</button></div>
+  <div class="dbody" id="dBody"></div>
+</aside>
+<div class="toast" id="toast"></div>
