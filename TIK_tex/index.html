@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikZ 画板</title>
+<link rel="stylesheet" href="vendor/katex/katex.local.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">TikZ</span><span class="brand-sub">画板</span>
+    </div>
+
+    <div class="topgroup">
+      <button class="tbtn" id="undo" title="撤销 (⌘Z)" aria-label="撤销">
+        <svg viewBox="0 0 20 20"><path d="M7 6 3.5 9.5 7 13"/><path d="M3.5 9.5h8a4.5 4.5 0 0 1 0 9H8"/></svg>
+      </button>
+      <button class="tbtn" id="redo" title="重做 (⇧⌘Z)" aria-label="重做">
+        <svg viewBox="0 0 20 20"><path d="M13 6l3.5 3.5L13 13"/><path d="M16.5 9.5h-8a4.5 4.5 0 0 0 0 9H12"/></svg>
+      </button>
+    </div>
+
+    <div class="topgroup">
+      <button class="tbtn" id="zoomOut" title="缩小 (−)" aria-label="缩小"><svg viewBox="0 0 20 20"><path d="M4 10h12"/></svg></button>
+      <button class="tbtn wide mono" id="zoomLevel" title="重置为 100%">100%</button>
+      <button class="tbtn" id="zoomIn" title="放大 (+)" aria-label="放大"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></button>
+      <button class="tbtn" id="zoomFit" title="适应画面 (0)" aria-label="适应画面">
+        <svg viewBox="0 0 20 20"><path d="M3 7V3h4M17 7V3h-4M3 13v4h4M17 13v4h-4"/></svg>
+      </button>
+    </div>
+
+    <div class="topgroup">
+      <button class="tbtn toggle" id="snapToggle" title="对齐网格 (S)">
+        <svg viewBox="0 0 20 20"><path d="M3 7.5h14M3 12.5h14M7.5 3v14M12.5 3v14"/></svg><span>对齐</span>
+      </button>
+      <button class="tbtn toggle" id="gridToggle" title="显示网格 (G)">
+        <svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="1"/><path d="M3 8.3h14M3 13.6h14M8.3 3v14M13.6 3v14"/></svg><span>网格</span>
+      </button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="topgroup">
+      <button class="tbtn primary" id="importCode" title="粘贴、编辑或打开 TikZ 代码"><svg viewBox="0 0 20 20"><path d="M10 3v11m0 0-4-4m4 4 4-4M4 16h12"/></svg><span>导入 / 编辑代码</span></button>
+      <button class="tbtn" id="figureSettingsBtn" title="设置 figure 排版、图注和标签" aria-label="设置 figure 排版和图注"><svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="1"/><path d="M5 11h10M7 14h6M6 6h8v3H6z"/></svg><span>排版 / 图注</span></button>
+      <button class="tbtn" id="downloadCode" title="下载 .tex 文件"><svg viewBox="0 0 20 20"><path d="M10 3v11m0 0-4-4m4 4 4-4M4 17h12" transform="rotate(180 10 10)"/></svg><span>下载 .tex</span></button>
+    </div>
+
+    <div class="topgroup">
+      <button class="tbtn" id="loadDemo" title="载入示例图形"><svg viewBox="0 0 20 20"><path d="M3 15c3-8 5-9 7-5s4 3 7-4"/></svg><span>示例</span></button>
+      <button class="tbtn danger" id="clearAll" title="清空画布"><svg viewBox="0 0 20 20"><path d="M4 6h12M8 6V4h4v2M6.5 6l.7 11h5.6l.7-11"/></svg><span>清空</span></button>
+    </div>
+  </header>
+
+  <nav class="rail" id="rail" aria-label="绘图工具"></nav>
+
+  <main class="stage" id="stage">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="nodeLayer" aria-hidden="true"></div>
+    <div class="hint" id="hint"></div>
+  </main>
+
+  <footer class="statusbar">
+    <span class="stat"><b>坐标</b><span class="mono" id="statCoord">0.000, 0.000</span></span>
+    <span class="stat"><b>对象</b><span class="mono" id="statCount">0</span></span>
+    <span class="stat"><b>选中</b><span class="mono" id="statSel">0</span></span>
+    <span class="spacer"></span>
+    <span class="stat muted" id="statTip">按 ? 查看快捷键</span>
+  </footer>
+
+  <aside class="side">
+    <section class="props" id="props"></section>
+
+    <section class="codepanel">
+      <header class="codehead">
+        <span class="panel-title" id="codeTitle">TikZ 图内代码</span>
+        <label class="mini-check"><input type="checkbox" id="optPicture"><span>包含环境</span></label>
+        <label class="mini-check"><input type="checkbox" id="optDependencies"><span>包含依赖</span></label>
+        <span class="spacer"></span>
+        <button class="tbtn" id="editCode" title="修改代码并重新导入">编辑</button>
+        <button class="tbtn" id="copyCode" title="复制到剪贴板">
+          <svg viewBox="0 0 20 20"><rect x="7" y="7" width="9" height="10" rx="1.5"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3h-6A1.5 1.5 0 0 0 4 4.5v8A1.5 1.5 0 0 0 5.5 14H7"/></svg>
+          <span>复制</span>
+        </button>
+      </header>
+      <pre class="code" id="code" tabindex="0"></pre>
+    </section>
+  </aside>
+</div>
+
+<div class="modal figure-modal" id="figureModal" hidden role="dialog" aria-modal="true" aria-labelledby="figureTitle">
+  <div class="sheet figure-sheet">
+    <header><span class="panel-title" id="figureTitle">文档排版 / 图注</span><button class="tbtn" id="figureClose">关闭</button></header>
+    <div class="figure-body">
+      <label class="figure-enable"><input type="checkbox" id="figureEnabled"><span>导出时包含 <code>figure</code> 环境</span></label>
+      <p class="figure-help">修改任一排版设置会自动启用。开启后自动包含 <code>tikzpicture</code>；画布坐标不变。</p>
+      <div class="figure-fields">
+        <label>图片对齐<select id="figureAlign"><option value="left">靠左</option><option value="center">居中</option><option value="right">靠右</option></select></label>
+        <label>浮动位置<select id="figurePlacement"><option value="htbp">htbp · 就近放置</option><option value="h">h · 尽量当前位置</option><option value="t">t · 页顶</option><option value="b">b · 页底</option><option value="p">p · 浮动页</option><option value="!htbp">!htbp · 放宽限制</option><option value="H">H · 固定此处（需 float）</option></select></label>
+        <label>图注位置<select id="figureCaptionPosition"><option value="below">图片下方</option><option value="above">图片上方</option></select></label>
+        <label>图注格式<select id="figureCaptionMode"><option value="plain">普通文字（自动转义）</option><option value="latex">LaTeX 代码（原样）</option></select></label>
+        <label class="figure-wide">图注<textarea id="figureCaption" rows="2" placeholder="例如：函数变化示意图"></textarea></label>
+        <label class="figure-wide">引用标签<input id="figureLabel" type="text" placeholder="例如：fig:example" spellcheck="false"></label>
+      </div>
+      <p class="figure-help">普通文字模式可在图注中使用 <code>$...$</code> 公式。引用标签需搭配图注；位置参数由 LaTeX 决定实际分页。</p>
+      <div class="figure-preview-wrap"><div class="figure-preview-title">文档中大致布局</div><div class="figure-preview-page" id="figurePreviewPage"><div class="figure-preview-caption" id="figurePreviewCaption"></div><div class="figure-preview-art" id="figurePreviewArt"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="help" hidden>
+  <div class="sheet">
+    <header><span class="panel-title">快捷键</span><button class="tbtn" id="helpClose">关闭</button></header>
+    <div class="keys" id="keysList"></div>
+  </div>
+</div>
+
+<div class="modal import-modal" id="importModal" hidden role="dialog" aria-modal="true" aria-labelledby="importTitle">
+  <div class="sheet import-sheet">
+    <header>
+      <div><span class="panel-title" id="importTitle">导入 / 编辑 TikZ</span><p>粘贴代码或打开 .tex 文件，检查识别结果后放入画布。</p></div>
+      <button class="tbtn" id="importClose" aria-label="关闭导入窗口">关闭</button>
+    </header>
+    <div class="import-body">
+      <div class="import-actions"><label class="file-button">打开 .tex / .tikz / .txt<input id="importFile" type="file" accept=".tex,.tikz,.txt,text/plain"></label><span>支持完整文档、tikzpicture 或图形语句</span></div>
+      <textarea id="importText" class="import-text mono" spellcheck="false" aria-label="TikZ 源代码"></textarea>
+      <div id="importSummary" class="import-summary" aria-live="polite"></div>
+      <div id="importWarnings" class="import-warnings"></div>
+      <p class="import-note">可视化支持直线、折线、多边形、矩形、圆与椭圆、贝塞尔曲线、平滑坐标曲线和独立文本节点。未识别的图内语句会保留在导出代码中，并在代码面板中标记；它们不会显示为画布图形。自定义画布选项会保留，但不参与预览。</p>
+    </div>
+    <footer><button class="tbtn" id="importCancel">取消</button><button class="tbtn primary" id="importApply">导入到画布</button></footer>
+  </div>
+</div>
+
+<script src="tikz-import.js"></script>
+<script src="vendor/katex/katex.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
