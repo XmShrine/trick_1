@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>神人之家</title>
     <!-- 引入通用样式 -->
-    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="theme.css?v=3.6">
     <!-- 引入通用逻辑 (新) -->
     <script src="common.js" defer></script>
     <!-- MathJax -->
@@ -42,7 +42,8 @@
     <div class="container">
         <div class="grid" id="cardGrid">
 
-            <div class="card" onclick="showPasswordModal('MCH_beat/index.html', 3493947695)" data-title="MCH打人小游戏">
+            <div class="card" onclick="showVersionPicker()" data-title="MCH打人小游戏重制版原版">
+                <span class="badge-remake"><span>重制版</span></span>
                 <div class="card-icon" style="background: linear-gradient(135deg, #4285f4, #34a853);">🐎</div>
                 <div class="card-title">MCH</div>
                 <div class="card-desc">打人小游戏</div>
@@ -282,6 +283,54 @@
 
         </div>
     </div>
+
+    <!-- MCH 版本选择 -->
+    <div class="modal" id="versionModal">
+        <div class="modal-content">
+            <h2>选择版本</h2>
+            <div class="version-list">
+                <button class="version-item" onclick="pickVersion('MCH_beat_new/index.html')">
+                    <div class="v-text">
+                        <div class="v-name">重制版 <span class="v-tag">推荐</span></div>
+                        <div class="v-desc">点哪砸哪 · 蓄力重击 · 连击暴走</div>
+                    </div>
+                    <span class="v-chev">›</span>
+                </button>
+                <button class="version-item" onclick="pickVersion('MCH_beat/index.html')">
+                    <div class="v-text">
+                        <div class="v-name">原版</div>
+                        <div class="v-desc">最初的 AI 版本</div>
+                    </div>
+                    <span class="v-chev">›</span>
+                </button>
+            </div>
+            <div class="modal-btns">
+                <button class="btn btn-cancel" onclick="hideVersionPicker()">取消</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const MCH_PASSWORD = 3493947695;
+        function showVersionPicker() {
+            const m = document.getElementById('versionModal');
+            m.style.display = 'block';
+            requestAnimationFrame(() => m.classList.add('show'));
+        }
+        function hideVersionPicker(then) {
+            const m = document.getElementById('versionModal');
+            m.classList.remove('show');
+            setTimeout(() => { m.style.display = 'none'; if (then) then(); }, 250);
+        }
+        function pickVersion(url) {
+            hideVersionPicker(() => showPasswordModal(url, MCH_PASSWORD));
+        }
+        document.getElementById('versionModal').addEventListener('click', e => {
+            if (e.target.id === 'versionModal') hideVersionPicker();
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && document.getElementById('versionModal').classList.contains('show')) hideVersionPicker();
+        });
+    </script>
 
     <!-- 问卷箱：连接 / 已下线 提示框 -->
     <div class="modal" id="surveyModal">

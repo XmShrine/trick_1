@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MCH 暴打模拟器</title>
+<style>
+    :root {
+        --primary-color: #ff4757;
+        --secondary-color: #2f3542;
+        --card-bg: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+        margin: 0;
+        background: radial-gradient(circle at center, #dfe4ea 0%, #ced6e0 100%);
+        font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: none;
+    }
+    body.fine-pointer { cursor: none; }
+
+    #stage { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+
+    #hud {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+        padding: 22px 16px 26px;
+        pointer-events: none;
+        will-change: transform;
+    }
+    .top, .bottom { display: flex; flex-direction: column; align-items: center; }
+
+    .title {
+        font-size: 32px; font-weight: 800; color: var(--secondary-color);
+        margin-bottom: 12px; letter-spacing: 2px;
+        text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+    }
+
+    .stats-board { display: flex; gap: 14px; }
+    .stat-box {
+        position: relative;
+        background: var(--card-bg);
+        padding: 8px 18px 10px;
+        border-radius: 15px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        text-align: center;
+        border-bottom: 4px solid #eccc68;
+        min-width: 96px;
+        overflow: hidden;
+    }
+    .stat-label { font-size: 12px; color: #747d8c; font-weight: bold; }
+    .stat-value {
+        font-size: 28px; font-weight: 900; color: var(--secondary-color);
+        font-variant-numeric: tabular-nums;
+        display: inline-block;
+    }
+    #comboCount { color: var(--primary-color); }
+    .pop { animation: pop 0.22s cubic-bezier(.2,1.8,.4,1); }
+    @keyframes pop { 0% { transform: scale(1.45); } 100% { transform: scale(1); } }
+    .combo-bar {
+        position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
+        background: var(--primary-color); transform-origin: left center; transform: scaleX(0);
+    }
+
+    #fever {
+        margin-top: 10px; height: 26px;
+        font-size: 18px; font-weight: 900; color: #ff6b00; letter-spacing: 3px;
+        text-shadow: 0 0 10px rgba(255,140,0,.55), 2px 2px 0 #fff;
+        opacity: 0; transform: scale(.6);
+        transition: opacity .25s, transform .25s cubic-bezier(.2,1.8,.4,1);
+    }
+    #fever.on { opacity: 1; transform: scale(1); animation: throb .5s ease-in-out infinite alternate; }
+    @keyframes throb { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+
+    .click-btn {
+        pointer-events: auto;
+        background: linear-gradient(135deg, #ff4757, #ff6b81);
+        color: white; border: none;
+        padding: 18px 80px;
+        font-size: 24px; font-weight: 800; font-family: inherit;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 10px 25px rgba(255,71,87,0.4), inset 0 -4px 0 rgba(0,0,0,0.12);
+        transition: transform .08s, box-shadow .08s;
+        touch-action: none;
+    }
+    .click-btn.down {
+        transform: translateY(3px) scale(0.96);
+        box-shadow: 0 4px 12px rgba(255,71,87,0.3), inset 0 -2px 0 rgba(0,0,0,0.12);
+    }
+    .hint { margin-top: 14px; color: #a4b0be; font-size: 14px; text-align: center; line-height: 1.5; }
+
+    #mute {
+        position: fixed; top: 14px; right: 14px;
+        width: 40px; height: 40px; border-radius: 50%;
+        border: none; background: rgba(255,255,255,.85);
+        box-shadow: 0 4px 12px rgba(0,0,0,.1);
+        font-size: 18px; cursor: pointer; pointer-events: auto;
+    }
+
+    @media (max-width: 520px) {
+        .title { font-size: 24px; margin-bottom: 8px; }
+        .stats-board { gap: 8px; }
+        .stat-box { min-width: 0; padding: 6px 12px 8px; }
+        .stat-value { font-size: 22px; }
+        .click-btn { padding: 15px 56px; font-size: 21px; }
+        .hint { font-size: 12px; }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<div id="hud">
+    <div class="top" id="hudTop">
+        <div class="title">💥 砸一砸 MCH 💥</div>
+        <div class="stats-board">
+            <div class="stat-box">
+                <div class="stat-label">总被砸次数</div>
+                <div class="stat-value" id="totalCount">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">当前连击</div>
+                <div class="stat-value" id="comboCount">0</div>
+                <div class="combo-bar" id="comboBar"></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">最高连击</div>
+                <div class="stat-value" id="bestCount">0</div>
+            </div>
+        </div>
+        <div id="fever">🔥 暴走模式 🔥</div>
+    </div>
+    <div class="bottom" id="hudBottom">
+        <button class="click-btn" id="smashBtn">使劲砸!</button>
+        <div class="hint">点哪砸哪 · 按住蓄力重击 · 空格 / 回车自动砸</div>
+    </div>
+</div>
+<button id="mute" title="音效开关">🔊</button>
+
+<script>
+(() => {
+'use strict';
+
+// ============ 工具 ============
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[(Math.random() * arr.length) | 0];
+const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const finePointer = matchMedia('(pointer: fine)').matches;
+if (finePointer) document.body.classList.add('fine-pointer');
+
+// ============ DOM ============
+const cv = document.getElementById('stage');
+const ctx = cv.getContext('2d');
+const els = {
+    hud: document.getElementById('hud'),
+    top: document.getElementById('hudTop'),
+    bottom: document.getElementById('hudBottom'),
+    total: document.getElementById('totalCount'),
+    combo: document.getElementById('comboCount'),
+    best: document.getElementById('bestCount'),
+    bar: document.getElementById('comboBar'),
+    fever: document.getElementById('fever'),
+    btn: document.getElementById('smashBtn'),
+    mute: document.getElementById('mute'),
+};
+
+// ============ 状态 ============
+let totalCount = parseInt(store.get('mch_smash_count', '0'), 10) || 0;
+let bestCombo = parseInt(store.get('mch_best_combo', '0'), 10) || 0;
+let combo = 0;
+const COMBO_WINDOW = 1.1;
+let comboTimer = 0;
+let fever = false;
+let dodgeAnnounced = false;
+els.total.textContent = totalCount;
+els.best.textContent = bestCombo;
+
+let W = 0, H = 0, DPR = 1;
+let time = 0;
+let hitStop = 0;
+let trauma = 0;
+let flash = 0;
+
+// 目标（被砸的人）
+const T = {
+    baseX: 0, baseY: 0, R: 140,
+    x: 0, y: 0,
+    off: { x: 0, y: 0, vx: 0, vy: 0 },   // 击退位移弹簧
+    rot: 0, vrot: 0,                       // 受力旋转弹簧
+    sq: 0, vsq: 0, sqAngle: Math.PI / 2,   // 挤压拉伸弹簧
+    tint: 0,
+    sway: 0,
+    impacts: [],                           // 局部凹陷（果冻形变）
+    bumps: [],                             // 鼓包
+};
+
+// 锤子
+const HM = {
+    px: 0, py: 0,          // 握把（转轴）位置
+    vx: 0,
+    phi: 0, vphi: 0,       // 锤柄朝向
+    state: 'idle',         // idle | windup | swing | stop | recoil
+    windT: 0, charge: 0, releaseReq: false,
+    swingT: 0, swingDur: 0.08, phiStart: 0, power: 0,
+    queuedDown: false, queuedTaps: 0, minWind: 0.045,
+    trail: [],
+    pendingHit: null,
+};
+let holding = false;
+
+// 瞄准点
+const aim = { x: 0, y: 0, auto: true, ox: 0, oy: 0, seen: false };
+
+// ============ 资源 ============
+const photo = new Image();
+let tex = null;
+photo.onload = () => {
+    const S = 640;
+    tex = document.createElement('canvas');
+    tex.width = tex.height = S;
+    const side = Math.min(photo.width, photo.height);
+    tex.getContext('2d').drawImage(photo, (photo.width - side) / 2, (photo.height - side) / 2, side, side, 0, 0, S, S);
+};
+photo.src = 'sour.JPG';
+
+// ============ 布局 ============
+function geom() {
+    const R = T.R;
+    return {
+        L: R * 0.95,       // 锤柄长度（转轴到锤头中心）
+        hl: R * 0.34,      // 锤头半长（垂直于锤柄）
+        hw: R * 0.2,       // 锤头半宽（沿锤柄）
+        phi0: Math.PI + 0.35,          // 击中时朝向
+        raised: Math.PI + 0.35 + 1.3,  // 举起
+        charged: Math.PI + 0.35 + 2.25 // 蓄力后仰
+    };
+}
+
+function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    const top = els.top.getBoundingClientRect().bottom;
+    const bottom = els.bottom.getBoundingClientRect().top;
+    const avail = Math.max(120, bottom - top);
+    T.R = clamp(Math.min(avail * 0.4, W * 0.3, 160), 70, 160);
+    T.baseX = W / 2;
+    T.baseY = top + avail / 2 + T.R * 0.08;
+    if (!aim.seen) { aim.x = T.baseX; aim.y = T.baseY; }
+    if (!HM.px) {
+        const g = geom();
+        const p = pivotFor(T.baseX, T.baseY, g);
+        HM.px = p.x; HM.py = p.y; HM.phi = g.raised;
+    }
+}
+window.addEventListener('resize', resize);
+
+// 由“锤面要落在 (x,y)”反推握把位置
+function pivotFor(x, y, g) {
+    const ux = Math.cos(g.phi0), uy = Math.sin(g.phi0);
+    const nx = -uy, ny = ux;
+    return { x: x - g.L * ux + g.hl * nx, y: y - g.L * uy + g.hl * ny };
+}
+function strikePoint(phi, g) {
+    const ux = Math.cos(phi), uy = Math.sin(phi);
+    const nx = -uy, ny = ux;
+    return { x: HM.px + g.L * ux - g.hl * nx, y: HM.py + g.L * uy - g.hl * ny };
+}
+
+// ============ 音效（Web Audio 合成） ============
+let ac = null, master = null, noiseBuf = null, chargeOsc = null, chargeGain = null;
+let muted = store.get('mch_muted', '0') === '1';
+els.mute.textContent = muted ? '🔇' : '🔊';
+
+function ensureAudio() {
+    if (!ac) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        ac = new AC();
+        master = ac.createGain();
+        master.gain.value = muted ? 0 : 0.7;
+        const comp = ac.createDynamicsCompressor();
+        master.connect(comp); comp.connect(ac.destination);
+        noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (ac.state === 'suspended') ac.resume();
+}
+function env(g, t, peak, attack, decay) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+}
+function osc(type, f0, f1, dur, peak, t, attack = 0.003) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    env(g, t, peak, attack, dur);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + attack + 0.02);
+}
+function noise(filterType, f0, f1, q, dur, peak, t, attack = 0.002) {
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = noiseBuf;
+    s.playbackRate.value = rand(0.9, 1.1);
+    f.type = filterType; f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    env(g, t, peak, attack, dur);
+    s.connect(f); f.connect(g); g.connect(master);
+    s.start(t, Math.random() * 0.5); s.stop(t + dur + attack + 0.02);
+}
+const sfx = {
+    whoosh(p) {
+        if (!ac) return;
+        const t = ac.currentTime;
+        noise('bandpass', 500, 2400 + p * 1500, 1.2, 0.09 + p * 0.05, 0.12 + p * 0.1, t, 0.03);
+    },
+    hit(p, c, crit) {
+        if (!ac) return;
+        const t = ac.currentTime;
+        const lift = Math.min(c, 40) * 2.2;
+        osc('sine', 150 + lift + rand(-12, 12), 42, 0.22 + p * 0.12, 0.9, t);          // 闷响
+        osc('square', 230 + lift * 1.5 + rand(-20, 20), 70, 0.08, 0.07, t);             // 原版 8-bit “咚”
+        noise('bandpass', 2200, 700, 0.9, 0.06 + p * 0.03, 0.5 + p * 0.3, t);           // 撞击噼啪
+        if (crit) {
+            osc('triangle', 1250, 1180, 0.45, 0.12, t);
+            osc('triangle', 1870, 1800, 0.35, 0.07, t);
+            osc('sine', 70, 30, 0.4, 0.9, t);
+        }
+    },
+    miss() {
+        if (!ac) return;
+        const t = ac.currentTime;
+        noise('lowpass', 900, 200, 0.7, 0.16, 0.35, t);
+        osc('sine', 95, 40, 0.12, 0.35, t);
+    },
+    chargeStart() {
+        if (!ac || chargeOsc) return;
+        chargeOsc = ac.createOscillator(); chargeGain = ac.createGain();
+        chargeOsc.type = 'sawtooth';
+        chargeOsc.frequency.value = 160;
+        const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900;
+        chargeGain.gain.value = 0;
+        chargeOsc.connect(f); f.connect(chargeGain); chargeGain.connect(master);
+        chargeOsc.start();
+    },
+    chargeSet(c) {
+        if (!chargeOsc) return;
+        const t = ac.currentTime;
+        chargeOsc.frequency.setTargetAtTime(160 + c * 420 + (c >= 1 ? Math.sin(time * 60) * 25 : 0), t, 0.02);
+        chargeGain.gain.setTargetAtTime(0.045 * c, t, 0.03);
+    },
+    chargeStop() {
+        if (!chargeOsc) return;
+        const o = chargeOsc, g = chargeGain;
+        g.gain.setTargetAtTime(0, ac.currentTime, 0.01);
+        o.stop(ac.currentTime + 0.08);
+        chargeOsc = chargeGain = null;
+    },
+};
+
+// ============ 粒子 ============
+const parts = [];
+const texts = [];
+const WORDS = ['BONK!', 'SMASH!', '痛!', '啊!', 'BANG!', '咚!'];
+const COLORS = ['#ff4757', '#2ed573', '#ffa502', '#1e90ff'];
+
+function addText(x, y, str, color, size, opts = {}) {
+    texts.push({
+        x, y, str, color, size,
+        vx: opts.vx ?? rand(-60, 60), vy: opts.vy ?? rand(-260, -200),
+        g: opts.g ?? 420, life: 0, max: opts.max ?? 0.9, rot: rand(-0.15, 0.15),
+        fixed: !!opts.fixed,
+    });
+}
+function burst(x, y, dx, dy, p, isHit) {
+    const n = isHit ? 9 + (p * 10 | 0) : 0;
+    // 星星：主要沿锤面两侧及反弹方向飞出
+    for (let i = 0; i < n; i++) {
+        const a = Math.atan2(-dy, -dx) + rand(-1.6, 1.6);
+        const s = rand(180, 420) * (1 + p * 0.6);
+        parts.push({ k: 'star', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0, max: rand(0.35, 0.6),
+            size: rand(5, 9) * (1 + p * 0.4), rot: rand(0, 6), vr: rand(-12, 12), color: pick(COLORS) });
+    }
+    // 冲击波圆环
+    parts.push({ k: 'ring', x, y, life: 0, max: 0.28 + p * 0.12, size: T.R * (0.35 + p * 0.5), color: isHit ? '#fff' : '#b8c0cc' });
+    if (isHit) {
+        // 速度线
+        const m = 8 + (p * 6 | 0);
+        for (let i = 0; i < m; i++) {
+            const a = (i / m) * Math.PI * 2 + rand(-0.2, 0.2);
+            parts.push({ k: 'line', x, y, a, life: 0, max: 0.16 + p * 0.08, r0: T.R * 0.12, r1: T.R * (0.45 + p * 0.45) * rand(0.7, 1.1) });
+        }
+        // 汗珠：从头顶甩出
+        const drops = 2 + (Math.random() * 2 | 0);
+        for (let i = 0; i < drops; i++) {
+            const side = Math.random() < 0.5 ? -1 : 1;
+            parts.push({ k: 'drop', x: T.x + side * T.R * rand(0.35, 0.7), y: T.y - T.R * rand(0.55, 0.85),
+                vx: side * rand(120, 240), vy: rand(-280, -160), life: 0, max: 0.8, size: rand(5, 8), rot: 0 });
+        }
+    } else {
+        // 落空：灰尘
+        for (let i = 0; i < 10; i++) {
+            const a = rand(Math.PI * 1.05, Math.PI * 1.95);
+            const s = rand(60, 200);
+            parts.push({ k: 'dust', x: x + rand(-10, 10), y, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, life: 0, max: rand(0.4, 0.7), size: rand(8, 16) });
+        }
+    }
+}
+function critBurst(x, y) {
+    parts.push({ k: 'pow', x, y, life: 0, max: 0.32, size: T.R * 0.62, rot: rand(0, 1) });
+}
+
+// ============ 输入 ============
+function setAimFromEvent(e) {
+    aim.x = e.clientX; aim.y = e.clientY; aim.seen = true;
+}
+function overUI(target) { return target === els.btn || target === els.mute; }
+
+window.addEventListener('pointermove', e => {
+    if (overUI(e.target)) return;
+    setAimFromEvent(e);
+    if (aim.auto && !holding && HM.state !== 'swing' && HM.state !== 'stop') aim.auto = false;
+});
+window.addEventListener('pointerdown', e => {
+    if (overUI(e.target) || e.button > 0) return;
+    ensureAudio();
+    setAimFromEvent(e);
+    aim.auto = false;
+    if (e.pointerType !== 'mouse') {
+        // 触屏：锤子直接瞬移到手指处
+        const p = pivotFor(aim.x, aim.y, geom());
+        HM.px = p.x; HM.py = p.y;
+    }
+    press();
+});
+window.addEventListener('pointerup', () => release());
+window.addEventListener('pointercancel', () => release());
+window.addEventListener('blur', () => release());
+
+els.btn.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    ensureAudio();
+    autoAim();
+    els.btn.classList.add('down');
+    press();
+});
+els.btn.addEventListener('pointerup', () => els.btn.classList.remove('down'));
+els.btn.addEventListener('pointerleave', () => els.btn.classList.remove('down'));
+els.btn.addEventListener('click', e => e.preventDefault());
+els.btn.addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') e.preventDefault(); });
+
+els.mute.addEventListener('pointerdown', e => e.stopPropagation());
+els.mute.addEventListener('click', () => {
+    muted = !muted;
+    store.set('mch_muted', muted ? '1' : '0');
+    els.mute.textContent = muted ? '🔇' : '🔊';
+    if (master) master.gain.value = muted ? 0 : 0.7;
+});
+
+window.addEventListener('keydown', e => {
+    if (e.code !== 'Space' && e.code !== 'Enter') return;
+    e.preventDefault();
+    if (e.repeat) return;
+    ensureAudio();
+    autoAim();
+    els.btn.classList.add('down');
+    press();
+});
+window.addEventListener('keyup', e => {
+    if (e.code !== 'Space' && e.code !== 'Enter') return;
+    els.btn.classList.remove('down');
+    release();
+});
+
+function autoAim() {
+    aim.auto = true;
+    const a = rand(0, Math.PI * 2), r = Math.sqrt(Math.random()) * T.R * 0.55;
+    aim.ox = Math.cos(a) * r;
+    aim.oy = Math.sin(a) * r - T.R * 0.1;
+}
+
+function press() {
+    holding = true;
+    if (HM.state === 'idle' || HM.state === 'recoil') beginWindup(false);
+    else if (HM.state === 'windup' && !HM.releaseReq) return; // 已在蓄力中
+    else HM.queuedDown = true;                                 // 留给下一锤
+}
+function release() {
+    if (!holding) return;
+    holding = false;
+    if (HM.state === 'windup' && !HM.releaseReq && !HM.queuedDown) HM.releaseReq = true;
+    else if (HM.queuedDown) { HM.queuedDown = false; HM.queuedTaps = Math.min(2, HM.queuedTaps + 1); }
+}
+function beginWindup(autoRelease, rapid) {
+    HM.state = 'windup';
+    HM.windT = 0; HM.charge = 0;
+    HM.releaseReq = autoRelease;
+    HM.minWind = rapid ? 0.022 : 0.045;
+}
+
+// ============ 打击结算 ============
+function resolveImpact() {
+    const g = geom();
+    const sp = strikePoint(g.phi0, g);
+    const dirx = -(-Math.sin(g.phi0)), diry = -Math.cos(g.phi0); // -n：锤面朝向 / 挥击方向
+    const p = HM.power;
+    const dx = sp.x - T.x, dy = sp.y - T.y;
+    const dist = Math.hypot(dx, dy);
+    const isHit = dist <= T.R * 1.08;
+
+    if (isHit) {
+        const crit = p > 0.65 || Math.random() < 0.07;
+        totalCount++;
+        combo++;
+        comboTimer = COMBO_WINDOW;
+        store.set('mch_smash_count', totalCount);
+        if (combo > bestCombo) { bestCombo = combo; store.set('mch_best_combo', bestCombo); els.best.textContent = bestCombo; }
+        els.total.textContent = totalCount;
+        setCombo(combo);
+
+        // 目标局部坐标（去掉旋转）
+        const cr = Math.cos(-T.rot), sr = Math.sin(-T.rot);
+        let lx = dx * cr - dy * sr, ly = dx * sr + dy * cr;
+        const ld = Math.hypot(lx, ly), lim = T.R * 0.92;
+        if (ld > lim) { lx *= lim / ld; ly *= lim / ld; }
+        const ldx = dirx * cr - diry * sr, ldy = dirx * sr + diry * cr;
+
+        // 1. 整体击退 + 旋转 + 挤压
+        const k = 1 + p * 1.2;
+        T.off.vx += dirx * 520 * k; T.off.vy += diry * 520 * k;
+        T.vrot += ((dx * diry - dy * dirx) / T.R) * 5 * k;
+        T.sqAngle = Math.atan2(diry, dirx);
+        T.vsq += 9 * k;
+        T.tint = 1;
+        // 2. 局部凹陷（弹簧驱动，会回弹抖动）
+        T.impacts.push({ x: lx, y: ly, dx: ldx, dy: ldy, a: 0, va: 34 * k, sig: T.R * (0.32 + p * 0.12), age: 0 });
+        if (T.impacts.length > 4) T.impacts.shift();
+        // 3. 鼓包：同一位置连续砸会越鼓越大
+        let b = T.bumps.find(b => Math.hypot(b.x - lx, b.y - ly) < T.R * 0.3);
+        if (b) { b.target = Math.min(1.6, b.target + 0.25 + p * 0.3); b.life = 1; b.vs += 6; b.x = (b.x * 3 + lx) / 4; b.y = (b.y * 3 + ly) / 4; }
+        else if (Math.random() < 0.55 || p > 0.4) {
+            T.bumps.push({ x: lx, y: ly, s: 0, vs: 10, target: 0.55 + p * 0.5, life: 1 });
+            if (T.bumps.length > 6) T.bumps.shift();
+        }
+
+        // 4. 镜头与特效
+        hitStop = (0.035 + p * 0.075 + (crit ? 0.02 : 0)) * (HM.queuedTaps > 0 ? 0.6 : 1);
+        trauma = Math.min(1, trauma + 0.28 + p * 0.45);
+        flash = Math.max(flash, 0.22 + p * 0.25);
+        burst(sp.x, sp.y, dirx, diry, p, true);
+        if (crit) critBurst(sp.x, sp.y);
+
+        // 5. 文字
+        const word = crit ? 'CRIT!' : pick(WORDS);
+        const size = (crit ? 34 : 24) * Math.min(1.5, 1 + combo * 0.02);
+        addText(sp.x + rand(-20, 20), sp.y - 10, combo > 5 ? `${word} x${combo}` : word, crit ? '#ff4757' : pick(COLORS), size);
+        milestone(combo);
+
+        sfx.hit(p, combo, crit);
+    } else {
+        if (combo >= 5) addText(sp.x, sp.y - 40, '连击中断', '#747d8c', 18, { vy: -140 });
+        breakCombo();
+        hitStop = 0.018;
+        trauma = Math.min(1, trauma + 0.1);
+        burst(sp.x, sp.y, dirx, diry, 0, false);
+        addText(sp.x, sp.y - 8, 'MISS', '#a4b0be', 22, { vy: -180 });
+        sfx.miss();
+    }
+}
+
+function milestone(c) {
+    const big = { 10: '10 连击!', 20: '20 连击!!', 30: '暴走!!!', 50: '50 连击!', 77: '77 连击!', 100: '一百连!!!', 200: '无情铁锤', 500: '传说级' };
+    if (big[c]) {
+        addText(W / 2, T.baseY - T.R * 1.25, big[c], '#ff4757', 46, { vx: 0, vy: -40, g: 0, max: 1.3, fixed: true });
+    }
+    if (c === 20 && !dodgeAnnounced) {
+        dodgeAnnounced = true;
+        addText(W / 2, T.baseY + T.R * 1.3, '他开始躲了!', '#1e90ff', 22, { vx: 0, vy: -30, g: 0, max: 1.4, fixed: true });
+    }
+}
+
+function setCombo(c) {
+    els.combo.textContent = c;
+    els.combo.classList.remove('pop'); void els.combo.offsetWidth; els.combo.classList.add('pop');
+    const f = c >= 30;
+    if (f !== fever) { fever = f; els.fever.classList.toggle('on', f); }
+}
+function breakCombo() {
+    combo = 0; comboTimer = 0;
+    setCombo(0);
+    dodgeAnnounced = false;
+}
+
+// ============ 更新 ============
+function spring(x, v, target, k, c, dt) {
+    const a = k * (target - x) - c * v;
+    v += a * dt;
+    x += v * dt;
+    return [x, v];
+}
+
+function update(dt) {
+    const g = geom();
+
+    // 目标左右躲闪（高连击后）
+    const swayTarget = combo >= 20 ? Math.min(Math.max(0, W / 2 - T.R - 24), T.R * (0.35 + (combo - 20) * 0.03), T.R * 1.4) : 0;
+    T.sway += (swayTarget - T.sway) * (1 - Math.exp(-dt * 2));
+    const w = Math.min(3.2, 1.7 + combo * 0.012);
+
+    // 各种弹簧
+    [T.off.x, T.off.vx] = spring(T.off.x, T.off.vx, 0, 260, 16, dt);
+    [T.off.y, T.off.vy] = spring(T.off.y, T.off.vy, 0, 260, 16, dt);
+    [T.rot, T.vrot] = spring(T.rot, T.vrot, 0, 180, 11, dt);
+    [T.sq, T.vsq] = spring(T.sq, T.vsq, 0, 420, 15, dt);
+    T.sq = clamp(T.sq, -0.5, 0.5);
+    T.x = T.baseX + T.sway * Math.sin(time * w) + T.off.x;
+    T.y = T.baseY + Math.sin(time * 2.1) * 2 + T.off.y;
+    T.tint = Math.max(0, T.tint - dt * 5);
+
+    for (const im of T.impacts) {
+        [im.a, im.va] = spring(im.a, im.va, 0, 520, 14, dt);
+        im.age += dt;
+    }
+    T.impacts = T.impacts.filter(im => im.age < 1.6);
+
+    for (const b of T.bumps) {
+        if (b.life < 0.75) b.target = Math.max(0, b.target - dt * 0.12);
+        b.life -= dt * 0.12;
+        [b.s, b.vs] = spring(b.s, b.vs, b.target, 260, 11, dt);
+    }
+    T.bumps = T.bumps.filter(b => b.life > 0 || b.s > 0.02);
+
+    // 连击计时（蓄力时暂停）
+    if (combo > 0 && HM.state !== 'windup') {
+        comboTimer -= dt;
+        if (comboTimer <= 0) breakCombo();
+    }
+
+    // 瞄准
+    if (aim.auto) { aim.x = T.x + aim.ox; aim.y = T.y + aim.oy; }
+
+    // 锤子握把跟随
+    const pv = pivotFor(aim.x, aim.y, g);
+    const follow = 1 - Math.exp(-dt * (aim.auto ? 40 : 28));
+    const nx = HM.px + (pv.x - HM.px) * follow;
+    HM.vx = HM.vx * 0.8 + ((nx - HM.px) / Math.max(dt, 1e-4)) * 0.2;
+    HM.px = nx;
+    HM.py += (pv.y - HM.py) * follow;
+    const lean = clamp(-HM.vx * 0.00035, -0.3, 0.3);
+
+    // 锤子状态机
+    switch (HM.state) {
+        case 'idle':
+        case 'recoil': {
+            const target = g.raised + Math.sin(time * 2.4) * 0.04 + lean;
+            [HM.phi, HM.vphi] = spring(HM.phi, HM.vphi, target, 300, HM.state === 'recoil' ? 17 : 26, dt);
+            if (HM.state === 'recoil' && Math.abs(HM.phi - target) < 0.05) HM.state = 'idle';
+            break;
+        }
+        case 'windup': {
+            HM.windT += dt;
+            if (!HM.releaseReq) HM.charge = clamp((HM.windT - 0.12) / 0.8, 0, 1);
+            if (HM.charge > 0) { sfx.chargeStart(); sfx.chargeSet(HM.charge); }
+            let target = g.raised + 0.22 + (g.charged - g.raised - 0.22) * HM.charge + lean * 0.5;
+            if (HM.charge > 0.4) target += Math.sin(time * 70) * 0.025 * HM.charge;
+            [HM.phi, HM.vphi] = spring(HM.phi, HM.vphi, target, 900, 55, dt);
+            if (HM.releaseReq && HM.windT >= HM.minWind) startSwing();
+            break;
+        }
+        case 'swing': {
+            HM.swingT += dt;
+            const t = clamp(HM.swingT / HM.swingDur, 0, 1);
+            const e = Math.pow(t, 2.4);
+            HM.phi = HM.phiStart + (g.phi0 - HM.phiStart) * e;
+            if (t >= 1) {
+                HM.phi = g.phi0;
+                HM.state = 'stop';
+                resolveImpact();
+            }
+            break;
+        }
+        case 'stop': {
+            HM.phi = g.phi0;
+            if (hitStop <= 0) {
+                HM.state = 'recoil';
+                HM.vphi = 7 + HM.power * 5;
+                if (HM.queuedTaps > 0) {          // 连点：快速短抡
+                    HM.queuedTaps--;
+                    beginWindup(true, true);
+                    HM.vphi = 12;
+                } else if (HM.queuedDown) {       // 正按着：进入正常蓄力
+                    HM.queuedDown = false;
+                    beginWindup(false, true);
+                    HM.vphi = 10;
+                }
+            }
+            break;
+        }
+    }
+
+    HM.trail.unshift(HM.phi);
+    if (HM.trail.length > 5) HM.trail.pop();
+
+    // 粒子
+    for (const p of parts) {
+        p.life += dt;
+        if (p.k === 'star' || p.k === 'drop' || p.k === 'dust') {
+            p.x += p.vx * dt; p.y += p.vy * dt;
+            if (p.k === 'star') { p.vx *= 0.9; p.vy = p.vy * 0.9 + 600 * dt; p.rot += p.vr * dt; }
+            if (p.k === 'drop') { p.vy += 900 * dt; p.rot = Math.atan2(p.vy, p.vx); }
+            if (p.k === 'dust') { p.vx *= 0.92; p.vy *= 0.92; p.vy -= 20 * dt; }
+        }
+    }
+    for (let i = parts.length - 1; i >= 0; i--) if (parts[i].life >= parts[i].max) parts.splice(i, 1);
+    for (const t of texts) {
+        t.life += dt;
+        t.x += t.vx * dt; t.y += t.vy * dt; t.vy += t.g * dt; t.vx *= 0.98;
+    }
+    for (let i = texts.length - 1; i >= 0; i--) if (texts[i].life >= texts[i].max) texts.splice(i, 1);
+}
+
+function startSwing() {
+    sfx.chargeStop();
+    const g = geom();
+    HM.power = HM.charge;
+    HM.state = 'swing';
+    HM.phiStart = HM.phi;
+    HM.swingT = 0;
+    const ang = Math.abs(HM.phi - g.phi0);
+    HM.swingDur = clamp(0.035 + ang * 0.03, 0.05, 0.12) * (1 - 0.2 * HM.power);
+    HM.charge = 0;
+    sfx.whoosh(HM.power);
+}
+
+// ============ 绘制 ============
+function drawTri(img, x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2) {
+    const cx = (x0 + x1 + x2) / 3, cy = (y0 + y1 + y2) / 3;
+    const grow = (x, y) => { const dx = x - cx, dy = y - cy, l = Math.hypot(dx, dy) || 1; return [x + dx / l * 0.9, y + dy / l * 0.9]; };
+    const a0 = grow(x0, y0), a1 = grow(x1, y1), a2 = grow(x2, y2);
+    const du1 = u1 - u0, dv1 = v1 - v0, du2 = u2 - u0, dv2 = v2 - v0;
+    const det = du1 * dv2 - du2 * dv1;
+    if (!det) return;
+    const dx1 = x1 - x0, dy1 = y1 - y0, dx2 = x2 - x0, dy2 = y2 - y0;
+    const a = (dx1 * dv2 - dx2 * dv1) / det, b = (dy1 * dv2 - dy2 * dv1) / det;
+    const c = (dx2 * du1 - dx1 * du2) / det, d = (dy2 * du1 - dy1 * du2) / det;
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.closePath();
+    ctx.clip();
+    ctx.transform(a, b, c, d, x0 - a * u0 - c * v0, y0 - b * u0 - d * v0);
+    ctx.drawImage(img, 0, 0);
+    ctx.restore();
+}
+
+const MESH_N = 12;
+function drawPhoto(R) {
+    const S = tex.width, scale = (2 * R) / S;
+    ctx.drawImage(tex, -R, -R, 2 * R, 2 * R);
+    const active = T.impacts.filter(im => Math.abs(im.a) > 0.01);
+    if (!active.length) return;
+    const N = MESH_N, step = (2 * R) / N, ustep = S / N;
+    const P = new Float32Array((N + 1) * (N + 1) * 2);
+    for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+        let x = -R + i * step, y = -R + j * step;
+        let ox = 0, oy = 0;
+        for (const im of active) {
+            const ddx = x - im.x, ddy = y - im.y;
+            const k = im.a * Math.exp(-(ddx * ddx + ddy * ddy) / (2 * im.sig * im.sig));
+            ox += (-ddx * 0.035 + im.dx * R * 0.0045) * k;   // 向打击点收缩 + 沿挥击方向推入
+            oy += (-ddy * 0.035 + im.dy * R * 0.0045) * k;
+        }
+        const idx = (j * (N + 1) + i) * 2;
+        P[idx] = x + ox; P[idx + 1] = y + oy;
+    }
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+        const i00 = (j * (N + 1) + i) * 2, i10 = i00 + 2, i01 = i00 + (N + 1) * 2, i11 = i01 + 2;
+        const u0 = i * ustep, v0 = j * ustep, u1 = u0 + ustep, v1 = v0 + ustep;
+        drawTri(tex, P[i00], P[i00 + 1], P[i10], P[i10 + 1], P[i01], P[i01 + 1], u0, v0, u1, v0, u0, v1);
+        drawTri(tex, P[i10], P[i10 + 1], P[i11], P[i11 + 1], P[i01], P[i01 + 1], u1, v0, u1, v1, u0, v1);
+    }
+}
+
+function drawTarget() {
+    const R = T.R;
+    // 地面投影
+    ctx.save();
+    const lift = (T.y - T.baseY);
+    ctx.translate(T.x, T.baseY + R + 26);
+    ctx.scale(1 + lift * 0.004, 1);
+    const sg = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.9);
+    sg.addColorStop(0, 'rgba(47,53,66,0.22)'); sg.addColorStop(1, 'rgba(47,53,66,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.ellipse(0, 0, R * 0.9, R * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(T.x, T.y);
+    ctx.rotate(T.rot);
+    const breathe = 1 + Math.sin(time * 2.1) * 0.008;
+    ctx.rotate(T.sqAngle);
+    ctx.scale((1 - T.sq * 0.32) * breathe, (1 + T.sq * 0.2) * breathe);
+    ctx.rotate(-T.sqAngle);
+
+    // 白色相框 + 阴影
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 35; ctx.shadowOffsetY = 15;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(0, 0, R + 8, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.clip();
+    if (tex) drawPhoto(R); else { ctx.fillStyle = '#eee'; ctx.fillRect(-R, -R, 2 * R, 2 * R); }
+    if (T.tint > 0) {
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = `rgba(255,90,90,${0.55 * T.tint})`;
+        ctx.fillRect(-R, -R, 2 * R, 2 * R);
+        ctx.globalCompositeOperation = 'source-over';
+    }
+    if (fever) {
+        ctx.fillStyle = `rgba(255,120,40,${0.08 + 0.05 * Math.sin(time * 12)})`;
+        ctx.fillRect(-R, -R, 2 * R, 2 * R);
+    }
+    // 内侧阴影，让照片有“嵌”进相框的厚度
+    const ig = ctx.createRadialGradient(0, 0, R * 0.8, 0, 0, R);
+    ig.addColorStop(0, 'rgba(0,0,0,0)'); ig.addColorStop(1, 'rgba(0,0,0,0.12)');
+    ctx.fillStyle = ig; ctx.fillRect(-R, -R, 2 * R, 2 * R);
+    ctx.restore();
+
+    // 相框受击变色（原版的粉红边）
+    if (T.tint > 0) {
+        ctx.strokeStyle = `rgba(255,107,129,${T.tint})`;
+        ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.arc(0, 0, R + 4, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // 鼓包
+    for (const b of T.bumps) {
+        if (b.s <= 0.02) continue;
+        const r = R * 0.13 * b.s;
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.shadowColor = 'rgba(120,0,0,0.3)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+        const bg = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
+        bg.addColorStop(0, '#ffd6d0'); bg.addColorStop(0.45, '#ff8a80'); bg.addColorStop(1, '#d9434a');
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.beginPath(); ctx.ellipse(-r * 0.35, -r * 0.4, r * 0.28, r * 0.17, -0.6, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
+
+    // 眩晕星星
+    if (combo >= 15) {
+        const n = combo >= 40 ? 5 : 3;
+        for (let i = 0; i < n; i++) {
+            const a = time * 5 + (i / n) * Math.PI * 2;
+            const sx = Math.cos(a) * R * 0.62, sy = -R * 0.98 + Math.sin(a) * R * 0.14;
+            const depth = (Math.sin(a) + 1) / 2;
+            ctx.save();
+            ctx.globalAlpha = 0.55 + depth * 0.45;
+            ctx.translate(sx, sy); ctx.rotate(time * 6 + i);
+            starPath(0, 0, R * (0.055 + depth * 0.035));
+            ctx.fillStyle = '#ffd32a'; ctx.fill();
+            ctx.lineWidth = 2; ctx.strokeStyle = '#e1a100'; ctx.stroke();
+            ctx.restore();
+        }
+    }
+    ctx.restore();
+}
+
+function starPath(x, y, r) {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+        const rr = i % 2 ? r * 0.45 : r, a = -Math.PI / 2 + i * Math.PI / 5;
+        ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+}
+
+function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+// 锤子：在局部坐标中绘制，x 轴沿锤柄（握把→锤头），+y 为锤背（尖刺），-y 为锤面
+function drawHammerShape(g, glow, ghost) {
+    const s = T.R, L = g.L, hl = g.hl, hw = g.hw;
+    const th = s * 0.085;
+    if (ghost) {
+        roundRect(L - hw, -hl, hw * 2, hl * 2, s * 0.05);
+        ctx.fill();
+        return;
+    }
+
+    // 锤柄投影
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 12; ctx.shadowOffsetX = 5; ctx.shadowOffsetY = 10;
+    ctx.fillStyle = '#c47a12';
+    roundRect(-s * 0.2, -th / 2, L - hw + s * 0.2, th, th / 2); ctx.fill();
+    ctx.fillStyle = '#3a3f47';
+    roundRect(L - hw, -hl, hw * 2, hl * 2, s * 0.05); ctx.fill();
+    ctx.restore();
+
+    // 锤柄（金色木柄）
+    let gr = ctx.createLinearGradient(0, -th / 2, 0, th / 2);
+    gr.addColorStop(0, '#ffcf5a'); gr.addColorStop(0.35, '#ffe9a8'); gr.addColorStop(0.6, '#f0a92a'); gr.addColorStop(1, '#a8640c');
+    ctx.fillStyle = gr;
+    roundRect(-s * 0.2, -th / 2, L - hw + s * 0.2, th, th / 2); ctx.fill();
+    // 缠绳握把
+    const g0 = -s * 0.16, g1 = s * 0.28;
+    gr = ctx.createLinearGradient(0, -th / 2, 0, th / 2);
+    gr.addColorStop(0, '#8a4b22'); gr.addColorStop(0.4, '#b0663a'); gr.addColorStop(1, '#4e2810');
+    ctx.fillStyle = gr;
+    roundRect(g0, -th / 2 - 1, g1 - g0, th + 2, th / 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(40,18,6,0.55)'; ctx.lineWidth = 1.4;
+    for (let x = g0 + 4; x < g1 - 2; x += s * 0.045) {
+        ctx.beginPath(); ctx.moveTo(x, -th / 2 - 1); ctx.lineTo(x + s * 0.03, th / 2 + 1); ctx.stroke();
+    }
+    // 柄尾铁帽
+    gr = ctx.createRadialGradient(-s * 0.2, -th * 0.2, 1, -s * 0.2, 0, th * 0.9);
+    gr.addColorStop(0, '#9aa3ad'); gr.addColorStop(1, '#2b2f35');
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.arc(-s * 0.2, 0, th * 0.75, 0, Math.PI * 2); ctx.fill();
+    // 柄与锤头连接箍
+    ctx.fillStyle = '#4b525c';
+    roundRect(L - hw - s * 0.06, -th * 0.75, s * 0.07, th * 1.5, 2); ctx.fill();
+
+    // 背部尖刺（+y）与顶端尖刺（+x）
+    const spikeFill = (x0, y0, x1, y1, tx, ty) => {
+        const sg = ctx.createLinearGradient(x0, y0, x1, y1);
+        sg.addColorStop(0, '#d9dee4'); sg.addColorStop(1, '#4b525c');
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(tx, ty); ctx.lineTo(x1, y1); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(20,22,26,0.6)'; ctx.lineWidth = 1; ctx.stroke();
+    };
+    const sp = s * 0.13;
+    for (let i = -1; i <= 1; i++) {
+        const cx = L + i * hw * 0.62;
+        spikeFill(cx - hw * 0.26, hl - 2, cx + hw * 0.26, hl - 2, cx, hl + sp);
+    }
+    for (let i = -1; i <= 1; i++) {
+        const cy = i * hl * 0.55;
+        spikeFill(L + hw - 2, cy - hw * 0.28, L + hw - 2, cy + hw * 0.28, L + hw + sp * (i === 0 ? 1.1 : 0.85), cy);
+    }
+
+    // 锤头主体（铁块，圆柱高光）
+    gr = ctx.createLinearGradient(L - hw, 0, L + hw, 0);
+    gr.addColorStop(0, '#2b2f35'); gr.addColorStop(0.3, '#6d747e'); gr.addColorStop(0.45, '#8c949e'); gr.addColorStop(0.75, '#40464f'); gr.addColorStop(1, '#22262b');
+    ctx.fillStyle = gr;
+    roundRect(L - hw, -hl, hw * 2, hl * 2, s * 0.05); ctx.fill();
+    ctx.strokeStyle = '#1b1e22'; ctx.lineWidth = 1.5; ctx.stroke();
+    // 铁箍
+    for (const yy of [-hl * 0.55, hl * 0.55]) {
+        gr = ctx.createLinearGradient(L - hw, 0, L + hw, 0);
+        gr.addColorStop(0, '#5a3a1a'); gr.addColorStop(0.4, '#b07a3a'); gr.addColorStop(1, '#4a2e12');
+        ctx.fillStyle = gr;
+        ctx.fillRect(L - hw, yy - s * 0.035, hw * 2, s * 0.07);
+    }
+    // 铆钉
+    ctx.fillStyle = '#c9d0d8';
+    for (const yy of [-hl * 0.55, hl * 0.55]) for (const xx of [-0.55, 0, 0.55]) {
+        ctx.beginPath(); ctx.arc(L + xx * hw, yy, s * 0.016, 0, Math.PI * 2); ctx.fill();
+    }
+    // 锤面钢板（-y）
+    gr = ctx.createLinearGradient(L - hw, 0, L + hw, 0);
+    gr.addColorStop(0, '#7f8892'); gr.addColorStop(0.4, '#e8ecf0'); gr.addColorStop(1, '#6a727c');
+    ctx.fillStyle = gr;
+    roundRect(L - hw - 2, -hl - s * 0.02, hw * 2 + 4, s * 0.075, s * 0.025); ctx.fill();
+    ctx.strokeStyle = '#1b1e22'; ctx.lineWidth = 1; ctx.stroke();
+
+    if (glow > 0) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 25 * glow;
+        ctx.fillStyle = `rgba(255,140,30,${0.28 * glow})`;
+        roundRect(L - hw, -hl, hw * 2, hl * 2, s * 0.05); ctx.fill();
+        ctx.restore();
+    }
+}
+
+function drawHammer() {
+    const g = geom();
+    // 挥动残影
+    if (HM.state === 'swing' || HM.state === 'stop') {
+        ctx.save();
+        ctx.fillStyle = fever ? 'rgba(255,150,60,0.18)' : 'rgba(255,255,255,0.35)';
+        for (let i = HM.trail.length - 1; i >= 1; i--) {
+            ctx.save();
+            ctx.globalAlpha = 0.5 * (1 - i / HM.trail.length);
+            ctx.translate(HM.px, HM.py); ctx.rotate(HM.trail[i]);
+            drawHammerShape(g, 0, true);
+            ctx.restore();
+        }
+        // 弧形风压
+        if (HM.trail.length > 2) {
+            const a0 = HM.trail[HM.trail.length - 1], a1 = HM.phi;
+            ctx.globalAlpha = 0.35;
+            ctx.beginPath();
+            ctx.arc(HM.px, HM.py, g.L + g.hl * 0.2, Math.min(a0, a1), Math.max(a0, a1));
+            ctx.arc(HM.px, HM.py, g.L - g.hw, Math.max(a0, a1), Math.min(a0, a1), true);
+            ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+    }
+    const glow = Math.max(fever ? 0.6 + 0.4 * Math.sin(time * 14) : 0, HM.state === 'windup' ? HM.charge : 0);
+    ctx.save();
+    ctx.translate(HM.px, HM.py);
+    ctx.rotate(HM.phi);
+    drawHammerShape(g, glow, false);
+    ctx.restore();
+
+    // 蓄力环
+    if (HM.state === 'windup' && HM.charge > 0) {
+        const c = HM.charge;
+        ctx.save();
+        ctx.lineWidth = 5; ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(47,53,66,0.15)';
+        ctx.beginPath(); ctx.arc(aim.x, aim.y, 26, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = c >= 1 ? `hsl(${(time * 900) % 360},90%,55%)` : '#ff4757';
+        ctx.beginPath(); ctx.arc(aim.x, aim.y, 26, -Math.PI / 2, -Math.PI / 2 + c * Math.PI * 2); ctx.stroke();
+        ctx.restore();
+    }
+}
+
+function drawReticle() {
+    if (!aim.seen && !aim.auto) return;
+    const onTarget = Math.hypot(aim.x - T.x, aim.y - T.y) <= T.R * 1.08;
+    ctx.save();
+    ctx.translate(aim.x, aim.y);
+    ctx.strokeStyle = onTarget ? 'rgba(255,71,87,0.85)' : 'rgba(47,53,66,0.45)';
+    ctx.lineWidth = 2;
+    const r = 9 + Math.sin(time * 6) * 1;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+    for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a) * (r + 3), Math.sin(a) * (r + 3)); ctx.lineTo(Math.cos(a) * (r + 8), Math.sin(a) * (r + 8)); ctx.stroke();
+    }
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
+function drawParts() {
+    for (const p of parts) {
+        const t = p.life / p.max;
+        ctx.save();
+        switch (p.k) {
+            case 'star':
+                ctx.globalAlpha = 1 - t * t;
+                ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+                starPath(0, 0, p.size * (1 - t * 0.4));
+                ctx.fillStyle = p.color; ctx.fill();
+                ctx.lineWidth = 1.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+                break;
+            case 'ring': {
+                const e = 1 - Math.pow(1 - t, 3);
+                ctx.globalAlpha = (1 - t) * 0.9;
+                ctx.strokeStyle = p.color; ctx.lineWidth = 6 * (1 - t) + 1;
+                ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size * e, p.size * e * 0.7, 0, 0, Math.PI * 2); ctx.stroke();
+                break;
+            }
+            case 'line': {
+                const e = 1 - Math.pow(1 - t, 2);
+                const r0 = p.r0 + (p.r1 - p.r0) * e * 0.6, r1 = p.r0 + (p.r1 - p.r0) * e;
+                ctx.globalAlpha = 1 - t;
+                ctx.strokeStyle = fever ? '#ff9f43' : '#2f3542'; ctx.lineWidth = 3 * (1 - t) + 0.5; ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(p.x + Math.cos(p.a) * r0, p.y + Math.sin(p.a) * r0);
+                ctx.lineTo(p.x + Math.cos(p.a) * r1, p.y + Math.sin(p.a) * r1);
+                ctx.stroke();
+                break;
+            }
+            case 'drop':
+                ctx.globalAlpha = 1 - t;
+                ctx.translate(p.x, p.y); ctx.rotate(p.rot - Math.PI / 2);
+                ctx.fillStyle = '#7ec8ff';
+                ctx.beginPath();
+                ctx.moveTo(0, -p.size * 1.6);
+                ctx.quadraticCurveTo(p.size, 0, 0, p.size);
+                ctx.quadraticCurveTo(-p.size, 0, 0, -p.size * 1.6);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.beginPath(); ctx.arc(-p.size * 0.3, 0, p.size * 0.25, 0, Math.PI * 2); ctx.fill();
+                break;
+            case 'dust':
+                ctx.globalAlpha = (1 - t) * 0.6;
+                ctx.fillStyle = '#b8c0cc';
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.5 + t), 0, Math.PI * 2); ctx.fill();
+                break;
+            case 'pow': {
+                const e = t < 0.3 ? t / 0.3 : 1;
+                ctx.globalAlpha = t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4;
+                ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+                ctx.scale(e * (1.1 - t * 0.2), e * (1.1 - t * 0.2));
+                const n = 12;
+                ctx.beginPath();
+                for (let i = 0; i < n * 2; i++) {
+                    const rr = i % 2 ? p.size * 0.55 : p.size * (0.9 + (i % 4 ? 0.12 : 0));
+                    const a = i * Math.PI / n;
+                    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr * 0.8);
+                }
+                ctx.closePath();
+                ctx.fillStyle = '#ffd32a'; ctx.fill();
+                ctx.lineWidth = 3; ctx.strokeStyle = '#ff4757'; ctx.stroke();
+                break;
+            }
+        }
+        ctx.restore();
+    }
+}
+
+function drawTexts() {
+    for (const t of texts) {
+        const k = t.life / t.max;
+        const pop = k < 0.15 ? easeOutBack(k / 0.15) : 1;
+        ctx.save();
+        ctx.globalAlpha = k > 0.6 ? 1 - (k - 0.6) / 0.4 : 1;
+        ctx.translate(t.x, t.y);
+        ctx.rotate(t.rot * (1 - k));
+        ctx.scale(pop, pop);
+        ctx.font = `900 ${t.size}px 'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(4, t.size * 0.18);
+        ctx.strokeStyle = '#fff';
+        ctx.strokeText(t.str, 0, 0);
+        ctx.fillStyle = t.color;
+        ctx.fillText(t.str, 0, 0);
+        ctx.restore();
+    }
+}
+function easeOutBack(x) { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
+
+function render() {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // 屏幕震动（trauma²，带旋转）
+    const shakeAmt = trauma * trauma * (reduceMotion ? 0.35 : 1);
+    const sx = shakeAmt * 16 * (Math.sin(time * 91.3) + Math.sin(time * 57.1) * 0.5);
+    const sy = shakeAmt * 16 * (Math.sin(time * 77.7 + 1) + Math.sin(time * 43.9) * 0.5);
+    const sr = shakeAmt * 0.03 * Math.sin(time * 63.1);
+    ctx.save();
+    ctx.translate(W / 2 + sx, H / 2 + sy); ctx.rotate(sr); ctx.translate(-W / 2, -H / 2);
+    els.hud.style.transform = shakeAmt > 0.001 ? `translate(${sx * 0.4}px, ${sy * 0.4}px)` : '';
+
+    if (fever) {
+        const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+        vg.addColorStop(0, 'rgba(255,90,40,0)');
+        vg.addColorStop(1, `rgba(255,90,40,${0.22 + 0.08 * Math.sin(time * 8)})`);
+        ctx.fillStyle = vg; ctx.fillRect(-40, -40, W + 80, H + 80);
+    }
+
+    drawTarget();
+    drawParts();
+    if (finePointer || aim.auto) drawReticle();
+    drawHammer();
+    drawTexts();
+    ctx.restore();
+
+    // 连击倒计时条
+    els.bar.style.transform = `scaleX(${combo > 0 ? clamp(comboTimer / COMBO_WINDOW, 0, 1) : 0})`;
+
+    if (flash > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${flash})`;
+        ctx.fillRect(0, 0, W, H);
+    }
+}
+
+// ============ 主循环 ============
+const SLOWMO = clamp(parseFloat(new URLSearchParams(location.search).get('slow')) || 1, 0.02, 1); // 调试用：?slow=0.1 慢放
+let last = performance.now();
+function frame(now) {
+    let dt = Math.min((now - last) / 1000, 1 / 30) * SLOWMO;
+    last = now;
+    flash = Math.max(0, flash - dt * 4);
+    trauma = Math.max(0, trauma - dt * 1.8);
+    if (hitStop > 0) {
+        // 顿帧：世界静止，只让锤子停在命中姿势
+        hitStop -= dt;
+        time += dt * 0.05;
+        if (hitStop <= 0) update(0.0001);
+    } else {
+        time += dt;
+        // 细分步长，保证弹簧在低帧率下也稳定
+        const steps = Math.ceil(dt / (1 / 120));
+        for (let i = 0; i < steps; i++) update(dt / steps);
+    }
+    render();
+    requestAnimationFrame(frame);
+}
+
+resize();
+requestAnimationFrame(t => { last = t; resize(); frame(t); });
+})();
+</script>
+</body>
+</html>

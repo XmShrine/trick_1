@@ -218,3 +218,44 @@ body {
 .btn-cancel { background: rgba(255,255,255,0.1); color: white; }
 .btn-confirm { background: var(--accent-color); color: white; }
 .error-msg { color: #FF453A; font-size: 13px; margin-bottom: 15px; display: none; }
+
+/* 「重制版」角标：与 .badge 同一套暗色玻璃底，只用暖色细描边和渐变字区分 */
+.badge-remake {
+    position: absolute; top: 10px; right: 10px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 10px; font-weight: 600; letter-spacing: 1px;
+    border: 0.5px solid transparent;
+    background:
+        linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)) padding-box,
+        linear-gradient(135deg, rgba(255,107,129,0.9), rgba(255,184,107,0.5)) border-box;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+.badge-remake span {
+    background: linear-gradient(90deg, #ff8a9a, #ffc58a);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* 版本选择面板（index.html 的 #versionModal）：沿用上面的 .modal / .modal-content */
+#versionModal .version-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; text-align: left; }
+#versionModal .version-item {
+    display: flex; align-items: center; gap: 12px;
+    width: 100%; padding: 12px 14px;
+    background: rgba(255,255,255,0.06);
+    border: 0.5px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    color: white; font: inherit; text-align: left;
+    cursor: pointer; transition: background 0.2s, transform 0.1s;
+}
+#versionModal .version-item:hover { background: rgba(255,255,255,0.1); }
+#versionModal .version-item:active { transform: scale(0.98); }
+#versionModal .version-item .v-text { flex: 1; min-width: 0; }
+#versionModal .version-item .v-name { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+#versionModal .version-item .v-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+#versionModal .version-item .v-tag {
+    font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 5px;
+    color: #ffb3bd; background: rgba(255,107,129,0.14);
+}
+#versionModal .version-item .v-chev { color: rgba(235,235,245,0.3); font-size: 18px; }
