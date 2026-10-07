@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>沙漠火柴人</title>
+<style>
+  :root{
+    --bg:#1b1612; --panel:#251e18; --ink:#f5ede2; --muted:#b4a28a; --line:#3a2f25;
+    --accent:#f2b45c; --ok:#8fd18a; --key:#3a2f26;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow:hidden}
+  #app{display:flex;height:100%;gap:16px;padding:16px}
+  #stageWrap{flex:1;min-width:0;min-height:0;display:grid;place-items:center;position:relative}
+  #stage{display:block;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.5);cursor:crosshair;touch-action:none}
+  #panel{width:300px;flex:none;overflow-y:auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:18px 18px 22px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.5}
+  h2{font-size:13px;color:var(--muted);font-weight:600;margin:18px 0 8px;letter-spacing:.05em}
+  ul{list-style:none;margin:0;padding:0}
+  #tasks li{display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:14px;border-bottom:1px dashed var(--line)}
+  #tasks li .box{flex:none;width:18px;height:18px;border-radius:5px;border:2px solid var(--muted);margin-top:1px;
+    display:grid;place-items:center;font-size:12px;color:#1b1612}
+  #tasks li.done .box{background:var(--ok);border-color:var(--ok)}
+  #tasks li.done .tx{color:var(--muted);text-decoration:line-through}
+  #tasks li .hint{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+  .meter{height:12px;border-radius:6px;background:#3a2f25;overflow:hidden}
+  .meter>div{height:100%;width:0;background:linear-gradient(90deg,#d9b27a,#8a5a2b);transition:width .15s}
+  .meterRow{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
+  #keys li{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0}
+  kbd{background:var(--key);border:1px solid #4a3d31;border-bottom-width:3px;border-radius:6px;padding:1px 7px;
+    font:600 12px ui-monospace,Menlo,monospace;color:var(--ink);margin-left:3px}
+  .btns{display:flex;flex-wrap:wrap;gap:8px}
+  button,.filebtn{background:#3a2f26;color:var(--ink);border:1px solid #4d3f32;border-radius:8px;padding:7px 11px;
+    font-size:13px;cursor:pointer;font-family:inherit}
+  button:hover,.filebtn:hover{background:#4a3c30}
+  .filebtn input{display:none}
+  label.rng{display:block;font-size:12px;color:var(--muted);margin-top:10px}
+  label.rng input{width:100%;accent-color:var(--accent)}
+  #done{display:none;margin-top:12px;padding:10px;border-radius:10px;background:#2f3d27;color:#d6f5cf;font-size:14px;text-align:center}
+  /* touch controls */
+  #touch{position:absolute;inset:auto 0 10px 0;display:none;justify-content:space-between;padding:0 14px;pointer-events:none}
+  #touch .pad{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(3,48px);gap:4px;pointer-events:auto}
+  #touch .acts{display:grid;grid-template-columns:repeat(3,56px);gap:6px;pointer-events:auto;align-content:end}
+  #touch button{background:rgba(20,15,10,.45);border:2px solid rgba(255,255,255,.6);color:#fff;border-radius:12px;
+    font-size:15px;padding:0;height:48px;backdrop-filter:blur(4px);-webkit-user-select:none;user-select:none}
+  @media (pointer:coarse){ #touch{display:flex} }
+  @media (max-width:820px){
+    html,body{overflow:auto}
+    #app{flex-direction:column;height:auto}
+    #stageWrap{height:auto;flex:none}
+    #panel{width:auto}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stageWrap">
+    <canvas id="stage"></canvas>
+    <div id="touch">
+      <div class="pad">
+        <span></span><button data-k="ArrowUp">▲</button><span></span>
+        <button data-k="ArrowLeft">◀</button><button data-k=" ">跳</button><button data-k="ArrowRight">▶</button>
+        <span></span><button data-k="ArrowDown">▼</button><span></span>
+      </div>
+      <div class="acts">
+        <button data-k="e">拿/放</button><button data-k="f">倒水</button><button data-k="g">浇自己</button>
+        <button data-k="c">搓/踩</button><button data-k="r">打滚</button><button data-k="x">踩爆</button>
+      </div>
+    </div>
+  </div>
+  <aside id="panel">
+    <h1>沙漠火柴人</h1>
+    <p class="sub">操控小白人在真实沙漠里玩水、玩沙：先把自己和水球都弄脏，再统统洗白。</p>
+
+    <h2>挑战清单</h2>
+    <ul id="tasks"></ul>
+    <div id="done">🎉 挑战完成：玩脏再洗白！</div>
+
+    <h2>脏度</h2>
+    <div class="meterRow"><span>干净</span><span id="dirtPct">0%</span><span>泥人</span></div>
+    <div class="meter"><div id="dirtBar"></div></div>
+
+    <h2>操作</h2>
+    <ul id="keys">
+      <li>走动<span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></span></li>
+      <li>点击沙地走过去<span><kbd>鼠标</kbd></span></li>
+      <li>跳（可跳上水球）<span><kbd>空格</kbd></span></li>
+      <li>拿起 / 放下水桶<span><kbd>E</kbd></span></li>
+      <li>往前倒水<span><kbd>F</kbd></span></li>
+      <li>举桶浇自己<span><kbd>G</kbd></span></li>
+      <li>搓水球 / 在上面踩<span><kbd>C</kbd></span></li>
+      <li>在沙里打滚<span><kbd>R</kbd></span></li>
+      <li>站在水球上踩爆<span><kbd>X</kbd></span></li>
+    </ul>
+    <p class="sub" style="margin-top:8px">水桶放在地上会慢慢自己灌满。</p>
+
+    <h2>场景</h2>
+    <div class="btns">
+      <label class="filebtn">换背景图<input id="bgFile" type="file" accept="image/*"></label>
+      <button id="bgReset">默认沙漠</button>
+      <button id="reset">重新开始</button>
+      <button id="mute">声音：开</button>
+    </div>
+    <label class="rng">地平线高度（换背景后按图调整）<input id="horizon" type="range" min="80" max="560" value="240"></label>
+  </aside>
+</div>
+
+<script>
+'use strict';
+// ---------- stage ----------
+const W = 657, H = 840;
+const cv = document.getElementById('stage'), ctx = cv.getContext('2d');
+let K = 1;
+function resize() {
+  const wrap = document.getElementById('stageWrap');
+  const narrow = innerWidth <= 820;
+  const aw = narrow ? innerWidth - 32 : wrap.clientWidth;
+  const ah = narrow ? Math.min(innerHeight - 32, aw * H / W) : wrap.clientHeight;
+  const s = Math.min(aw / W, ah / H);
+  const cw = Math.floor(W * s), ch = Math.floor(H * s);
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  if (narrow) wrap.style.height = ch + 'px';
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+  K = cv.width / W;
+}
+addEventListener('resize', resize);
+
+// ---------- background ----------
+const bgC = document.createElement('canvas'); bgC.width = W; bgC.height = H;
+const bctx = bgC.getContext('2d');
+function setBg(img) {
+  const r = Math.max(W / img.width, H / img.height);
+  const dw = img.width * r, dh = img.height * r;
+  bctx.clearRect(0, 0, W, H);
+  bctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+}
+(function fallbackBg() {
+  const g = bctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#c9d3d8'); g.addColorStop(.3, '#e2d6c2'); g.addColorStop(.32, '#d9ad72'); g.addColorStop(1, '#c48d52');
+  bctx.fillStyle = g; bctx.fillRect(0, 0, W, H);
+})();
+const defImg = new Image();
+defImg.onload = () => setBg(defImg);
+defImg.src = 'assets/desert.jpg';
+
+let HORIZON = 240;
+const sc = y => Math.max(0.25, (y - HORIZON) / (600 - HORIZON) * (600 - 240) / 360);
+const minY = () => HORIZON + (H - HORIZON) * 0.4;
+const maxY = () => H - 28;
+
+// ---------- utils ----------
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a = 0, b = 1) => a + Math.random() * (b - a);
+function h1(a) { a |= 0; a = Math.imul(a ^ (a >>> 16), 0x45d9f3b); a = Math.imul(a ^ (a >>> 16), 0x45d9f3b); a ^= a >>> 16; return (a >>> 0) / 4294967296; }
+const nz = (seed, i) => h1(seed * 374761393 + i * 668265263) * 2 - 1;
+const rot = (x, y, a) => ({ x: x * Math.cos(a) - y * Math.sin(a), y: x * Math.sin(a) + y * Math.cos(a) });
+
+// wobbly hand-drawn ellipse
+function blobPath(c, cx, cy, rx, ry, seed, amp, keep) {
+  if (!keep) c.beginPath();
+  const n = 30, ph = h1(seed) * 6.283, ph2 = h1(seed + 5) * 6.283;
+  for (let i = 0; i <= n; i++) {
+    const a = i / n * Math.PI * 2;
+    const k = 1 + amp * (0.55 * Math.sin(2 * a + ph) + 0.45 * Math.sin(3 * a + ph2)) + amp * 0.18 * nz(seed, i % n);
+    const x = cx + Math.cos(a) * rx * k, y = cy + Math.sin(a) * ry * k;
+    i ? c.lineTo(x, y) : c.moveTo(x, y);
+  }
+  c.closePath();
+}
+function limb(c, x1, y1, x2, y2, seed, bend) {
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+  const off = bend + nz(seed, 1) * 2.5;
+  c.beginPath(); c.moveTo(x1 + nz(seed, 3), y1 + nz(seed, 4));
+  c.quadraticCurveTo(mx - dy / L * off, my + dx / L * off, x2, y2); c.stroke();
+}
+const dot = (c, x, y, r) => { c.beginPath(); c.arc(x, y, r, 0, 6.283); c.fill(); };
+
+// ---------- sound ----------
+let AC = null, OUT = null, muted = false;
+function ac() {
+  if (!AC) {
+    try {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      OUT = AC.createGain(); OUT.gain.value = 1.6; OUT.connect(AC.destination);
+    } catch (e) { return null; }
+  }
+  if (AC.state !== 'running') AC.resume();
+  return AC;
+}
+// unlock audio on the very first gesture anywhere on the page (Safari/iOS need a sound played inside the gesture)
+const UNLOCK_EVENTS = ['pointerdown', 'mousedown', 'mouseup', 'click', 'touchstart', 'touchend', 'keydown', 'keyup'];
+function unlockAudio() {
+  const a = ac(); if (!a) return;
+  // Safari only lets audio start from a sound begun synchronously inside the gesture
+  const b = a.createBuffer(1, 1, a.sampleRate), src = a.createBufferSource(); src.buffer = b; src.connect(OUT); src.start(0);
+  const o = a.createOscillator(), g = a.createGain(); g.gain.value = 0; o.connect(g).connect(OUT); o.start(0); o.stop(a.currentTime + .02);
+  const p = a.resume && a.resume();
+  if (p && p.then) p.then(() => { if (a.state === 'running') UNLOCK_EVENTS.forEach(ev => removeEventListener(ev, unlockAudio, true)); }).catch(() => {});
+}
+UNLOCK_EVENTS.forEach(ev => addEventListener(ev, unlockAudio, true));
+// Safari suspends/interrupts audio when the tab is hidden; wake it on the next gesture
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && AC && AC.state !== 'running') UNLOCK_EVENTS.forEach(ev => addEventListener(ev, unlockAudio, true));
+});
+function noise(dur, freq, vol, q = 1) {
+  const a = ac(); if (!a || muted) return;
+  const len = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+  const src = a.createBufferSource(); src.buffer = buf;
+  const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+  const g = a.createGain(); g.gain.value = vol;
+  src.connect(f).connect(g).connect(OUT); src.start();
+}
+function tone(f0, f1, dur, vol, type = 'sine') {
+  const a = ac(); if (!a || muted) return;
+  const o = a.createOscillator(), g = a.createGain(); o.type = type;
+  o.frequency.setValueAtTime(f0, a.currentTime); o.frequency.exponentialRampToValueAtTime(f1, a.currentTime + dur);
+  g.gain.setValueAtTime(vol, a.currentTime); g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+  o.connect(g).connect(OUT); o.start(); o.stop(a.currentTime + dur);
+}
+let pourNode = null;
+function setPour(on) {
+  // never create the AudioContext from the game loop: it must start from a user gesture
+  const a = AC; if (!a || (!on && !pourNode)) return;
+  if (!pourNode) {
+    const len = a.sampleRate * 2, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
+    const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1300; f.Q.value = .6;
+    const g = a.createGain(); g.gain.value = 0;
+    src.connect(f).connect(g).connect(OUT); src.start();
+    pourNode = { g, f, on: false };
+  }
+  if (pourNode.on === on && !muted) return;
+  pourNode.on = on;
+  pourNode.g.gain.setTargetAtTime(on && !muted ? .16 : 0, a.currentTime, .06);
+}
+const sfx = {
+  jump: () => tone(300, 620, .15, .12),
+  land: () => { noise(.14, 450, .8); tone(120, 70, .12, .12, 'triangle'); },
+  boing: () => tone(180, 90, .3, .2, 'triangle'),
+  splash: () => { noise(.35, 1800, .5, .7); noise(.25, 700, .3); },
+  drip: () => noise(.06, 2500 + Math.random() * 1500, .12, 3),
+  sand: () => noise(.2, 900, .25, .5),
+  squish: () => { noise(.15, 400, .35, 2); tone(140, 100, .12, .08, 'triangle'); },
+  ding: () => { tone(880, 880, .12, .1); setTimeout(() => tone(1320, 1320, .2, .1), 110); },
+};
+
+// ---------- world state ----------
+let P, bucket, blobs, decals, drops, sands, dusts, winds, dirt, tasks, captions, time = 0, boil = 0, target = null, seq = 0;
+const TASKS = [
+  ['blob', '倒出一个水球', '拿起水桶（E），按 F 往地上倒'],
+  ['stand', '跳上水球站稳', '在水球旁按空格跳上去'],
+  ['mud', '把水球搓成泥团', '在水球旁或上面多按几次 C'],
+  ['wash', '把泥团洗回透明', '再打一桶水，用 F 浇在泥团上'],
+  ['dirty', '在沙里打滚，把自己弄脏', '多按几次 R，脏度到 60%'],
+  ['clean', '把自己洗白', '拿着满桶按 G 从头上浇'],
+  ['burst', '踩爆一个透明水球', '站在干净的水球上按 X'],
+];
+function reset() {
+  P = { x: 360, y: 640, z: 0, vz: 0, face: -1, walk: 0, moving: false, act: null, hold: false,
+        onBlob: null, sq: 0, wet: 0, wasDirty: false, blinkT: 2, stepPh: 0,
+        prep: 0, swing: 0, swingV: 0, slosh: 0, sloshV: 0, lastVx: 0, lookX: 0, lookY: 0, lookT: 0, lookTX: 0, idleT: 0, sink: 0 };
+  bucket = { x: 250, y: 642, water: 1 };
+  blobs = []; decals = []; drops = []; sands = []; dusts = []; winds = []; dirt = []; captions = [];
+  tasks = Object.fromEntries(TASKS.map(t => [t[0], false]));
+  target = null;
+  renderTasks();
+  say('挑战玩脏再洗白！先按 E 拿起水桶', 3.5);
+}
+
+// ---------- UI ----------
+const tasksEl = document.getElementById('tasks');
+function renderTasks() {
+  tasksEl.innerHTML = TASKS.map(([id, t, h]) =>
+    `<li class="${tasks[id] ? 'done' : ''}"><span class="box">${tasks[id] ? '✓' : ''}</span><span class="tx">${t}<span class="hint">${h}</span></span></li>`).join('');
+  document.getElementById('done').style.display = TASKS.every(t => tasks[t[0]]) ? 'block' : 'none';
+}
+function complete(id) {
+  if (tasks[id]) return;
+  tasks[id] = true; renderTasks(); sfx.ding();
+  const t = TASKS.find(t => t[0] === id);
+  say('✓ ' + t[1], 2.4);
+  if (TASKS.every(t => tasks[t[0]])) {
+    setTimeout(() => { say('挑战成功！玩脏再洗白 🎉', 4); celebrate(); }, 900);
+  }
+}
+function say(text, dur = 2) { captions = [{ text, t: 0, dur }]; }
+function celebrate() {
+  for (let i = 0; i < 70; i++) drops.push({ x: rand(60, W - 60), y: rand(-60, 0), vx: rand(-40, 40), vy: rand(0, 80),
+    gy: rand(minY(), maxY()), sz: rand(2, 5), conf: `hsl(${rand(0, 360)},80%,65%)` });
+}
+
+// ---------- dirt on the stick man ----------
+function addDirt(n, region) {
+  for (let i = 0; i < n; i++) {
+    let x, y;
+    if (region === 'low') { x = rand(-55, 55); y = rand(-75, -35); }
+    else if (Math.random() < .45) { const a = rand(0, 6.28), r = Math.sqrt(Math.random()) * 55; x = Math.cos(a) * r; y = -172 + Math.sin(a) * r; }
+    else { const a = rand(0, 6.28), r = Math.sqrt(Math.random()) * 55; x = Math.cos(a) * r; y = -82 + Math.sin(a) * r * .9; }
+    if (dirt.length > 80) { const d = dirt[(Math.random() * dirt.length) | 0]; d.a = Math.min(1, d.a + .3); continue; }
+    dirt.push({ x, y, r: rand(12, 28), a: rand(.45, .8), sd: (Math.random() * 1e6) | 0 });
+  }
+}
+const dirtLevel = () => Math.min(1, dirt.reduce((s, d) => s + d.a, 0) / 24);
+function wash(amount) {
+  for (const d of dirt) d.a -= amount;
+  dirt = dirt.filter(d => d.a > 0.02);
+}
+
+// ---------- blobs ----------
+function blobR(b) { return 92 * Math.sqrt(Math.max(0, b.vol)); }
+function blobTop(b) { return blobR(b) * 0.78 * b.hf * (1 - b.sq); }
+function newBlob(x, y) { const b = { x, y, vol: 0, mud: 0, wasMud: false, hf: 1, sq: 0, wv: 0, sd: (Math.random() * 1e6) | 0, folds: 0 }; blobs.push(b); return b; }
+function blobNear(x, y, extra = 20) {
+  let best = null, bd = 1e9;
+  for (const b of blobs) {
+    const s = sc(b.y), r = blobR(b) * s;
+    const d = Math.hypot(x - b.x, (y - b.y) * 2.2);
+    if (d < r + extra * s && d < bd) { bd = d; best = b; }
+  }
+  return best;
+}
+function under(b) {
+  const s = sc(b.y), r = blobR(b) * s;
+  return Math.abs(P.x - b.x) < r * 0.8 && Math.abs(P.y - b.y) < r * 0.35 + 6;
+}
+
+// ---------- decals ----------
+function decal(d) { d.t = 0; decals.push(d); if (decals.length > 260) decals.splice(0, decals.length - 260); }
+
+// ---------- actions ----------
+function canAct() { return !P.act; }
+function pickOrDrop() {
+  if (!canAct()) return;
+  const s = sc(P.y);
+  if (P.hold) {
+    P.hold = false;
+    bucket.x = clamp(P.x + P.face * 98 * s, 30, W - 30); bucket.y = P.y + 2;
+    if (blobNear(bucket.x, bucket.y, 40)) bucket.x = clamp(P.x - P.face * 98 * s, 30, W - 30);
+    sfx.land();
+  } else if (Math.abs(bucket.x - P.x) < 125 * s && Math.abs(bucket.y - P.y) < 45 * s && P.z < 5) {
+    P.hold = true; sfx.jump();
+    if (bucket.water < .1) say('桶是空的，放下等它满一些', 2);
+  } else say('离水桶太远了', 1.4);
+}
+function startPour(head) {
+  if (!canAct()) return;
+  if (!P.hold) { say('先拿起水桶（E）', 1.6); return; }
+  if (bucket.water < .06) { say('桶空了！放到地上会慢慢灌满', 2.2); return; }
+  const s = sc(P.y);
+  let tb;
+  if (head) tb = P.onBlob || blobNear(P.x, P.y, 10) || newBlob(P.x, P.y + 1);
+  else {
+    const tx = clamp(P.x + P.face * 120 * s, 20, W - 20), ty = P.y + 2;
+    tb = blobNear(tx, ty, 30) || newBlob(tx, ty);
+  }
+  P.act = { type: head ? 'head' : 'pour', t: 0, k: 0, end: 0, blob: tb, acc: 0 };
+}
+function startKnead() {
+  if (!canAct()) return;
+  const b = P.onBlob || blobNear(P.x + P.face * 70 * sc(P.y), P.y, 60);
+  if (!b) { say('旁边没有水球，先倒一个吧', 1.8); return; }
+  P.act = { type: 'knead', t: 0, blob: b, dur: 1.1 };
+}
+function startRoll() {
+  if (!canAct()) return;
+  if (P.onBlob || P.z > 2) { say('先下到沙地上再打滚', 1.5); return; }
+  if (P.hold) { P.hold = false; bucket.x = P.x - P.face * 70 * sc(P.y); bucket.y = P.y + 2; }
+  P.act = { type: 'roll', t: 0, dur: 1.4, ang: 0, acc: 0, groove: { type: 'groove', pts: [], life: 70 } };
+  decal(P.act.groove);
+  sfx.sand();
+}
+function startStomp() {
+  if (!canAct()) return;
+  if (!P.onBlob) { say('站到水球上再踩（先按空格跳上去）', 1.8); return; }
+  P.act = { type: 'stomp', t: 0, dur: .45, hit: false };
+}
+function jump() {
+  if (P.act && P.act.type !== 'knead') return;
+  const gz = P.onBlob ? blobTop(P.onBlob) : 0;
+  if (P.z > gz + 2) return;
+  if (P.prep > 0) return;
+  if (P.act) P.act = null;
+  P.prep = .085; // crouch first, then spring up
+}
+function launch() {
+  const gz = P.onBlob ? blobTop(P.onBlob) : 0;
+  P.vz = 660; P.z = gz + 1; sfx.jump();
+  if (P.onBlob) { P.onBlob.wv += 5; }
+  else dust(P.x, P.y, 2, sc(P.y), 26);
+  P.onBlob = null;
+}
+
+// ---------- input ----------
+const keys = new Set();
+const KEYMAP = { a: 'ArrowLeft', d: 'ArrowRight', w: 'ArrowUp', s: 'ArrowDown' };
+function press(k) {
+  ac();
+  const kk = k.length === 1 ? k.toLowerCase() : k;
+  if (KEYMAP[kk]) { keys.add(KEYMAP[kk]); target = null; return; }
+  if (kk.startsWith('Arrow')) { keys.add(kk); target = null; return; }
+  if (kk === ' ') jump();
+  else if (kk === 'e') pickOrDrop();
+  else if (kk === 'f') startPour(false);
+  else if (kk === 'g') startPour(true);
+  else if (kk === 'c') startKnead();
+  else if (kk === 'r') startRoll();
+  else if (kk === 'x') startStomp();
+}
+function release(k) { const kk = k.length === 1 ? k.toLowerCase() : k; keys.delete(KEYMAP[kk] || kk); }
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
+  if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
+  if (e.repeat && !e.key.startsWith('Arrow')) return;
+  press(e.key);
+});
+addEventListener('keyup', e => release(e.key));
+addEventListener('blur', () => keys.clear());
+cv.addEventListener('pointerdown', e => {
+  ac();
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  target = { x: clamp(x, 30, W - 30), y: clamp(y, minY(), maxY()) };
+});
+document.querySelectorAll('#touch button').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); press(k); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => release(k)));
+});
+document.getElementById('reset').onclick = () => reset();
+document.getElementById('mute').onclick = e => {
+  muted = !muted; e.target.textContent = '声音：' + (muted ? '关' : '开');
+  if (!muted) sfx.ding();
+  if (muted && pourNode) { pourNode.on = false; pourNode.g.gain.value = 0; }
+};
+document.getElementById('bgFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image(); img.onload = () => { setBg(img); URL.revokeObjectURL(img.src); };
+  img.src = URL.createObjectURL(f);
+};
+document.getElementById('bgReset').onclick = () => { if (defImg.complete) setBg(defImg); horizonEl.value = 240; setHorizon(240); };
+const horizonEl = document.getElementById('horizon');
+function setHorizon(v) { HORIZON = +v; P.y = clamp(P.y, minY(), maxY()); bucket.y = clamp(bucket.y, minY(), maxY()); }
+horizonEl.oninput = e => setHorizon(e.target.value);
+
+// ---------- update ----------
+function update(dt) {
+  time += dt; boil = Math.floor(time * 8);
+  const s = sc(P.y);
+  const a = P.act;
+
+  // movement
+  let mx = 0, my = 0;
+  if (keys.has('ArrowLeft')) mx -= 1;
+  if (keys.has('ArrowRight')) mx += 1;
+  if (keys.has('ArrowUp')) my -= 1;
+  if (keys.has('ArrowDown')) my += 1;
+  if (target && !mx && !my) {
+    const dx = target.x - P.x, dy = target.y - P.y;
+    if (Math.abs(dx) > 6 * s) mx = Math.sign(dx);
+    if (Math.abs(dy) > 4 * s) my = Math.sign(dy) * Math.min(1, Math.abs(dy) / (12 * s));
+    if (!mx && Math.abs(my) < .05) target = null;
+  }
+  if (a && a.type !== 'roll') { mx = 0; my = 0; }
+  if (a && a.type === 'roll') { mx = P.face; my = 0; }
+  if (mx) P.face = mx > 0 ? 1 : -1;
+  const sp = a && a.type === 'roll' ? 150 : 165;
+  P.x = clamp(P.x + mx * sp * s * dt, 70 * s, W - 70 * s);
+  P.y = clamp(P.y + my * 100 * s * dt, minY(), maxY());
+  P.moving = !!(mx || my);
+
+  // bucket pendulum + water slosh, driven by horizontal acceleration
+  const vx = mx * sp * s, acc = (vx - P.lastVx) / Math.max(dt, 1e-3); P.lastVx = vx;
+  P.swingV += (-P.swing * 55 - P.swingV * 2.6 + acc / s * .012 + (P.moving ? Math.sin(P.walk * 2) * 1.5 : 0)) * dt;
+  P.swing = clamp(P.swing + P.swingV * dt, -.7, .7);
+  P.sloshV += (-P.slosh * 140 - P.sloshV * 5 + P.swingV * 9) * dt;
+  P.slosh = clamp(P.slosh + P.sloshV * dt, -.45, .45);
+
+  // eyes: look where you go / at what you do / wander when idle
+  P.idleT = P.moving || a ? 0 : P.idleT + dt;
+  P.lookT -= dt;
+  if (P.lookT < 0) { P.lookT = rand(1.2, 3); P.lookTX = rand(-6, 6); }
+  let lx = P.idleT > 2.5 ? P.lookTX : P.face * 4, ly = 0;
+  if (a && (a.type === 'pour' || a.type === 'knead')) { lx = P.face * 6; ly = 5; }
+  P.lookX = lerp(P.lookX, lx, Math.min(1, dt * 10)); P.lookY = lerp(P.lookY, ly, Math.min(1, dt * 10));
+
+  // sinking into soft sand
+  const onSand = !P.onBlob && P.z < 1 && !(a && a.type === 'roll');
+  const sinkT = !onSand ? 0 : P.moving ? 2.5 : a && a.type === 'knead' ? 8 : 7;
+  P.sink = lerp(P.sink, sinkT, Math.min(1, dt * (sinkT > P.sink ? 1.6 : 12)));
+  if (onSand && !P.moving && P.sink > 6.5 && !P.sunkMark) {
+    P.sunkMark = true;
+    decal({ type: 'foot', x: P.x - 18 * s, y: P.y + 1, s: s * 1.15, life: 45 });
+    decal({ type: 'foot', x: P.x + 18 * s, y: P.y + 1, s: s * 1.15, life: 45 });
+  }
+  if (P.moving || !onSand) P.sunkMark = false;
+
+  // crouch before a jump
+  if (P.prep > 0) { P.prep -= dt; P.sq = .55; if (P.prep <= 0) { P.prep = 0; launch(); } }
+
+  // vertical
+  if (P.onBlob && (!blobs.includes(P.onBlob) || !under(P.onBlob))) { P.onBlob = null; P.vz = Math.max(P.vz, 0); }
+  const gz = P.onBlob ? blobTop(P.onBlob) : 0;
+  if (P.z > gz + 0.5 || P.vz > 0) {
+    P.vz -= 2100 * dt; P.z += P.vz * dt;
+    // can land on a blob
+    let landB = null;
+    if (P.vz < 0) for (const b of blobs) if (under(b) && P.z <= blobTop(b) && P.z - P.vz * dt >= blobTop(b) - 6) landB = b;
+    if (landB) land(landB);
+    else if (P.z <= 0) land(null);
+  } else P.z = gz;
+  P.sq = Math.max(0, P.sq - dt * 4);
+
+  // walking feet + footprints
+  if (P.moving && P.z <= gz + 1 && !a) {
+    P.walk += dt * 10;
+    const ph = Math.floor(P.walk / Math.PI);
+    if (ph !== P.stepPh) {
+      P.stepPh = ph;
+      if (!P.onBlob) {
+        const side = ph % 2 ? 1 : -1;
+        decal({ type: 'foot', x: P.x + side * 18 * s, y: P.y + 1, s, life: 40 });
+        if (Math.random() < .5) puff(P.x + side * 18 * s, P.y, 2, s);
+        if (Math.random() < .35) dust(P.x + side * 18 * s, P.y, 1, s, 16);
+      }
+    }
+  }
+
+  // blink
+  P.blinkT -= dt; if (P.blinkT < -0.12) P.blinkT = rand(2, 5);
+  P.wet = Math.max(0, P.wet - dt * .2);
+  if (P.wet > .2 && Math.random() < dt * 6 * P.wet) {
+    drops.push({ x: P.x + rand(-50, 50) * s, y: P.y - P.z * s - rand(30, 180) * s, vx: 0, vy: 30, gy: P.y, sz: 2.2 * s });
+  }
+
+  // actions
+  if (a) {
+    a.t += dt;
+    if (a.type === 'pour' || a.type === 'head') {
+      const raise = a.type === 'head' ? .5 : .35;
+      if (!a.end) {
+        a.k = Math.min(1, a.t / raise);
+        if (a.t > raise) {
+          if (bucket.water > 0) {
+            a.acc += dt * 75;
+            while (a.acc >= 1 && bucket.water > 0) { a.acc--; emitWater(a); bucket.water = Math.max(0, bucket.water - .0125); }
+            if (Math.random() < dt * 4) sfx.drip();
+            if (a.type === 'head') { wash(1.1 * dt); P.wet = 1; }
+          } else a.end = a.t;
+        }
+      } else {
+        a.k = Math.max(0, 1 - (a.t - a.end - .4) / .35);
+        if (a.t > a.end + .8) { P.act = null; if (!a.blob.vol) blobs.splice(blobs.indexOf(a.blob), 1); }
+      }
+    } else if (a.type === 'knead') {
+      const b = a.blob;
+      if (!blobs.includes(b)) P.act = null;
+      else {
+        b.mud = Math.min(1.2, b.mud + dt * .42);
+        if (b.mud >= 1) { b.wasMud = true; complete('mud'); }
+        b.wv += Math.sin(a.t * 30) * dt * 6;
+        if (Math.random() < dt * 14) puff(b.x + rand(-1, 1) * blobR(b) * sc(b.y) * .7, b.y, 1, sc(b.y));
+        if (Math.random() < dt * 4) dust(b.x + rand(-1, 1) * blobR(b) * sc(b.y) * .8, b.y, 1, sc(b.y), 22);
+        if (Math.random() < dt * 9) sfx.squish();
+        if (Math.random() < dt * 2.5) addDirt(1, 'low');
+        if (a.t > a.dur) P.act = null;
+      }
+    } else if (a.type === 'roll') {
+      a.ang = P.face * a.t / a.dur * Math.PI * 4;
+      a.acc += dt;
+      if (a.acc > .05) {
+        a.acc = 0; addDirt(1);
+        a.groove.pts.push({ x: P.x, y: P.y + 2, s });
+        puff(P.x + rand(-60, 60) * s, P.y, 2, s);
+        dust(P.x + rand(-40, 40) * s, P.y, 1, s, 34);
+      }
+      if (a.t > a.dur) { P.act = null; if (dirtLevel() >= .6) { P.wasDirty = true; complete('dirty'); } }
+    } else if (a.type === 'stomp') {
+      const b = P.onBlob;
+      if (!a.hit && a.t > .16) {
+        a.hit = true;
+        if (b && b.mud < .35) burst(b);
+        else if (b) { b.hf = Math.max(.35, b.hf * .72); b.wv -= 6; sfx.squish(); say('泥团被踩扁了', 1.4); addDirt(2, 'low'); }
+      }
+      if (a.t > a.dur) P.act = null;
+    }
+  }
+
+  setPour(!!(a && (a.type === 'pour' || a.type === 'head') && !a.end && a.k >= 1 && bucket.water > 0));
+
+  // tasks driven by state
+  const dl = dirtLevel();
+  if (dl >= .6) { P.wasDirty = true; complete('dirty'); }
+  if (P.wasDirty && dl < .05) complete('clean');
+
+  // bucket refill when resting on the sand
+  if (!P.hold) bucket.water = Math.min(1, bucket.water + dt * .22);
+
+  // blobs: wobble spring
+  for (const b of blobs) {
+    // soak into the sand: clear water sinks away, dough mostly stays
+    const busy = a && a.blob === b && (a.type === 'pour' || a.type === 'head');
+    if (!busy && b.vol > 0) {
+      const rate = .016 * (1 - Math.min(1, b.mud) * .85);
+      b.vol -= rate * dt; b.soak = Math.min(1, (b.soak || 0) + rate * dt * 3);
+      if (b.vol < .1) b.gone = true;
+    }
+    const target = P.onBlob === b ? .1 : 0;
+    const damp = 5 + b.mud * 12;
+    b.wv += (-(b.sq - target) * 160 - b.wv * damp) * dt;
+    b.sq = clamp(b.sq + b.wv * dt, -.25, .45);
+    if (b.wasMud && b.mud < .08) { b.wasMud = false; complete('wash'); say('泥团又变回透明水球啦', 2); }
+  }
+  for (const b of blobs) if (b.gone) {
+    const r = blobR(b) * sc(b.y);
+    decal({ type: 'wet', x: b.x, y: b.y, rx: Math.max(r, 40 * sc(b.y)) * 1.9, life: 40 });
+    if (P.onBlob === b) { P.onBlob = null; }
+    if (b.mud > .5) decal({ type: 'crater', x: b.x, y: b.y, rx: Math.max(r, 30 * sc(b.y)), life: 90, sd: b.sd });
+    say(b.mud > .5 ? '泥团干在沙子里了' : '水球渗进沙子里了', 1.6);
+  }
+  blobs = blobs.filter(b => !b.gone);
+
+  // water drops
+  for (const d of drops) {
+    d.vy += 1400 * dt; d.x += d.vx * dt; d.y += d.vy * dt;
+    if (d.y >= d.gy && d.vy > 0) {
+      d.dead = true;
+      if (d.blob && blobs.includes(d.blob)) {
+        const b = d.blob; b.vol = Math.min(1.7, b.vol + (b.vol > 1 ? .004 : .0125)); b.mud = Math.max(0, b.mud - .022); b.wv -= .25;
+        if (!b.rip) b.rip = [];
+        const rw = blobR(b) * sc(b.y) || 1;
+        if (b.rip.length < 7 && Math.random() < .35) b.rip.push({ u: clamp((d.x - b.x) / rw, -.8, .8), t: 0 });
+        if (b.vol > .45) complete('blob');
+      } else if (!d.conf) {
+        if (Math.random() < .3) decal({ type: 'wet', x: d.x, y: d.y, rx: rand(5, 11) * sc(d.y), life: 20 });
+      }
+      if (Math.random() < .25) for (let i = 0; i < 2; i++) sands.push({ x: d.x, y: d.y, z: 0, vx: rand(-60, 60), vz: rand(80, 200), life: .4, max: .4, water: true, s: sc(d.gy) });
+    }
+  }
+  drops = drops.filter(d => !d.dead);
+  for (const b of blobs) if (b.rip) { for (const r of b.rip) r.t += dt; b.rip = b.rip.filter(r => r.t < .7); }
+  for (const p of dusts) { p.life -= dt; p.x += p.vx * dt; p.rise += dt * 14 * p.s; }
+  dusts = dusts.filter(p => p.life > 0);
+  // drifting sand streaks carried by the wind
+  if (Math.random() < dt * 5) {
+    const y = rand(minY(), maxY()), ws = sc(y);
+    winds.push({ x: W + 30, y, s: ws, v: rand(110, 240) * ws, len: rand(14, 42) * ws, ph: rand(0, 6), a: rand(.12, .28) });
+  }
+  for (const w of winds) w.x -= w.v * dt;
+  winds = winds.filter(w => w.x > -60);
+  for (const p of sands) {
+    p.life -= dt; p.vz -= 900 * dt; p.z = Math.max(0, p.z + p.vz * dt); p.x += p.vx * dt;
+  }
+  sands = sands.filter(p => p.life > 0);
+  for (const d of decals) d.t += dt;
+  decals = decals.filter(d => d.t < d.life);
+  for (const c of captions) c.t += dt;
+  captions = captions.filter(c => c.t < c.dur);
+}
+
+function land(b) {
+  const impact = Math.min(1, -P.vz / 900);
+  P.vz = 0; P.sq = impact;
+  const s = sc(P.y);
+  if (b) {
+    P.onBlob = b; P.z = blobTop(b);
+    b.wv += 4 + impact * 6; sfx.boing();
+    const br = blobR(b) * sc(b.y);
+    if (b.mud < .5) for (let i = 0; i < 2 + impact * 6; i++) {
+      const side = Math.random() < .5 ? -1 : 1;
+      drops.push({ x: b.x + side * br * .8, y: b.y - 4, vx: side * rand(60, 200) * s, vy: rand(-380, -160), gy: b.y + rand(-4, 8), sz: rand(2, 3.2) * s });
+    }
+    complete('stand');
+  } else {
+    P.z = 0; sfx.land();
+    decal({ type: 'foot', x: P.x - 18 * s, y: P.y + 1, s, life: 40 });
+    decal({ type: 'foot', x: P.x + 18 * s, y: P.y + 1, s, life: 40 });
+    puff(P.x, P.y, 6, s);
+    dust(P.x, P.y, 3, s, 30 + impact * 20);
+  }
+}
+function dust(x, y, n, s, size) {
+  for (let i = 0; i < n; i++) dusts.push({ x: x + rand(-15, 15) * s, y: y + rand(-2, 2), vx: rand(-25, 25) * s - 12 * s, s, r0: size * .35 * s, r1: size * s * rand(.8, 1.2), life: rand(.6, 1.1), max: 1.1, rise: 0 });
+}
+function puff(x, y, n, s) {
+  for (let i = 0; i < n; i++) sands.push({ x: x + rand(-8, 8) * s, y, z: rand(0, 6) * s, vx: rand(-70, 70) * s, vz: rand(60, 200) * s, life: rand(.35, .7), max: .7, s });
+}
+function emitWater(a) {
+  const s = sc(P.y), lip = bucketLip();
+  const b = a.blob;
+  if (a.type === 'head') {
+    drops.push({ x: lip.x + rand(-34, 34) * s, y: lip.y, vx: rand(-30, 30) * s, vy: rand(0, 80), gy: P.y + 1, sz: rand(2.5, 4.5) * s, blob: b });
+  } else {
+    const dy = Math.max(10, b.y - 4 - lip.y), tf = Math.sqrt(2 * dy / 1400);
+    drops.push({ x: lip.x, y: lip.y, vx: (b.x - lip.x) / tf + rand(-4, 4) * s, vy: rand(-6, 6), gy: b.y - 2, sz: rand(3, 4.5) * s, blob: b, seq: ++seq });
+  }
+}
+function burst(b) {
+  const s = sc(b.y), r = blobR(b) * s;
+  blobs.splice(blobs.indexOf(b), 1);
+  P.onBlob = null; P.vz = 160;
+  // a crown of water thrown outward from the rim, plus a few big lumps
+  for (let i = 0; i < 46; i++) {
+    const side = Math.random() < .5 ? -1 : 1, big = i < 8;
+    drops.push({ x: b.x + side * rand(.4, 1) * r, y: b.y - rand(0, r * .3), vx: side * rand(60, 330) * s, vy: -rand(150, big ? 420 : 620),
+      gy: b.y + rand(-r * .3, r * .3), sz: (big ? rand(4.5, 7) : rand(1.4, 3.6)) * s });
+  }
+  decal({ type: 'crater', x: b.x, y: b.y, rx: r * 1.05, life: 120, sd: b.sd });
+  decal({ type: 'sheet', x: b.x, y: b.y, rx: r, life: .55 });
+  dust(b.x, b.y, 3, s, 30);
+  decal({ type: 'wet', x: b.x, y: b.y, rx: r * 1.5, life: 45 });
+  sfx.splash(); P.wet = .8;
+  complete('burst');
+  say('啪！水球被踩爆了', 1.6);
+}
+
+// ---------- pose ----------
+function bucketLocal() {
+  const a = P.act, f = P.face;
+  if (a && a.type === 'pour') { const k = a.k; return { x: f * (72 + 14 * k), y: -112 - 18 * k, rot: f * k * 1.95 }; }
+  if (a && a.type === 'head') { const k = a.k; return { x: 0, y: lerp(-110, -305, Math.min(1, k * 1.4)), rot: k * Math.PI }; }
+  return { x: f * 98, y: -108, rot: P.swing, oy: 64 };
+}
+function bucketLip() {
+  const s = sc(P.y), bl = bucketLocal(), a = P.act;
+  const loc = a && a.type === 'head' ? rot(0, -36, bl.rot) : rot(P.face * 42, -36, bl.rot);
+  return { x: P.x + (bl.x + loc.x) * s, y: P.y - P.z * s + (bl.y + loc.y) * s };
+}
+function getPose() {
+  const ps = { by: 0, fl: { x: -18, y: 0 }, fr: { x: 18, y: 0 }, hl: { x: -82, y: -64 }, hr: { x: 82, y: -64 }, eyes: 'open', bucket: null, lean: 0 };
+  const a = P.act, f = P.face;
+  const gz = P.onBlob ? blobTop(P.onBlob) : 0;
+  const air = P.z > gz + 1;
+  if (P.moving && !air && !a) {
+    const w = P.walk, sw = Math.sin(w);
+    ps.fl.y = -Math.max(0, sw) * 12; ps.fr.y = -Math.max(0, -sw) * 12;
+    ps.fl.x += f * sw * 7; ps.fr.x -= f * sw * 7;
+    ps.by = -Math.abs(sw) * 5;
+    ps.hl.y += sw * 9; ps.hr.y -= sw * 9; ps.lean = f * .04;
+  } else {
+    ps.by = Math.sin(time * 2.2) * 1.5;
+    ps.hl.y += Math.sin(time * 1.7) * 2; ps.hr.y += Math.sin(time * 1.7 + 1) * 2;
+  }
+  if (air) {
+    ps.fl = { x: -26, y: -16 }; ps.fr = { x: 24, y: -8 };
+    const up = P.vz > 0 ? 1 : .4;
+    ps.hl = { x: -95, y: lerp(-80, -150, up) }; ps.hr = { x: 95, y: lerp(-80, -150, up) };
+  }
+  if (P.blinkT < 0) ps.eyes = 'blink';
+  if (P.hold) {
+    const bl = bucketLocal(); ps.bucket = bl;
+    if (!a) {
+      const h = { x: bl.x, y: bl.y };
+      if (f > 0) ps.hr = h; else ps.hl = h;
+    } else if (a.type === 'pour') {
+      const front = rot(f * 16, -40, bl.rot), back = rot(-f * 8, 40, bl.rot);
+      const hf = { x: bl.x + front.x, y: bl.y + front.y }, hb = { x: bl.x + back.x, y: bl.y + back.y };
+      if (f > 0) { ps.hr = hf; ps.hl = hb; } else { ps.hl = hf; ps.hr = hb; }
+      ps.lean = f * .06 * a.k; ps.armsFront = true;
+    } else if (a.type === 'head') {
+      ps.armsFront = true;
+      const p1 = rot(-40, 0, bl.rot), p2 = rot(40, 0, bl.rot);
+      const A = { x: bl.x + p1.x, y: bl.y + p1.y }, B = { x: bl.x + p2.x, y: bl.y + p2.y };
+      if (A.x < B.x) { ps.hl = A; ps.hr = B; } else { ps.hl = B; ps.hr = A; }
+      if (a.k > .8 && !a.end) ps.eyes = 'squint';
+    }
+  }
+  if (a && a.type === 'knead') {
+    const w = Math.sin(a.t * 16);
+    if (P.onBlob) {
+      ps.fl.y = -Math.max(0, w) * 18; ps.fr.y = -Math.max(0, -w) * 18;
+      ps.hl = { x: -95, y: -120 + w * 10 }; ps.hr = { x: 95, y: -120 - w * 10 };
+    } else {
+      const near = { x: f * (100 + 22 * w), y: -14 }, far = { x: f * (62 - 22 * w), y: -22 };
+      if (f > 0) { ps.hr = near; ps.hl = far; } else { ps.hl = near; ps.hr = far; }
+      ps.lean = f * .12; ps.by = 5; ps.armsFront = true;
+    }
+    ps.eyes = 'squint';
+  }
+  if (a && a.type === 'roll') {
+    ps.hl = { x: -70, y: -95 }; ps.hr = { x: 70, y: -95 }; ps.fl = { x: -10, y: -4 }; ps.fr = { x: 10, y: -4 };
+    ps.eyes = 'squint';
+  }
+  if (a && a.type === 'stomp') {
+    const c = a.t < .16 ? a.t / .16 : 1 - (a.t - .16) / .3;
+    ps.by = 0; ps.fl.y = -c * 30; ps.fr.y = -c * 10;
+    ps.hl = { x: -100, y: -150 }; ps.hr = { x: 100, y: -150 };
+  }
+  return ps;
+}
+
+// ---------- sand texture (for dirt stuck on the body) ----------
+const sandTex = document.createElement('canvas'); sandTex.width = sandTex.height = 96;
+(function () {
+  const t = sandTex.getContext('2d');
+  t.fillStyle = 'rgba(190,142,86,.82)'; t.fillRect(0, 0, 96, 96);
+  const cols = ['#c9965a', '#a8743f', '#e3bd85', '#8a5a2b', '#d6a86c', '#f0d3a2', '#7a4c22'];
+  for (let i = 0; i < 1400; i++) {
+    t.fillStyle = cols[(Math.random() * cols.length) | 0]; t.globalAlpha = rand(.5, 1);
+    const r = rand(.5, 1.6); t.beginPath(); t.arc(rand(0, 96), rand(0, 96), r, 0, 6.283); t.fill();
+  }
+})();
+let sandPat = null;
+
+// ---------- drawing: stick man ----------
+function rollH(ang) {
+  const c = Math.cos(ang), s = Math.sin(ang);
+  const v = c > 0 ? 110 * c : -124 * c;
+  return Math.sqrt(v * v + (64 * s) ** 2);
+}
+function drawFigure(c, ps, sil) {
+  const sd = boil * 37, ink = sil ? '#000' : '#141210', lw = 8.5;
+  c.save();
+  c.rotate(ps.lean);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = ink; c.fillStyle = ink; c.lineWidth = lw;
+  const by = ps.by;
+  // legs
+  [[-15, ps.fl, 1], [15, ps.fr, 2]].forEach(([hx, f, i]) => {
+    limb(c, hx, -42 + by, f.x, f.y, sd + i, 2);
+    c.beginPath(); c.ellipse(f.x + (hx < 0 ? -3 : 3), f.y - 2, 8, 5.5, 0, 0, 6.283); c.fill();
+  });
+  // arms (behind the body normally, in front of it while handling things)
+  const arms = () => [[-1, ps.hl, 3], [1, ps.hr, 4]].forEach(([side, h, i]) => {
+    const sx = side * (ps.armsFront ? 50 : 42);
+    c.strokeStyle = ink; c.fillStyle = ink; c.lineWidth = lw;
+    limb(c, sx, -98 + by, h.x, h.y, sd + i, side * (h.y > -98 ? -10 : 10));
+    dot(c, h.x, h.y, 7.5);
+  });
+  if (!ps.armsFront) arms();
+  // body (outline then fill so the head/body seam disappears)
+  c.lineWidth = lw * 2;
+  blobPath(c, 0, -172 + by, 57, 55, sd + 10, .035); c.stroke();
+  blobPath(c, 0, -82 + by, 60, 51, sd + 11, .035); c.stroke();
+  c.fillStyle = sil ? '#000' : '#fcfcfa';
+  blobPath(c, 0, -172 + by, 57, 55, sd + 10, .035); c.fill();
+  blobPath(c, 0, -82 + by, 60, 51, sd + 11, .035); c.fill();
+  if (!sil) {
+    // dirt
+    if (dirt.length) {
+      c.save();
+      blobPath(c, 0, -172 + by, 57, 55, sd + 10, .035);
+      blobPath(c, 0, -82 + by, 60, 51, sd + 11, .035, true);
+      c.clip();
+      if (!sandPat) sandPat = c.createPattern(sandTex, 'repeat');
+      for (const d of dirt) {
+        c.globalAlpha = Math.min(.9, d.a);
+        c.fillStyle = sandPat;
+        blobPath(c, d.x, d.y + by, d.r, d.r * .75, d.sd + boil, .45); c.fill();
+        c.globalAlpha = Math.min(.9, d.a) * .5; c.fillStyle = '#7a4c22';
+        for (let i = 0; i < 4; i++) dot(c, d.x + nz(d.sd, i) * d.r * .9, d.y + by + nz(d.sd, i + 9) * d.r * .7, .9 + h1(d.sd + i) * 1.2);
+      }
+      c.restore();
+    }
+    // water running down the body while pouring over the head
+    const pa = P.act;
+    if (pa && pa.type === 'head' && pa.k >= 1 && !pa.end && bucket.water > 0) {
+      c.save();
+      blobPath(c, 0, -172 + by, 57, 55, sd + 10, .035);
+      blobPath(c, 0, -82 + by, 60, 51, sd + 11, .035, true);
+      c.clip();
+      c.fillStyle = 'rgba(205,228,236,.22)'; c.fillRect(-70, -235, 140, 210);
+      c.lineCap = 'round';
+      for (let i = 0; i < 11; i++) {
+        const x = -58 + i * 11.6 + nz(i, 3) * 3, len = 40 + h1(i) * 40;
+        const y0 = ((time * (480 + h1(i + 7) * 200) + h1(i + 3) * 300) % 300) - 250;
+        c.strokeStyle = `rgba(235,246,250,${.45 + h1(i + 1) * .3})`; c.lineWidth = 2.5 + h1(i + 2) * 3;
+        c.beginPath(); c.moveTo(x, y0); c.quadraticCurveTo(x + nz(i + boil, 1) * 3, y0 + len / 2, x + nz(i, 2) * 2, y0 + len); c.stroke();
+      }
+      c.restore();
+    }
+    // eyes (they look around)
+    c.strokeStyle = ink; c.lineWidth = lw;
+    const lx = P.lookX, ly = P.lookY;
+    for (const ex0 of [-17, 17]) {
+      const ex = ex0 + lx;
+      c.beginPath();
+      if (ps.eyes === 'open') { c.moveTo(ex + nz(sd, ex0), -190 + by + ly); c.lineTo(ex, -164 + by + ly); }
+      else if (ps.eyes === 'blink') { c.moveTo(ex - 6, -176 + by + ly); c.lineTo(ex + 6, -176 + by + ly); }
+      else { const d = ex0 < 0 ? 1 : -1; c.lineWidth = 6; c.moveTo(ex - d * 7, -186 + by); c.lineTo(ex + d * 5, -177 + by); c.lineTo(ex - d * 7, -168 + by); }
+      c.stroke();
+    }
+    // wet shine
+    if (P.wet > .05) {
+      c.globalAlpha = P.wet * .8; c.strokeStyle = '#ffffff'; c.lineWidth = 4;
+      c.beginPath(); c.arc(0, -172 + by, 44, -1.2, -.5); c.stroke();
+      c.beginPath(); c.arc(0, -82 + by, 46, -.9, -.3); c.stroke();
+      c.globalAlpha = 1;
+    }
+  }
+  if (P.hold && ps.bucket) drawBucket(c, ps.bucket.x, ps.bucket.y, ps.bucket.rot, bucket.water, sil, P.act && P.act.k > .3, ps.bucket.oy || 0, ps.lean, P.slosh);
+  if (ps.armsFront) arms();
+  c.restore();
+}
+
+// ---------- drawing: bucket ----------
+function bucketPath(c, tw, bw, top, bot) {
+  c.beginPath(); c.moveTo(-tw, top); c.lineTo(-bw, bot - 5);
+  c.quadraticCurveTo(-bw, bot + 2, 0, bot + 2); c.quadraticCurveTo(bw, bot + 2, bw, bot - 5);
+  c.lineTo(tw, top); c.ellipse(0, top, tw, 7, 0, 0, Math.PI, true); c.closePath();
+}
+function drawBucket(c, cx, cy, r, water, sil, tilted, oy = 0, parentRot = 0, slosh = 0) {
+  const tw = 42, bw = 34, top = -36, bot = 42;
+  c.save(); c.translate(cx, cy); c.rotate(r); c.translate(0, oy);
+  if (sil) { c.globalAlpha = .5; c.fillStyle = '#000'; bucketPath(c, tw, bw, top, bot); c.fill(); c.restore(); return; }
+  // inner back wall
+  c.fillStyle = 'rgba(255,255,255,.18)';
+  c.beginPath(); c.ellipse(0, top, tw - 2, 6, 0, Math.PI, 0); c.fill();
+  // body
+  const g = c.createLinearGradient(-tw, 0, tw, 0);
+  g.addColorStop(0, 'rgba(255,255,255,.62)'); g.addColorStop(.18, 'rgba(240,244,242,.28)');
+  g.addColorStop(.55, 'rgba(228,234,232,.18)'); g.addColorStop(.85, 'rgba(250,252,250,.45)'); g.addColorStop(1, 'rgba(255,255,255,.7)');
+  c.fillStyle = g; bucketPath(c, tw, bw, top, bot); c.fill();
+  // water
+  if (water > .02) {
+    const wr = r + parentRot, ca = Math.abs(Math.cos(wr)), sa = Math.abs(Math.sin(wr));
+    const e = ca * 39 + sa * 40, fill = Math.min(1, water * (tilted ? .8 : .9));
+    c.save(); bucketPath(c, tw - 2, bw - 2, top, bot - 1); c.clip();
+    c.translate(0, 3); c.rotate(-wr); c.rotate(slosh * .5);
+    const wy = e - 2 * e * fill;
+    const wg = c.createLinearGradient(0, wy, 0, e);
+    wg.addColorStop(0, 'rgba(232,240,240,.72)'); wg.addColorStop(1, 'rgba(200,214,214,.62)');
+    c.fillStyle = wg; c.fillRect(-90, wy, 180, 120);
+    c.fillStyle = 'rgba(250,253,253,.8)'; c.beginPath(); c.ellipse(0, wy, 46, 2 + 3.5 * ca, 0, 0, 6.283); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 1.2; c.beginPath(); c.ellipse(0, wy, 44, 2 + 3.5 * ca, 0, .2, Math.PI - .2); c.stroke();
+    c.restore();
+  }
+  // outline + rim bands
+  c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 1.6; bucketPath(c, tw, bw, top, bot); c.stroke();
+  c.strokeStyle = 'rgba(150,150,145,.35)'; c.lineWidth = 1;
+  c.beginPath(); c.ellipse(0, bot - 3, bw - 1, 4, 0, 0, Math.PI); c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.95)'; c.lineWidth = 4;
+  c.beginPath(); c.ellipse(0, top, tw, 7, 0, 0, 6.283); c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 2.2;
+  c.beginPath(); c.ellipse(0, top + 9, tw - 1, 7, 0, .1, Math.PI - .1); c.stroke();
+  // handle
+  c.strokeStyle = 'rgba(120,120,115,.35)'; c.lineWidth = 5;
+  c.beginPath(); c.moveTo(-tw + 2, top + 3); c.bezierCurveTo(-tw + 2, top - 44, tw - 2, top - 44, tw - 2, top + 3); c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.95)'; c.lineWidth = 3;
+  c.stroke();
+  c.restore();
+}
+
+// ---------- drawing: water blob ----------
+function domePath(c, b, x, y, r, h) {
+  c.beginPath();
+  const n = 26, lump = b.mud * .07, sd = b.sd;
+  for (let i = 0; i <= n; i++) {
+    const a = Math.PI + i / n * Math.PI;
+    const l = 1 + lump * Math.sin(a * 5 + h1(sd) * 6) + lump * .6 * Math.sin(a * 9 + h1(sd + 1) * 6) + .006 * nz(sd + boil, i);
+    const px = x + Math.cos(a) * r * (1 + lump * .3 * Math.sin(a * 3)), py = y + Math.sin(a) * h * l;
+    i ? c.lineTo(px, py) : c.moveTo(px, py);
+  }
+  c.ellipse(x, y, r, r * .17, 0, 0, Math.PI);
+  c.closePath();
+}
+function drawBlobShadow(c, b) {
+  const s = sc(b.y), r = blobR(b) * s * (1 + b.sq * .45), h = blobR(b) * .7 * b.hf * s * (1 - b.sq);
+  if (r < 2) return;
+  c.save(); c.translate(b.x, b.y); c.transform(1, 0, .95, .1, 0, 0);
+  c.globalAlpha = .28 + b.mud * .12; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0, -h * .5, r * .95, h * .55, 0, 0, 6.283); c.fill();
+  c.restore();
+}
+function drawBlob(c, b) {
+  const s = sc(b.y), R = blobR(b) * s;
+  if (R < 2) return;
+  const r = R * (1 + b.sq * .45), h = R * .78 * b.hf * (1 - b.sq);
+  const x = b.x, y = b.y, mud = Math.min(1, b.mud), clear = 1 - mud;
+  // caustic glow on the sand
+  if (b.soak > .01) {
+    const wr = r * (1.15 + b.soak * .9);
+    const wg = c.createRadialGradient(x, y, r * .6, x, y, wr);
+    wg.addColorStop(0, `rgba(100,60,25,${.4 * Math.min(1, b.soak * 2)})`); wg.addColorStop(1, 'rgba(100,60,25,0)');
+    c.save(); c.translate(0, y); c.scale(1, .26); c.fillStyle = wg;
+    c.beginPath(); c.arc(x, 0, wr, 0, 6.283); c.fill(); c.restore();
+  }
+  if (clear > .05) {
+    const cg = c.createRadialGradient(x + r * .3, y, 0, x + r * .3, y, r * 1.2);
+    cg.addColorStop(0, `rgba(255,205,120,${.55 * clear})`); cg.addColorStop(1, 'rgba(255,205,120,0)');
+    c.save(); c.translate(0, y); c.scale(1, .28); c.fillStyle = cg;
+    c.beginPath(); c.arc(x + r * .3, 0, r * 1.2, 0, 6.283); c.fill(); c.restore();
+  }
+  c.save();
+  domePath(c, b, x, y, r, h); c.clip();
+  // refraction: magnified, flipped sand behind
+  c.globalAlpha = .55 * clear + .1;
+  c.save(); c.translate(x, y - h * .4); c.scale(1, -1);
+  c.drawImage(bgC, x - r * .7, y - h * .9, r * 1.4, h * 1.2, -r, -h * .75, r * 2, h * 1.3);
+  c.restore();
+  c.globalAlpha = 1;
+  const g = c.createRadialGradient(x + r * .3, y - h * .7, r * .05, x, y - h * .3, r * 1.1);
+  g.addColorStop(0, 'rgba(255,255,255,.78)'); g.addColorStop(.45, 'rgba(240,238,232,.5)'); g.addColorStop(.85, 'rgba(225,218,205,.55)'); g.addColorStop(1, 'rgba(250,245,235,.8)');
+  c.fillStyle = g; c.fillRect(x - r - 2, y - h - 2, r * 2 + 4, h + r * .2 + 4);
+  // mud
+  if (mud > .02) {
+    const mg = c.createLinearGradient(x + r * .5, y - h, x - r * .6, y + r * .1);
+    mg.addColorStop(0, `rgba(224,180,120,${mud * .97})`); mg.addColorStop(1, `rgba(150,102,56,${mud * .97})`);
+    c.fillStyle = mg; c.fillRect(x - r - 2, y - h - 2, r * 2 + 4, h + r * .2 + 4);
+    // sand specks
+    const n = 22 + (mud * 40) | 0, sv = Math.sin(mud * Math.PI) * .85 + .15;
+    for (let i = 0; i < n; i++) {
+      c.fillStyle = i % 3 ? `rgba(130,85,40,${sv * .7})` : `rgba(240,210,160,${sv * .8})`;
+      dot(c, x + nz(b.sd, i) * r * .9, y - h * .1 - h1(b.sd + i * 3) * h * .85, (1 + h1(b.sd + i) * 1.6) * s);
+    }
+    // dough folds
+    if (mud > .45) {
+      const fa = Math.min(1, (mud - .45) * 1.8);
+      c.lineCap = 'round';
+      for (let i = 0; i < 4; i++) {
+        const fx = x + nz(b.sd, 40 + i) * r * .5, fy = y - h * (.25 + h1(b.sd + 50 + i) * .45);
+        const L = r * (.25 + h1(b.sd + 60 + i) * .3), cur = nz(b.sd, 70 + i) * 1.2;
+        c.strokeStyle = `rgba(105,66,30,${fa * .7})`; c.lineWidth = 3.2 * s;
+        c.beginPath(); c.moveTo(fx - L, fy); c.quadraticCurveTo(fx, fy - L * cur, fx + L, fy + L * .2); c.stroke();
+        c.strokeStyle = `rgba(255,232,190,${fa * .55})`; c.lineWidth = 2 * s;
+        c.beginPath(); c.moveTo(fx - L, fy - 3 * s); c.quadraticCurveTo(fx, fy - L * cur - 3 * s, fx + L, fy + L * .2 - 3 * s); c.stroke();
+      }
+    }
+  }
+  c.restore();
+  // rim light & contact line
+  c.lineWidth = 1.5; c.strokeStyle = `rgba(255,255,255,${.5 * clear + .1})`;
+  domePath(c, b, x, y, r, h); c.stroke();
+  c.strokeStyle = `rgba(110,70,35,${.25 + mud * .2})`; c.lineWidth = 1.5;
+  c.beginPath(); c.ellipse(x, y, r, r * .17, 0, .15, Math.PI - .15); c.stroke();
+  // ripples where water lands
+  if (b.rip) for (const rp of b.rip) {
+    const k = rp.t / .7, px = x + rp.u * r * .8, py = y - h * Math.sqrt(Math.max(0, 1 - rp.u * rp.u * .64)) * .97;
+    c.strokeStyle = `rgba(255,255,255,${(1 - k) * .7})`; c.lineWidth = 1.4;
+    c.beginPath(); c.ellipse(px, py, 3 + k * r * .35, (3 + k * r * .35) * .3, 0, 0, 6.283); c.stroke();
+  }
+  // tiny trapped bubbles
+  if (clear > .3) for (let i = 0; i < 4; i++) {
+    c.strokeStyle = `rgba(255,255,255,${.45 * clear})`; c.lineWidth = 1;
+    c.beginPath(); c.arc(x + nz(b.sd, 80 + i) * r * .55, y - h * (.15 + h1(b.sd + 90 + i) * .45), (1 + h1(b.sd + i) * 2) * s, 0, 6.283); c.stroke();
+  }
+  // specular (slides a little as it wobbles)
+  c.fillStyle = `rgba(255,255,255,${.9 - mud * .5})`;
+  c.beginPath(); c.ellipse(x + r * (.42 - b.sq * .2), y - h * (.66 + b.sq * .1), r * .1, h * .08 * (1 + b.sq), -.5, 0, 6.283); c.fill();
+  c.fillStyle = `rgba(255,255,255,${.4 - mud * .25})`;
+  c.beginPath(); c.ellipse(x - r * .5, y - h * .35, r * .05, h * .18, .4, 0, 6.283); c.fill();
+}
+
+// ---------- drawing: ground decals ----------
+function drawDecal(c, d) {
+  const fade = Math.min(1, (d.life - d.t) / 6);
+  c.save(); c.globalAlpha = fade;
+  if (d.type === 'foot') {
+    const s = d.s;
+    c.fillStyle = 'rgba(120,75,35,.32)'; c.beginPath(); c.ellipse(d.x, d.y, 10 * s, 3.8 * s, 0, 0, 6.283); c.fill();
+    c.fillStyle = 'rgba(255,230,190,.35)'; c.beginPath(); c.ellipse(d.x, d.y - 2.2 * s, 9 * s, 2 * s, 0, Math.PI, 0); c.fill();
+  } else if (d.type === 'wet') {
+    const g = c.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.rx);
+    const a = .38 * Math.min(1, (d.life - d.t) / d.life * 1.5);
+    g.addColorStop(0, `rgba(105,62,25,${a})`); g.addColorStop(1, 'rgba(105,62,25,0)');
+    c.translate(d.x, d.y); c.scale(1, .3); c.translate(-d.x, -d.y);
+    c.fillStyle = g; c.beginPath(); c.arc(d.x, d.y, d.rx, 0, 6.283); c.fill();
+  } else if (d.type === 'smear') {
+    const s = d.s;
+    c.fillStyle = 'rgba(120,75,35,.16)'; c.beginPath(); c.ellipse(d.x, d.y - 3 * s, 60 * s * d.r, 9 * s, 0, 0, 6.283); c.fill();
+    c.fillStyle = 'rgba(255,232,195,.18)'; c.beginPath(); c.ellipse(d.x, d.y - 8 * s, 52 * s * d.r, 4 * s, 0, 0, 6.283); c.fill();
+  } else if (d.type === 'groove') {
+    const pts = d.pts; if (pts.length < 2) { c.restore(); return; }
+    const sv = pts.reduce((a, p) => a + p.s, 0) / pts.length;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    for (const [w, col, dy] of [[30, 'rgba(110,68,30,.2)', 1], [18, 'rgba(90,55,22,.2)', 2], [5, 'rgba(255,236,204,.5)', -13], [3.5, 'rgba(255,236,204,.32)', 15], [2, 'rgba(95,58,25,.25)', -9]]) {
+      c.strokeStyle = col; c.lineWidth = w * sv;
+      c.beginPath(); c.moveTo(pts[0].x, pts[0].y + dy * sv);
+      for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].y + dy * pts[i].s + Math.sin(i * 1.7) * .6);
+      c.stroke();
+    }
+  } else if (d.type === 'sheet') {
+    const k = d.t / d.life, rr = d.rx * (1 + k * .9);
+    c.globalAlpha = 1 - k;
+    c.fillStyle = 'rgba(232,240,238,.45)'; c.beginPath(); c.ellipse(d.x, d.y, rr, rr * .22, 0, 0, 6.283); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 2.5; c.stroke();
+  } else if (d.type === 'crater') {
+    const r = d.rx;
+    c.fillStyle = 'rgba(95,58,25,.35)'; c.beginPath(); c.ellipse(d.x, d.y, r * .85, r * .22, 0, 0, 6.283); c.fill();
+    c.strokeStyle = 'rgba(255,232,195,.55)'; c.lineWidth = 3;
+    c.beginPath(); c.ellipse(d.x, d.y - 2, r, r * .27, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke();
+    c.strokeStyle = 'rgba(95,58,25,.4)'; c.lineWidth = 2;
+    c.beginPath(); c.ellipse(d.x, d.y + 1, r, r * .27, 0, .1, Math.PI - .1); c.stroke();
+    for (let i = 0; i < 7; i++) {
+      const a = h1(d.sd + i) * 6.283, rr = r * (1.15 + h1(d.sd + 9 + i) * .5);
+      const px = d.x + Math.cos(a) * rr, py = d.y + Math.sin(a) * rr * .3, pr = r * (.05 + h1(d.sd + 20 + i) * .06);
+      c.fillStyle = 'rgba(105,65,28,.35)'; c.beginPath(); c.ellipse(px, py, pr, pr * .35, 0, 0, 6.283); c.fill();
+      c.strokeStyle = 'rgba(255,235,200,.45)'; c.lineWidth = 1.2; c.beginPath(); c.ellipse(px, py - 1, pr, pr * .35, 0, Math.PI, 0); c.stroke();
+    }
+  }
+  c.restore();
+}
+
+// ---------- render ----------
+const SHW = 1200, SHH = 1300, SHOX = 600, SHOY = 1150, SHQ = .3;
+const shC = document.createElement('canvas'); shC.width = SHW * SHQ; shC.height = SHH * SHQ;
+const shx = shC.getContext('2d');
+function figTransform(c, ps) {
+  const a = P.act;
+  if (a && a.type === 'roll') { c.translate(0, -rollH(a.ang)); c.rotate(a.ang); c.translate(0, 110); }
+  else {
+    c.scale(1 + .12 * P.sq, 1 - .16 * P.sq);
+    if (P.vz > 0) { const k = clamp(P.vz / 660, 0, 1); c.scale(1 - .07 * k, 1 + .1 * k); }
+  }
+}
+function contact(x, y, r, a) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, `rgba(70,40,15,${a})`); g.addColorStop(1, 'rgba(70,40,15,0)');
+  ctx.save(); ctx.translate(x, y); ctx.scale(1, .2); ctx.translate(-x, -y);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill(); ctx.restore();
+}
+function render() {
+  ctx.setTransform(K, 0, 0, K, 0, 0);
+  ctx.drawImage(bgC, 0, 0);
+  for (const d of decals) drawDecal(ctx, d);
+  ctx.lineCap = 'round';
+  for (const w of winds) {
+    const fx = clamp(Math.min((W + 30 - w.x) / 80, (w.x + 60) / 120), 0, 1);
+    ctx.strokeStyle = `rgba(246,226,186,${w.a * fx})`; ctx.lineWidth = 1.1 * w.s;
+    const wy = w.y + Math.sin(time * 6 + w.ph) * 2 * w.s;
+    ctx.beginPath(); ctx.moveTo(w.x, wy); ctx.quadraticCurveTo(w.x + w.len / 2, wy - 2 * w.s, w.x + w.len, wy + 1 * w.s); ctx.stroke();
+  }
+
+  const ps = getPose(), s = sc(P.y);
+  // shadows
+  for (const b of blobs) drawBlobShadow(ctx, b);
+  if (!P.hold) {
+    const bs = sc(bucket.y);
+    ctx.save(); ctx.translate(bucket.x, bucket.y); ctx.transform(1, 0, .95, .1, 0, 0); ctx.scale(bs, bs);
+    ctx.globalAlpha = .3; ctx.fillStyle = '#000'; bucketPath(ctx, 42, 34, -36 - 42, 0); ctx.fill(); ctx.restore();
+    contact(bucket.x, bucket.y, 40 * bs, .3);
+  }
+  shx.setTransform(1, 0, 0, 1, 0, 0); shx.clearRect(0, 0, shC.width, shC.height);
+  shx.setTransform(SHQ, 0, 0, SHQ, SHOX * SHQ, SHOY * SHQ); shx.scale(s, s); figTransform(shx, ps); drawFigure(shx, ps, true);
+  const lift = P.onBlob ? 0 : P.z * s, fadeH = 1 / (1 + lift / 160);
+  ctx.save(); ctx.translate(P.x - .95 * lift, P.y - .1 * lift); ctx.transform(1, 0, .95, .1, 0, 0);
+  // three slightly offset passes = soft penumbra
+  for (const [ox, a] of [[0, .2], [-14, .1], [12, .1]]) { ctx.globalAlpha = a * fadeH; ctx.drawImage(shC, -SHOX + ox, -SHOY, SHW, SHH); }
+  ctx.restore();
+  // contact shadow under the feet (drawn with the figure when the feet are sunk in)
+  const rolling = P.act && P.act.type === 'roll';
+  if (!P.onBlob && rolling) contact(P.x, P.y, 70 * s, .32);
+  if (!P.onBlob && !rolling && P.sink < .5) contact(P.x, P.y, 46 * s * fadeH, .3 * fadeH);
+
+  // depth-sorted entities
+  const ents = blobs.map(b => ({ y: b.y, d: () => drawBlob(ctx, b) }));
+  if (!P.hold) ents.push({ y: bucket.y, d: () => {
+    const bs = sc(bucket.y); ctx.save(); ctx.translate(bucket.x, bucket.y); ctx.scale(bs, bs);
+    drawBucket(ctx, 0, -42, 0, bucket.water, false); ctx.restore(); } });
+  ents.push({ y: P.y + (P.onBlob ? 30 : .5), d: () => {
+    const sk = P.sink > .5 && !P.onBlob && !rolling ? P.sink : 0;
+    ctx.save(); ctx.translate(P.x, P.y - P.z * s + sk * s); ctx.scale(s, s); figTransform(ctx, ps); drawFigure(ctx, ps, false); ctx.restore();
+    if (sk) {
+      // cover the buried part of each planted foot with sand, then pile a little rim around it
+      for (const [f, side] of [[ps.fl, -1], [ps.fr, 1]]) {
+        if (f.y < -4) continue;
+        const fx = P.x + (f.x + side * 3) * s, rw = 15 * s;
+        ctx.save(); ctx.beginPath(); ctx.ellipse(fx, P.y + 1 * s, rw, 9 * s, 0, 0, Math.PI); ctx.lineTo(fx - rw, P.y - .5 * s); ctx.closePath(); ctx.clip();
+        ctx.drawImage(bgC, 0, 0); ctx.restore();
+        const k = Math.min(1, sk / 7);
+        ctx.fillStyle = `rgba(105,64,28,${.3 * k})`; ctx.beginPath(); ctx.ellipse(fx, P.y + .5 * s, 12 * s, 2.6 * s, 0, 0, Math.PI); ctx.fill();
+        ctx.fillStyle = `rgba(255,236,205,${.55 * k})`; ctx.beginPath(); ctx.ellipse(fx, P.y + 2.2 * s, rw, 3 * s * k, 0, 0, Math.PI); ctx.fill();
+        ctx.fillStyle = `rgba(232,196,145,${.7 * k})`; ctx.beginPath(); ctx.ellipse(fx, P.y + 1.4 * s, rw * .85, 2 * s * k, 0, 0, Math.PI); ctx.fill();
+        ctx.strokeStyle = `rgba(255,238,210,${.5 * k})`; ctx.lineWidth = 1.6 * s; ctx.beginPath(); ctx.ellipse(fx, P.y + .5 * s, rw * .8, 2.4 * s, 0, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+      }
+      contact(P.x, P.y + 2 * s, 46 * s, .2);
+    }
+  } });
+  ents.sort((a, b) => a.y - b.y).forEach(e => e.d());
+
+  // dust clouds
+  for (const p of dusts) {
+    const k = 1 - p.life / p.max, r = lerp(p.r0, p.r1, Math.sqrt(k)), a = .5 * Math.sin(Math.min(1, p.life / p.max) * Math.PI * .5) * Math.min(1, k * 6);
+    const g = ctx.createRadialGradient(p.x, p.y - p.rise - r * .3, 0, p.x, p.y - p.rise - r * .3, r);
+    g.addColorStop(0, `rgba(232,200,150,${a})`); g.addColorStop(1, 'rgba(222,186,132,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - p.rise - r * .3, r, 0, 6.283); ctx.fill();
+  }
+  // particles
+  for (const p of sands) {
+    ctx.globalAlpha = Math.max(0, p.life / p.max) * (p.water ? .8 : .7);
+    ctx.fillStyle = p.water ? '#f4fbfc' : '#d8ad73';
+    dot(ctx, p.x, p.y - p.z, (p.water ? 1.6 : 2.2) * p.s);
+  }
+  ctx.globalAlpha = 1;
+  // the pour as one continuous ribbon of water
+  const st = drops.filter(d => d.seq).sort((a, b) => a.seq - b.seq);
+  const pa = P.act, flowing = pa && pa.type === 'pour' && pa.k >= 1 && !pa.end && bucket.water > 0;
+  if (flowing) st.push({ lip: true, ...bucketLip(), seq: seq + 1 });
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // split into continuous runs, then draw each run as a smooth curve
+  const runs = []; let run = [];
+  for (let i = 0; i < st.length; i++) {
+    const d = st[i], pr = st[i - 1];
+    if (pr && !(d.seq - pr.seq <= 3 && Math.hypot(d.x - pr.x, d.y - pr.y) < 45 * s)) { runs.push(run); run = []; }
+    run.push(d);
+  }
+  runs.push(run);
+  for (const [lw, col, dx] of [[10, 'rgba(220,234,240,.42)', 0], [5.5, 'rgba(248,252,253,.7)', 0], [1.6, 'rgba(255,255,255,.95)', -1.5]]) {
+    ctx.strokeStyle = col; ctx.lineWidth = lw * s;
+    for (const r of runs) {
+      if (r.length < 2) continue;
+      ctx.beginPath(); ctx.moveTo(r[0].x + dx * s, r[0].y);
+      for (let i = 1; i < r.length - 1; i++) ctx.quadraticCurveTo(r[i].x + dx * s, r[i].y, (r[i].x + r[i + 1].x) / 2 + dx * s, (r[i].y + r[i + 1].y) / 2);
+      ctx.lineTo(r[r.length - 1].x + dx * s, r[r.length - 1].y); ctx.stroke();
+    }
+  }
+  // loose drops: motion-blurred streaks with a darker edge so they read on bright sand
+  for (const d of drops) {
+    if (d.conf) { ctx.fillStyle = d.conf; dot(ctx, d.x, d.y, d.sz); continue; }
+    if (d.seq) continue;
+    const tx = d.x - d.vx * .03, ty = d.y - d.vy * .03;
+    ctx.strokeStyle = 'rgba(150,150,140,.18)'; ctx.lineWidth = d.sz * 1.5 + 1.2;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(d.x, d.y); ctx.stroke();
+    ctx.strokeStyle = 'rgba(240,248,250,.85)'; ctx.lineWidth = d.sz * 1.5;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(d.x, d.y); ctx.stroke();
+    ctx.fillStyle = '#fff'; dot(ctx, d.x - d.sz * .25, d.y - d.sz * .25, d.sz * .35);
+  }
+
+  // title
+  ctx.font = '900 60px "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round'; ctx.lineWidth = 11; ctx.strokeStyle = '#111';
+  ctx.strokeText('挑战玩脏再洗白', W / 2, 72); ctx.fillStyle = '#fff'; ctx.fillText('挑战玩脏再洗白', W / 2, 72);
+
+  // audio still locked by the browser -> tell the player
+  if (!muted && (!AC || AC.state !== 'running')) {
+    ctx.font = '700 15px "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'right'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.fillStyle = '#fff';
+    const msg = '🔇 点一下画面开启声音' + (AC ? `（${AC.state}）` : '');
+    ctx.strokeText(msg, W - 16, H - 20); ctx.fillText(msg, W - 16, H - 20);
+    ctx.textAlign = 'center'; ctx.strokeStyle = '#111';
+  }
+  // captions
+  for (const cp of captions) {
+    const a = Math.min(1, cp.t * 5, (cp.dur - cp.t) * 3);
+    ctx.globalAlpha = a;
+    ctx.font = '800 26px "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+    ctx.lineWidth = 7; ctx.strokeText(cp.text, W / 2, 140); ctx.fillText(cp.text, W / 2, 140);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  update(dt); render();
+  document.getElementById('dirtBar').style.width = (dirtLevel() * 100).toFixed(0) + '%';
+  document.getElementById('dirtPct').textContent = (dirtLevel() * 100).toFixed(0) + '%';
+  requestAnimationFrame(frame);
+}
+reset(); resize(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
