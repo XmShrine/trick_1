@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
+<title>摸一摸金源 · 重制版</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05030a; touch-action: manipulation; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif; color: #f6e7c1; }
+  #stage { position: fixed; inset: 0; }
+  #stage canvas { display: block; width: 100%; height: 100%; }
+
+  .hud { position: fixed; inset: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: max(18px, env(safe-area-inset-top)) 16px max(22px, env(safe-area-inset-bottom)); }
+  .title { font-size: clamp(28px, 6vw, 52px); font-weight: 800; letter-spacing: 0.12em; text-align: center;
+    background: linear-gradient(180deg, #fff6d8 0%, #f3c45a 55%, #b5761d 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 18px rgba(255, 190, 80, 0.45)); }
+  .meter { margin-top: 10px; width: min(360px, 78vw); text-align: center; font-size: 14px; letter-spacing: 0.2em; color: #e9d3a0; }
+  .meter .num { font-size: 22px; font-weight: 700; color: #fff3cf; font-variant-numeric: tabular-nums; }
+  .bar { margin-top: 8px; height: 6px; border-radius: 3px; background: rgba(255, 220, 150, 0.12); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255, 210, 130, 0.18); }
+  .bar i { display: block; height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, #f7d27a, #ff8a2a, #ff2a1a); box-shadow: 0 0 12px #ff9a3a; transition: width 0.25s ease; }
+
+
+  .btn { pointer-events: auto; border: none; cursor: pointer; font-size: clamp(20px, 5vw, 26px); font-weight: 700; letter-spacing: 0.15em; color: #2a1404;
+    padding: 16px 52px; border-radius: 999px; background: linear-gradient(180deg, #fff2c4 0%, #f5c04f 50%, #d98a1c 100%);
+    box-shadow: 0 0 0 2px rgba(255, 230, 160, 0.5), 0 0 28px rgba(255, 170, 60, 0.55), inset 0 -3px 0 rgba(120, 50, 0, 0.35);
+    transition: transform 0.08s ease, filter 0.2s ease; touch-action: manipulation; }
+  .btn:active { transform: scale(0.94); }
+  .btn.locked { filter: grayscale(0.7) brightness(0.6); }
+
+  #flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; mix-blend-mode: screen; }
+  .loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; color: #c9a86a; letter-spacing: 0.3em; font-size: 14px; pointer-events: none; transition: opacity 0.6s; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.min.js", "three/addons/": "./lib/jsm/" } }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="flash"></div>
+<div class="loading" id="loading">加载中…</div>
+<div class="hud">
+  <div style="display:flex;flex-direction:column;align-items:center">
+    <h1 class="title">摸一摸金源</h1>
+    <div class="meter"><span class="num" id="count">0</span> / 57<div class="bar"><i id="barFill"></i></div></div>
+  </div>
+  <button class="btn" id="touchBtn">😋摸😋</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+const MAX = 57;
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || Math.min(innerWidth, innerHeight) < 600;
+const Q = isMobile ? 0.6 : 1; // 粒子数量系数
+
+// ---------- 渲染器与场景 ----------
+const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.5 : 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.NoToneMapping;
+document.getElementById('stage').appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 500);
+const lookTarget = new THREE.Vector3(0, 0.3, 0);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+// 亮度上限：粒子叠加再多，单个像素也不超过这个值，辉光就不会淹没整屏
+const clampPass = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, maxV: { value: 2.5 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float maxV; varying vec2 vUv;
+    void main(){ vec4 c = texture2D(tDiffuse, vUv); float m = max(c.r, max(c.g, c.b));
+      gl_FragColor = vec4(m > maxV ? c.rgb * (maxV / m) : c.rgb, c.a); }`
+});
+composer.addPass(clampPass);
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight).multiplyScalar(isMobile ? 0.5 : 1), 0.6, 0.55, 0.9);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+// ---------- 通用工具 ----------
+function R0(a, b) { return a + Math.random() * (b - a); }
+const FLOOR_Y = -3.2, GROUND_Y = -3.65;
+const NOISE_GLSL = `
+  float hash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+  float vnoise(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+               mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z); }
+  float fbm(vec3 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a * vnoise(p); p *= 2.03; a *= 0.5; } return s; }`;
+
+// 程序生成的石材贴图（tiles > 0 时画成石板地砖）
+function stoneTexture(size, base, tiles) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d');
+  g.fillStyle = base; g.fillRect(0, 0, size, size);
+  for (let i = 0; i < size * size / 220; i++) {
+    const r = R0(2, size * 0.05), v = Math.random() < 0.5 ? 255 : 0;
+    g.fillStyle = `rgba(${v},${v},${v},${R0(0.01, 0.05)})`;
+    g.beginPath(); g.arc(R0(0, size), R0(0, size), r, 0, 7); g.fill();
+  }
+  for (let i = 0; i < 7; i++) { // 大理石纹
+    g.strokeStyle = `rgba(255,250,240,${R0(0.04, 0.1)})`; g.lineWidth = R0(0.5, 2);
+    g.beginPath(); g.moveTo(R0(0, size), 0);
+    g.bezierCurveTo(R0(0, size), size * 0.33, R0(0, size), size * 0.66, R0(0, size), size); g.stroke();
+  }
+  for (let i = 0; i < size * size / 40; i++) { // 细小颗粒
+    const v = Math.random() < 0.5 ? 255 : 0;
+    g.fillStyle = `rgba(${v},${v},${v},${R0(0.03, 0.12)})`; g.fillRect(R0(0, size), R0(0, size), 1, 1);
+  }
+  if (tiles) {
+    const s = size / tiles;
+    for (let y = 0; y < tiles; y++) for (let x = 0; x < tiles; x++) {
+      const off = (y % 2) * s / 2;
+      g.fillStyle = `rgba(${Math.random() < 0.5 ? 255 : 0},0,0,0)`;
+      const v = Math.random() < 0.5 ? 255 : 0;
+      g.fillStyle = `rgba(${v},${v},${v},${R0(0.02, 0.08)})`; g.fillRect(x * s + off, y * s, s, s);
+      g.strokeStyle = 'rgba(10,6,4,0.55)'; g.lineWidth = 3; g.strokeRect(x * s + off, y * s, s, s);
+      g.strokeRect(x * s + off - size, y * s, s, s);
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+const marbleTex = stoneTexture(512, '#a89c8c', 0);
+const tileTex = stoneTexture(1024, '#7d7266', 8); tileTex.repeat.set(3, 3);
+const rockTex = stoneTexture(512, '#3a3038', 0); rockTex.repeat.set(30, 30);
+const marbleMat = new THREE.MeshStandardMaterial({ map: marbleTex, bumpMap: marbleTex, bumpScale: 0.6, roughness: 0.7, metalness: 0.05 });
+const stoneMat = marbleMat;
+const darkStoneMat = new THREE.MeshStandardMaterial({ map: marbleTex, bumpMap: marbleTex, bumpScale: 0.8, color: 0x8a7f80, roughness: 0.85 });
+const addGlow = (color, k) => new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+
+// ---------- 天空：分层星云 + 地平线辉光 ----------
+const nebulaMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false,
+  uniforms: { time: { value: 0 }, heat: { value: 0 }, flash: { value: 0 } },
+  vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: NOISE_GLSL + `
+    varying vec3 vDir; uniform float time; uniform float heat; uniform float flash;
+    void main(){
+      vec3 d = normalize(vDir);
+      vec3 q = d * 2.6 + vec3(time * 0.006, 0.0, time * 0.004);
+      float warp = fbm(q * 1.7 + 4.0);
+      float n = fbm(q + warp * 1.6);
+      float n2 = fbm(q * 0.7 - 7.0 + warp);
+      vec3 zenith  = mix(vec3(0.008, 0.008, 0.03), vec3(0.09, 0.01, 0.0), heat);
+      vec3 horizon = mix(vec3(0.17, 0.09, 0.24), vec3(0.95, 0.32, 0.08), heat);
+      vec3 col = mix(horizon, zenith, smoothstep(-0.02, 0.55, d.y));
+      float band = exp(-pow((d.y - 0.32 - 0.28 * d.x) * 2.0, 2.0));            // 斜贯天空的银河带
+      vec3 neb1 = mix(vec3(0.42, 0.14, 0.62), vec3(1.0, 0.38, 0.1), heat);
+      vec3 neb2 = mix(vec3(0.06, 0.28, 0.55), vec3(0.7, 0.14, 0.03), heat);
+      col += neb1 * pow(n, 3.0) * 2.2 * band;
+      col += neb2 * pow(n2, 4.0) * 1.6 * (0.4 + band);
+      col -= vec3(0.06) * smoothstep(0.55, 0.75, fbm(q * 3.0 + 11.0)) * band;  // 暗尘带
+      col += horizon * exp(-abs(d.y) * 14.0) * 0.7;
+      col += vec3(1.0, 0.6, 0.3) * flash;
+      gl_FragColor = vec4(max(col, 0.0), 1.0);
+    }`
+});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(200, 64, 40), nebulaMat));
+
+{ // 星星：大小、亮度不一
+  const n = Math.floor(3500 * Q), p = new Float32Array(n * 3), col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const v = new THREE.Vector3().randomDirection(); v.y = Math.abs(v.y) * 0.95 + 0.02; v.normalize().multiplyScalar(150 + Math.random() * 30);
+    p.set([v.x, v.y, v.z], i * 3);
+    const b = Math.pow(Math.random(), 3) * 1.6 + 0.25, tint = Math.random();
+    col.set([b * (0.85 + tint * 0.15), b * 0.9, b * (1.05 - tint * 0.2)], i * 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  var stars = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.55, sizeAttenuation: true, vertexColors: true, transparent: true, depthWrite: false, fog: false }));
+  scene.add(stars);
+}
+
+// 巨大的月亮
+const moonMat = new THREE.ShaderMaterial({
+  uniforms: { heat: { value: 0 } },
+  vertexShader: `varying vec3 vN; varying vec3 vP; void main(){ vN = normalize(normal); vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: NOISE_GLSL + `
+    varying vec3 vN; varying vec3 vP; uniform float heat;
+    void main(){
+      vec3 L = normalize(vec3(0.9, 0.25, 0.7));
+      float diff = smoothstep(-0.05, 0.6, dot(vN, L));
+      float surf = 0.55 + 0.45 * fbm(vN * 3.5);
+      surf -= 0.25 * smoothstep(0.62, 0.7, fbm(vN * 7.0 + 3.0));   // 环形山
+      vec3 base = mix(vec3(0.9, 0.86, 1.0), vec3(1.0, 0.55, 0.35), heat);
+      vec3 col = base * surf * diff * 1.1;
+      gl_FragColor = vec4(col, 1.0);
+    }`
+});
+const moon = new THREE.Mesh(new THREE.SphereGeometry(16, 64, 48), moonMat);
+moon.position.set(-75, 62, -140); moon.lookAt(0, 0, 0);
+scene.add(moon);
+const moonHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTexture([[0, 'rgba(255,255,255,0.6)'], [0.22, 'rgba(255,255,255,0.35)'], [0.5, 'rgba(255,255,255,0.08)'], [1, 'rgba(255,255,255,0)']]), color: 0x8070c0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: 0.55 }));
+moonHalo.position.copy(moon.position).multiplyScalar(1.01); moonHalo.scale.setScalar(80);
+scene.add(moonHalo);
+
+// 远山：两层剪影，越远越淡
+function mountainRing(radius, hMin, hMax, top, bottom, seed) {
+  const N = 480, pos = [], col = [], idx = [];
+  const ct = new THREE.Color(top), cb = new THREE.Color(bottom);
+  for (let i = 0; i <= N; i++) {
+    const a = i / N * Math.PI * 2;
+    let h = 0, amp = 1, f = 3;
+    for (let o = 0; o < 6; o++) { h += amp * (1 - Math.abs(Math.sin(a * f + seed * (o + 1) * 1.7))); amp *= 0.5; f *= 2.1; }
+    h = hMin + (hMax - hMin) * Math.pow(h / 1.9, 2.2);
+    const x = Math.cos(a) * radius, z = Math.sin(a) * radius;
+    pos.push(x, GROUND_Y - 1, z, x, h, z);
+    col.push(cb.r, cb.g, cb.b, ct.r, ct.g, ct.b);
+    if (i < N) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx);
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, fog: false }));
+  scene.add(m); return m;
+}
+const farMountains = mountainRing(175, 4, 52, 0x2a1a3a, 0x140c1e, 1.3);
+const nearMountains = mountainRing(130, 0, 30, 0x150d1e, 0x07040b, 4.1);
+
+// 起伏的大地
+function terrainY(x, z) {
+  const r = Math.hypot(x, z);
+  const hill = Math.sin(x * 0.07) * Math.cos(z * 0.05) * 3 + Math.sin(x * 0.19 + z * 0.13) * 1.2 + Math.sin(z * 0.3 - x * 0.1) * 0.4;
+  return GROUND_Y + hill * THREE.MathUtils.smoothstep(r, 22, 70);
+}
+{
+  const g = new THREE.PlaneGeometry(320, 320, 160, 160); g.rotateX(-Math.PI / 2);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, terrainY(p.getX(i), p.getZ(i)) + Math.random() * 0.12);
+  g.computeVertexNormals();
+  var ground = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: rockTex, bumpMap: rockTex, bumpScale: 1, color: 0x6a5a66, roughness: 1 }));
+  scene.add(ground);
+}
+scene.fog = new THREE.FogExp2(0x120a1c, 0.009);
+
+// ---------- 灯光 ----------
+scene.add(new THREE.HemisphereLight(0x6a5aa0, 0x1a0a05, 0.7));
+const moonLight = new THREE.DirectionalLight(0x9aa0ff, 1.1);
+moonLight.position.set(-75, 62, -140); scene.add(moonLight);
+const headLight = new THREE.PointLight(0xffc070, 40, 40, 1.6);
+headLight.position.set(0, 0.5, 2);
+scene.add(headLight);
+
+// ---------- 神殿 ----------
+// 三层台阶 + 石砖地面
+[[15.2, GROUND_Y, -3.5], [14.2, -3.5, -3.35], [13.2, -3.35, FLOOR_Y]].forEach(([r, y0, y1]) => {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.15, y1 - y0, 96), darkStoneMat);
+  m.position.y = (y0 + y1) / 2; scene.add(m);
+});
+const floor = new THREE.Mesh(new THREE.CircleGeometry(13.15, 96), new THREE.MeshStandardMaterial({ map: tileTex, bumpMap: tileTex, bumpScale: 1.2, roughness: 0.55, metalness: 0.1 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = FLOOR_Y + 0.005; scene.add(floor);
+
+// 中央祭坛
+const platform = new THREE.Mesh(new THREE.CylinderGeometry(4, 4.4, 0.42, 96), marbleMat);
+platform.position.y = -3.0; scene.add(platform);
+const platformTrim = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.08, 8, 128), marbleMat);
+platformTrim.rotation.x = Math.PI / 2; platformTrim.position.y = -3.16; scene.add(platformTrim);
+const floorRingMat = addGlow(0xffb54a, 2.2);
+const floorRing = new THREE.Mesh(new THREE.RingGeometry(3.55, 3.7, 128), floorRingMat);
+floorRing.rotation.x = -Math.PI / 2; floorRing.position.y = -2.785; scene.add(floorRing);
+const floorRing2 = new THREE.Mesh(new THREE.RingGeometry(2.6, 2.64, 128), floorRingMat);
+floorRing2.rotation.x = -Math.PI / 2; floorRing2.position.y = -2.785; scene.add(floorRing2);
+
+// 希腊式柱子：柱础 + 带凹槽的柱身 + 柱头，原点在柱脚
+const flutedGeo = (() => {
+  const g = new THREE.CylinderGeometry(0.48, 0.56, 9.4, 96, 12, true);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), a = Math.atan2(z, x), r = Math.hypot(x, z);
+    const k = 1 - 0.06 * Math.pow(0.5 + 0.5 * Math.cos(a * 20), 3);
+    p.setX(i, Math.cos(a) * r * k); p.setZ(i, Math.sin(a) * r * k);
+  }
+  g.computeVertexNormals(); g.translate(0, 0.6 + 4.7, 0); return g;
+})();
+const echinusGeo = new THREE.LatheGeometry([[0.46, 0], [0.56, 0.1], [0.7, 0.26], [0.78, 0.4]].map(([x, y]) => new THREE.Vector2(x, y)), 48);
+const COL_H = 10.7;
+function makeColumn() {
+  const c = new THREE.Group();
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 1.5), marbleMat); plinth.position.y = 0.15;
+  const t1 = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.13, 10, 40), marbleMat); t1.rotation.x = Math.PI / 2; t1.position.y = 0.42;
+  const t2 = new THREE.Mesh(new THREE.TorusGeometry(0.56, 0.08, 10, 40), marbleMat); t2.rotation.x = Math.PI / 2; t2.position.y = 0.62;
+  const shaft = new THREE.Mesh(flutedGeo, marbleMat);
+  const ech = new THREE.Mesh(echinusGeo, marbleMat); ech.position.y = 10.0;
+  const abacus = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.3, 1.7), marbleMat); abacus.position.y = 10.55;
+  c.add(plinth, t1, t2, shaft, ech, abacus);
+  return c;
+}
+
+// 会被炸飞的东西：记录原位和倒下后的位置，爆炸/复原时插值
+const debris = [];
+function addDebris(obj, fallP, fallQ, delay, hop, kind) {
+  debris.push({ obj, homeP: obj.position.clone(), homeQ: obj.quaternion.clone(), fallP, fallQ, delay, hop, kind, dust: false, landed: false,
+    base: { fallP: fallP.clone(), fallQ: fallQ.clone(), delay, hop } });
+}
+function poseDebris(d, k) {
+  d.obj.position.lerpVectors(d.homeP, d.fallP, k);
+  d.obj.position.y += Math.sin(k * Math.PI) * d.hop;
+  d.obj.quaternion.slerpQuaternions(d.homeQ, d.fallQ, k);
+}
+
+const temple = new THREE.Group(); scene.add(temple);
+const COLS = 11, colPos = [];
+for (let i = 0; i < COLS; i++) {
+  const a = Math.PI * 0.04 + (i / (COLS - 1)) * Math.PI * 0.92;
+  const col = makeColumn();
+  col.position.set(Math.cos(a) * 12, FLOOR_Y, -Math.sin(a) * 10.5 - 1);
+  temple.add(col); colPos.push(col.position.clone());
+  const out = new THREE.Vector3(col.position.x, 0, col.position.z).normalize();
+  const tangent = new THREE.Vector3(out.z, 0, -out.x);
+  const fq = new THREE.Quaternion().setFromAxisAngle(tangent, Math.PI / 2 + R0(-0.08, 0.05))
+    .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), R0(-1, 1)));
+  const fp = col.position.clone().addScaledVector(out, R0(1.5, 4)); fp.y = GROUND_Y + 0.25 + (col.position.length() < 13 ? 0.45 : 0);
+  addDebris(col, fp, fq, col.position.length() / 26, 0, 'fall');
+}
+// 横梁：架在相邻柱子顶上
+for (let i = 0; i < COLS - 1; i++) {
+  const a = colPos[i], b = colPos[i + 1], mid = a.clone().add(b).multiplyScalar(0.5);
+  const len = a.distanceTo(b) + 1.6;
+  const beam = new THREE.Group();
+  const arch = new THREE.Mesh(new THREE.BoxGeometry(len, 0.75, 1.3), marbleMat);
+  const frieze = new THREE.Mesh(new THREE.BoxGeometry(len, 0.6, 1.15), darkStoneMat); frieze.position.y = 0.67;
+  const cornice = new THREE.Mesh(new THREE.BoxGeometry(len + 0.1, 0.25, 1.6), marbleMat); cornice.position.y = 1.1;
+  beam.add(arch, frieze, cornice);
+  beam.position.set(mid.x, FLOOR_Y + COL_H + 0.38, mid.z);
+  beam.rotation.y = -Math.atan2(b.z - a.z, b.x - a.x);
+  temple.add(beam);
+  const out = new THREE.Vector3(mid.x, 0, mid.z).normalize();
+  const fp = beam.position.clone().addScaledVector(out, R0(5, 10)); fp.y = GROUND_Y + 0.4;
+  const fq = new THREE.Quaternion().setFromEuler(new THREE.Euler(R0(-0.3, 0.3), beam.rotation.y + R0(-0.8, 0.8), R0(-0.3, 0.3)));
+  addDebris(beam, fp, fq, mid.length() / 26 - 0.05, R0(2, 4), 'beam');
+}
+
+// 两侧火盆
+const braziers = [];
+for (const sx of [-1, 1]) {
+  const g = new THREE.Group();
+  const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.22, 1.6, 16), darkStoneMat); stand.position.y = 0.8;
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.2, 24), darkStoneMat); foot.position.y = 0.1;
+  const bowl = new THREE.Mesh(new THREE.LatheGeometry([[0.1, 0], [0.5, 0.1], [0.75, 0.35], [0.8, 0.5], [0.72, 0.5]].map(([x, y]) => new THREE.Vector2(x, y)), 32), new THREE.MeshStandardMaterial({ color: 0x7a5a30, metalness: 0.8, roughness: 0.35, side: THREE.DoubleSide }));
+  bowl.position.y = 1.6;
+  const coals = new THREE.Mesh(new THREE.CircleGeometry(0.7, 24), addGlow(0xff5a10, 2.5)); coals.rotation.x = -Math.PI / 2; coals.position.y = 2.0;
+  g.add(stand, foot, bowl, coals);
+  g.position.set(sx * 5.6, FLOOR_Y, -1.8);
+  scene.add(g);
+  const light = new THREE.PointLight(0xff7a2a, 25, 18, 1.6); light.position.set(sx * 5.6, FLOOR_Y + 2.8, -1.8); scene.add(light);
+  braziers.push({ x: sx * 5.6, y: FLOOR_Y + 2.05, z: -1.8, light, acc: 0 });
+  const fp = g.position.clone().add(new THREE.Vector3(sx * R0(6, 9), 0, R0(-6, -3))); fp.y = GROUND_Y;
+  addDebris(g, fp, new THREE.Quaternion().setFromEuler(new THREE.Euler(R0(1.2, 1.6) * sx, R0(0, 3), 0)), 0.25, 2.5, 'fly');
+}
+
+// 漂浮的岩石
+const rocks = [];
+const rockMat = new THREE.MeshStandardMaterial({ map: marbleTex, bumpMap: marbleTex, bumpScale: 1, color: 0x9a8a90, emissive: 0x1c1028, roughness: 0.9 });
+for (let i = 0; i < 12; i++) {
+  const g = new THREE.IcosahedronGeometry(1, 2), p = g.attributes.position;
+  const seed = Math.random() * 10;
+  for (let j = 0; j < p.count; j++) {
+    const v = new THREE.Vector3().fromBufferAttribute(p, j);
+    const n = 1 + 0.25 * Math.sin(v.x * 3 + seed) * Math.sin(v.y * 4 - seed) + 0.15 * Math.sin(v.z * 7 + seed * 2);
+    v.multiplyScalar(n); if (v.y < 0) v.y *= 1.8; // 底部拉尖，像被拔起的岩块
+    p.setXYZ(j, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, rockMat);
+  const a = R0(0.1, 0.9) * Math.PI, r = R0(30, 55);
+  m.position.set(Math.cos(a) * r, R0(8, 22), -Math.sin(a) * r);
+  m.scale.setScalar(R0(1, 2.8));
+  m.rotation.set(R0(-0.3, 0.3), R0(0, 6), R0(-0.3, 0.3));
+  scene.add(m);
+  rocks.push({ m, baseY: m.position.y, phase: Math.random() * 6, spin: R0(-0.1, 0.1) });
+  const out = m.position.clone().normalize();
+  addDebris(m, m.position.clone().addScaledVector(out, R0(25, 45)).setY(m.position.y + R0(5, 15)), new THREE.Quaternion().setFromEuler(new THREE.Euler(R0(0, 6), R0(0, 6), R0(0, 6))), m.position.length() / 30, 0, 'fly');
+}
+
+// ---------- 地面上的东西：树林、草丛、巨石、石板路、火炬、方尖碑 ----------
+const SHOCK_SPEED = 26; // 冲击波每秒推进的距离，和建筑倒塌一致
+function mergeColored(parts) {
+  const pos = [], nor = [], col = [];
+  for (const [g0, c] of parts) {
+    const g = g0.index ? g0.toNonIndexed() : g0; g.computeVertexNormals();
+    const p = g.attributes.position.array, n = g.attributes.normal.array, cc = new THREE.Color(c);
+    for (let i = 0; i < p.length; i += 3) { pos.push(p[i], p[i + 1], p[i + 2]); nor.push(n[i], n[i + 1], n[i + 2]); col.push(cc.r, cc.g, cc.b); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return g;
+}
+const plantMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 });
+const pineGeo = mergeColored([
+  [new THREE.CylinderGeometry(0.12, 0.2, 1.4, 6).translate(0, 0.7, 0), 0x3a2618],
+  [new THREE.ConeGeometry(1.15, 2.2, 7).translate(0, 2.0, 0), 0x1f3a2c],
+  [new THREE.ConeGeometry(0.9, 1.9, 7).translate(0, 2.9, 0), 0x264536],
+  [new THREE.ConeGeometry(0.55, 1.5, 7).translate(0, 3.75, 0), 0x2d5040]
+]);
+const cypressGeo = mergeColored([
+  [new THREE.CylinderGeometry(0.1, 0.16, 0.8, 6).translate(0, 0.4, 0), 0x3a2618],
+  [new THREE.LatheGeometry([[0, 0.5], [0.55, 0.9], [0.72, 1.9], [0.6, 3.4], [0.32, 4.6], [0, 5.3]].map(([x, y]) => new THREE.Vector2(x, y)), 8), 0x1c3328]
+]);
+// 草丛：一簇 5 根草叶，根部暗、叶尖亮
+const grassGeo = (() => {
+  const pos = [], col = [];
+  for (let i = 0; i < 5; i++) {
+    const a = Math.random() * Math.PI * 2, r = Math.random() * 0.2, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const h = R0(0.35, 0.75), lx = R0(-0.15, 0.15), lz = R0(-0.15, 0.15), w = 0.045, ba = Math.random() * Math.PI;
+    const dx = Math.cos(ba) * w, dz = Math.sin(ba) * w;
+    pos.push(x - dx, 0, z - dz, x + dx, 0, z + dz, x + lx, h, z + lz);
+    col.push(0.05, 0.08, 0.04, 0.05, 0.08, 0.04, 0.3, 0.42, 0.18);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+})();
+const grassMat = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 1 });
+
+// 一片会被冲击波影响的实例：记录位置、朝外方向、到中心的距离
+function makeField(geo, mat, n, place) {
+  const items = [];
+  for (let tries = 0; items.length < n && tries < n * 20; tries++) {
+    const it = place(); if (it) items.push(it);
+  }
+  const mesh = new THREE.InstancedMesh(geo, mat, items.length);
+  mesh.frustumCulled = false;
+  items.forEach((it, i) => {
+    it.r = Math.hypot(it.x, it.z); it.out = new THREE.Vector3(it.x, 0, it.z).normalize();
+    it.tan = new THREE.Vector3(it.out.z, 0, -it.out.x);
+    it.y = terrainY(it.x, it.z) - 0.05; it.bend = 0; it.bendEnd = 0; it.char = 0; it.charEnd = 0; it.phase = Math.random() * 6.28;
+    mesh.setColorAt(i, new THREE.Color(1, 1, 1));
+  });
+  scene.add(mesh);
+  return { mesh, items };
+}
+const blockedView = (x, z) => z > 4 && Math.abs(x) < 13 + z * 0.15;
+const treeSpot = () => {
+  const a = Math.random() * Math.PI * 2, r = 19 + Math.pow(Math.random(), 0.8) * 100, x = Math.cos(a) * r, z = Math.sin(a) * r;
+  if (blockedView(x, z)) return null;
+  return { x, z, s: R0(0.8, 1.9), yaw: R0(0, 6.28), H: 4.5 };
+};
+const pines = makeField(pineGeo, plantMat, Math.floor(200 * Q), treeSpot);
+const cypresses = makeField(cypressGeo, plantMat, Math.floor(110 * Q), treeSpot);
+const grass = makeField(grassGeo, grassMat, Math.floor(2600 * Q), () => {
+  const a = Math.random() * Math.PI * 2, r = 15.6 + Math.pow(Math.random(), 1.4) * 40, x = Math.cos(a) * r, z = Math.sin(a) * r;
+  if (Math.abs(x) < 2.3 && z > 13) return null; // 别长在石板路上
+  return { x, z, s: R0(0.7, 1.6), yaw: R0(0, 6.28), H: 0.6 };
+});
+const boulderGeo = (() => {
+  const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position;
+  for (let j = 0; j < p.count; j++) { const v = new THREE.Vector3().fromBufferAttribute(p, j); v.multiplyScalar(0.8 + 0.3 * Math.sin(v.x * 5) * Math.cos(v.z * 4)); v.y *= 0.7; p.setXYZ(j, v.x, v.y, v.z); }
+  g.computeVertexNormals(); return g;
+})();
+const boulders = makeField(boulderGeo, new THREE.MeshStandardMaterial({ map: marbleTex, color: 0x7a6e70, roughness: 0.95, flatShading: true }), Math.floor(130 * Q), () => {
+  const a = Math.random() * Math.PI * 2, r = 16.5 + Math.pow(Math.random(), 1.2) * 110, x = Math.cos(a) * r, z = Math.sin(a) * r;
+  if (Math.abs(x) < 2.5 && z > 13) return null;
+  return { x, z, s: R0(0.25, 1.8) * (r < 30 ? 0.6 : 1), yaw: R0(0, 6.28), H: 1, fly: R0(4, 14), hop: R0(1, 5), spinAxis: new THREE.Vector3().randomDirection(), spin: R0(2, 8) };
+});
+// 着火的树：离中心较近的一部分
+const burningTrees = [...pines.items, ...cypresses.items].filter(t => t.r < 50 && Math.random() < 0.55);
+
+const _m4 = new THREE.Matrix4(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _p3 = new THREE.Vector3(), _s3 = new THREE.Vector3(), _c3 = new THREE.Color();
+const WIND = new THREE.Vector3(0.8, 0, 0.6).normalize();
+const CHAR = new THREE.Color(0.12, 0.08, 0.06);
+// mode: 'idle' 随风摇摆 / 'boom' 冲击波压倒 / 'reform' 慢慢立回来
+function updateField(f, mode, t, e, time, maxBend, charR) {
+  const { mesh, items } = f;
+  items.forEach((it, i) => {
+    if (mode === 'boom') {
+      const k = clamp01((t - it.r / SHOCK_SPEED) * 2.5);
+      it.bend = k * maxBend(it.r); it.bendEnd = it.bend;
+      it.char = charR ? clamp01((t - it.r / SHOCK_SPEED) * 1.5) * clamp01(1 - it.r / charR) : 0; it.charEnd = it.char;
+    } else if (mode === 'reform') { it.bend = it.bendEnd * (1 - e); it.char = it.charEnd * (1 - e); }
+    else { it.bend = 0; it.char = 0; }
+    const sway = Math.sin(time * 1.3 + it.phase + it.x * 0.05) * (it.H < 1 ? 0.12 : 0.025) * (1 - Math.min(1, it.bend));
+    _qa.setFromAxisAngle(it.tan, it.bend);
+    _qb.setFromAxisAngle(WIND, sway); _qa.multiply(_qb);
+    _qb.setFromAxisAngle(_up, it.yaw); _qa.multiply(_qb);
+    _p3.set(it.x, it.y, it.z); _s3.setScalar(it.s);
+    mesh.setMatrixAt(i, _m4.compose(_p3, _qa, _s3));
+    if (mode !== 'idle' || it.char > 0) { _c3.setRGB(1, 1, 1).lerp(CHAR, it.char); mesh.setColorAt(i, _c3); }
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+}
+function updateBoulders(mode, t, e) {
+  const { mesh, items } = boulders;
+  items.forEach((it, i) => {
+    let k = 0;
+    if (mode === 'boom') { k = it.r < 55 ? clamp01((t - it.r / SHOCK_SPEED) * 0.9) * (1 - it.r / 55) : 0; it.bendEnd = k; }
+    else if (mode === 'reform') k = it.bendEnd * (1 - e);
+    const kk = 1 - Math.pow(1 - clamp01(k * 1.5), 2);
+    _p3.set(it.x, it.y, it.z).addScaledVector(it.out, kk * it.fly * 3);
+    _p3.y += Math.sin(clamp01(k * 1.5) * Math.PI) * it.hop;
+    _qa.setFromAxisAngle(it.spinAxis, kk * it.spin); _qb.setFromAxisAngle(_up, it.yaw); _qa.multiply(_qb);
+    _s3.setScalar(it.s);
+    mesh.setMatrixAt(i, _m4.compose(_p3, _qa, _s3));
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+}
+
+// 通往神殿的石板路 + 两侧火炬
+const pathTex = tileTex.clone(); pathTex.repeat.set(1, 8); pathTex.needsUpdate = true;
+{
+  const g = new THREE.PlaneGeometry(3.6, 24, 2, 48); g.rotateX(-Math.PI / 2); g.translate(0, 0, 26.5);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, terrainY(p.getX(i), p.getZ(i)) + 0.06);
+  g.computeVertexNormals();
+  scene.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: pathTex, bumpMap: pathTex, bumpScale: 1, color: 0x9a8f86, roughness: 0.7 })));
+}
+const torches = [];
+for (let z = 18; z <= 36; z += 6) for (const sx of [-1, 1]) {
+  const x = sx * 2.5, y = terrainY(x, z);
+  const g = new THREE.Group();
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.13, 2.2, 8), darkStoneMat); post.position.y = 1.1;
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.12, 0.3, 10), new THREE.MeshStandardMaterial({ color: 0x7a5a30, metalness: 0.8, roughness: 0.4 })); cup.position.y = 2.3;
+  const coal = new THREE.Mesh(new THREE.CircleGeometry(0.24, 12), addGlow(0xff5a10, 2.5)); coal.rotation.x = -Math.PI / 2; coal.position.y = 2.46;
+  g.add(post, cup, coal); g.position.set(x, y, z); scene.add(g);
+  const out = new THREE.Vector3(x, 0, z).normalize(), tan = new THREE.Vector3(out.z, 0, -out.x);
+  const fp = g.position.clone().addScaledVector(out, 0.5); fp.y = y + 0.1;
+  addDebris(g, fp, new THREE.Quaternion().setFromAxisAngle(tan, Math.PI / 2 - 0.05), Math.hypot(x, z) / SHOCK_SPEED, 0, 'fall');
+  torches.push({ x, y: y + 2.5, z, r: Math.hypot(x, z), acc: Math.random() });
+}
+
+// 远处的方尖碑
+const goldMat = new THREE.MeshStandardMaterial({ color: 0xd8a64a, metalness: 0.9, roughness: 0.3, emissive: 0x3a2008 });
+[[-27, -24], [29, -20], [-36, 12], [38, 16]].forEach(([x, z]) => {
+  const y = terrainY(x, z);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1, 3.4), darkStoneMat); base.position.set(x, y + 0.3, z); scene.add(base);
+  const ob = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.25, 14, 4, 1).rotateY(Math.PI / 4).translate(0, 7, 0), marbleMat);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.8 * Math.SQRT2 / Math.SQRT2, 1.8, 4).rotateY(Math.PI / 4).translate(0, 14.9, 0), goldMat);
+  ob.add(body, tip); ob.position.set(x, y + 0.8, z); scene.add(ob);
+  const out = new THREE.Vector3(x, 0, z).normalize(), tan = new THREE.Vector3(out.z, 0, -out.x);
+  const fp = ob.position.clone().addScaledVector(out, 1.5); fp.y = y + 0.9;
+  addDebris(ob, fp, new THREE.Quaternion().setFromAxisAngle(tan, Math.PI / 2 - 0.04), Math.hypot(x, z) / SHOCK_SPEED, 0, 'fall');
+});
+
+// 从天而降的光柱
+const shaftMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  uniforms: { color: { value: new THREE.Color(1, 0.75, 0.4) }, op: { value: 0.35 } },
+  vertexShader: `varying float vH; varying vec3 vN; varying vec3 vV; void main(){ vH = uv.y; vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `varying float vH; varying vec3 vN; varying vec3 vV; uniform vec3 color; uniform float op;
+    void main(){ float f = pow(abs(dot(vN, vV)), 1.5); float a = op * f * smoothstep(0.0, 0.25, vH) * (1.0 - vH * 0.85); gl_FragColor = vec4(color * a, a); }`
+});
+const lightShaft = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 4.2, 40, 48, 1, true), shaftMat);
+lightShaft.position.set(0, 17, -0.5);
+scene.add(lightShaft);
+
+// 符文环
+const runeMat = addGlow(0xffcf7a, 0.8);
+const runes = [];
+for (let i = 0; i < 3; i++) {
+  const r = new THREE.Mesh(new THREE.TorusGeometry(2.9 + i * 0.4, 0.014, 8, 160), runeMat);
+  r.rotation.set(Math.PI / 2 - 0.18 + (i - 1) * 0.12, (i - 1) * 0.22, 0);
+  r.position.y = -1.5 - i * 0.4;
+  scene.add(r); runes.push(r);
+}
+
+// 光晕贴图
+function radialTexture(stops) {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  stops.forEach(([o, col]) => gr.addColorStop(o, col));
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c);
+}
+const auraMat = new THREE.SpriteMaterial({ map: radialTexture([[0, 'rgba(255,255,255,1)'], [0.25, 'rgba(255,255,255,0.55)'], [0.6, 'rgba(255,255,255,0.12)'], [1, 'rgba(255,255,255,0)']]), color: 0xffb050, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+const aura = new THREE.Sprite(auraMat);
+aura.position.set(0, 0.3, -0.5); aura.scale.setScalar(8);
+scene.add(aura);
+
+// ---------- 头像：切成三角碎片的平面 ----------
+const HW = 4 * 217 / 240, HH = 4;
+const headTex = new THREE.TextureLoader().load('kly.png', () => { document.getElementById('loading').style.opacity = 0; });
+headTex.colorSpace = THREE.SRGBColorSpace;
+const headMat = new THREE.MeshBasicMaterial({ map: headTex, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide });
+
+// 完整的头像：密集网格，用来做手按压的形变
+const intactGeo = new THREE.PlaneGeometry(HW, HH, 36, 40);
+const intactBase = Float32Array.from(intactGeo.attributes.position.array);
+const intact = new THREE.Mesh(intactGeo, headMat);
+// 碎裂后的头像：每轮随机生成的放射 + 环状裂纹
+let tris = [], headGeo = new THREE.BufferGeometry();
+const head = new THREE.Mesh(headGeo, headMat);
+head.frustumCulled = false; head.visible = false;
+const headGroup = new THREE.Group();
+headGroup.position.set(0, 0.2, 0);
+headGroup.add(intact, head);
+scene.add(headGroup);
+
+const polyArea = P => { let a = 0; for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length]; a += p[0] * q[1] - q[0] * p[1]; } return Math.abs(a) / 2; };
+const polyCenter = P => { let x = 0, y = 0; for (const p of P) { x += p[0]; y += p[1]; } return [x / P.length, y / P.length]; };
+function splitPoly(P, o, n) {
+  const A = [], B = [];
+  for (let i = 0; i < P.length; i++) {
+    const a = P[i], b = P[(i + 1) % P.length];
+    const da = (a[0] - o[0]) * n[0] + (a[1] - o[1]) * n[1], db = (b[0] - o[0]) * n[0] + (b[1] - o[1]) * n[1];
+    (da >= 0 ? A : B).push(a);
+    if (da * db < 0) { const t = da / (da - db), p = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; A.push(p); B.push(p); }
+  }
+  return [A, B];
+}
+let impact = new THREE.Vector2();
+function fracture() {
+  impact.set(R0(-0.5, 0.5), R0(-0.3, 0.9));
+  const target = isMobile ? 85 : 130;
+  let polys = [[[-HW / 2, -HH / 2], [HW / 2, -HH / 2], [HW / 2, HH / 2], [-HW / 2, HH / 2]]];
+  for (let guard = 0; polys.length < target && guard < 2000; guard++) {
+    // 离冲击点越近越容易被继续切碎：中间碎、外圈大块
+    let best = -1, bi = 0;
+    polys.forEach((P, i) => {
+      const c = polyCenter(P), d = Math.hypot(c[0] - impact.x, c[1] - impact.y);
+      const sc = polyArea(P) * (1.6 / (0.5 + d)) * R0(0.5, 1.5);
+      if (sc > best) { best = sc; bi = i; }
+    });
+    const P = polys[bi], c = polyCenter(P);
+    const radial = Math.atan2(c[1] - impact.y, c[0] - impact.x), r = Math.random();
+    const ang = r < 0.5 ? radial + R0(-0.25, 0.25) : r < 0.82 ? radial + Math.PI / 2 + R0(-0.35, 0.35) : R0(0, Math.PI);
+    const n = [-Math.sin(ang), Math.cos(ang)], o = [c[0] + R0(-0.12, 0.12), c[1] + R0(-0.12, 0.12)];
+    const [A, B] = splitPoly(P, o, n);
+    if (A.length >= 3 && B.length >= 3 && polyArea(A) > 0.004 && polyArea(B) > 0.004) polys.splice(bi, 1, A, B);
+  }
+  const pos = [], uv = [];
+  tris = polys.map(P => {
+    const [cx, cy] = polyCenter(P), off = [];
+    for (let i = 1; i < P.length - 1; i++) for (const p of [P[0], P[i], P[i + 1]]) {
+      off.push(new THREE.Vector3(p[0] - cx, p[1] - cy, 0));
+      pos.push(p[0], p[1], 0); uv.push(p[0] / HW + 0.5, p[1] / HH + 0.5);
+    }
+    const dir = new THREE.Vector3(cx - impact.x, cy - impact.y, 0).normalize();
+    return { c: new THREE.Vector3(cx, cy, 0), off, dir, crack: new THREE.Vector3(dir.x, dir.y, R0(-0.5, 0.5)).multiplyScalar(R0(0.5, 1.4)), vel: new THREE.Vector3(), axis: new THREE.Vector3(), w: 0 };
+  });
+  headGeo.dispose();
+  headGeo = new THREE.BufferGeometry();
+  headGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  headGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  head.geometry = headGeo;
+  rollShardVelocities();
+}
+// 每次爆炸重新掷骰：整体偏向、力度、旋转都不同
+function rollShardVelocities() {
+  const bias = new THREE.Vector3(R0(-4, 4), R0(-1, 5), R0(-3, 2)), power = R0(0.75, 1.35);
+  for (const t of tris) {
+    const d = t.c.distanceTo(new THREE.Vector3(impact.x, impact.y, 0));
+    const speed = (6 + Math.random() * 10) * power * (1.3 - Math.min(0.6, d * 0.25));
+    t.vel.set(t.dir.x * speed + bias.x + R0(-2, 2), t.dir.y * speed + bias.y + R0(0, 3), R0(-4, 3) + bias.z);
+    t.axis.randomDirection(); t.w = R0(-1, 1) * R0(4, 12);
+  }
+}
+fracture();
+
+function deformIntact(def) {
+  const pa = intactGeo.attributes.position.array;
+  for (let i = 0; i < pa.length; i += 3) {
+    let px = intactBase[i], py = intactBase[i + 1];
+    if (def) {
+      const ox = px - def.x, oy = py - def.y, w = Math.exp(-(ox * ox + oy * oy) / def.r2);
+      // 头顶以上的部分被压扁得更多，越往下越弱
+      const above = oy > -0.3 ? 1 : Math.exp((oy + 0.3) * 2.5);
+      px += def.dx * w; py += def.dy * w * above;
+    }
+    pa[i] = px; pa[i + 1] = py;
+  }
+  intactGeo.attributes.position.needsUpdate = true;
+}
+
+const _q = new THREE.Quaternion(), _v = new THREE.Vector3();
+// s：爆炸进度；crack：龟裂缝隙
+function layoutShards(s, crack, jitter) {
+  const pa = headGeo.attributes.position.array;
+  const drag = (1 - Math.exp(-1.3 * s)) / 1.3;
+  let k = 0;
+  for (const t of tris) {
+    _q.setFromAxisAngle(t.axis, t.w * drag * 0.6);
+    const cx = t.c.x + t.vel.x * drag + t.crack.x * crack + (Math.random() - 0.5) * jitter;
+    const cy = t.c.y + t.vel.y * drag - 0.35 * s * s + t.crack.y * crack + (Math.random() - 0.5) * jitter;
+    const cz = t.c.z + t.vel.z * drag + t.crack.z * crack;
+    t.wx = cx; t.wy = cy; t.wz = cz;
+    for (const o of t.off) {
+      _v.copy(o).applyQuaternion(_q);
+      pa[k++] = cx + _v.x; pa[k++] = cy + _v.y; pa[k++] = cz + _v.z;
+    }
+  }
+  headGeo.attributes.position.needsUpdate = true;
+}
+function showShards(on) { head.visible = on; intact.visible = !on; }
+
+// ---------- 手 ----------
+function emojiTexture(ch) {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.font = '200px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(ch, 128, 140);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const hand = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTexture('🫳🏻'), transparent: true, depthTest: false }));
+hand.renderOrder = 10;
+hand.scale.setScalar(2.6);
+hand.center.set(0.5, 0.43); // 锚点放在掌心下沿，方便贴着头顶
+const HAND_REST = new THREE.Vector3(0, 3.0, 0.08);
+hand.position.copy(HAND_REST);
+scene.add(hand);
+// 手掌落在头上的投影
+const handShadow = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTexture([[0, 'rgba(0,0,0,0.55)'], [0.5, 'rgba(0,0,0,0.25)'], [1, 'rgba(0,0,0,0)']]), transparent: true, depthTest: false, opacity: 0 }));
+handShadow.renderOrder = 9; handShadow.scale.set(2.2, 0.9, 1);
+scene.add(handShadow);
+// 头顶弧线（头像局部坐标）：手沿着它来回摸
+const headTop = x => 1.72 - 0.3 * x * x;
+const handVel = new THREE.Vector2();
+
+// ---------- 粒子池 ----------
+// 云絮贴图：多团噪声叠出来的软边烟团
+const puffTex = (() => {
+  const S = 128, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 22; i++) {
+    const a = Math.random() * Math.PI * 2, r = Math.random() * S * 0.22;
+    const x = S / 2 + Math.cos(a) * r, y = S / 2 + Math.sin(a) * r, rad = S * (0.12 + Math.random() * 0.2);
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+    gr.addColorStop(0, 'rgba(255,255,255,0.32)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  }
+  const d = g.getImageData(0, 0, S, S);
+  for (let i = 0; i < d.data.length; i += 4) {
+    const x = (i / 4) % S - S / 2, y = Math.floor(i / 4 / S) - S / 2, fall = Math.max(0, 1 - Math.hypot(x, y) / (S / 2));
+    d.data[i + 3] = Math.min(255, d.data[i + 3] * (0.75 + Math.random() * 0.5)) * Math.min(1, fall * 2.2);
+  }
+  g.putImageData(d, 0, 0);
+  return new THREE.CanvasTexture(c);
+})();
+class Pool {
+  constructor(n, additive, fade) {
+    this.n = n; this.fade = fade; this.next = 0;
+    this.pos = new Float32Array(n * 3); this.vel = new Float32Array(n * 3);
+    this.col = new Float32Array(n * 3); this.c0 = new Float32Array(n * 3); this.c1 = new Float32Array(n * 3);
+    this.size = new Float32Array(n); this.s0 = new Float32Array(n); this.s1 = new Float32Array(n);
+    this.alpha = new Float32Array(n); this.a0 = new Float32Array(n);
+    this.life = new Float32Array(n); this.max = new Float32Array(n);
+    this.drag = new Float32Array(n); this.buoy = new Float32Array(n);
+    this.rot = new Float32Array(n);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('pcolor', new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('psize', new THREE.BufferAttribute(this.size, 1).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('palpha', new THREE.BufferAttribute(this.alpha, 1).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('prot', new THREE.BufferAttribute(this.rot, 1).setUsage(THREE.DynamicDrawUsage));
+    this.geo = g;
+    this.mat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false,
+      blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+      uniforms: { scale: { value: 1 }, map: { value: puffTex } },
+      vertexShader: `attribute vec3 pcolor; attribute float psize; attribute float palpha; attribute float prot; uniform float scale;
+        varying vec3 vC; varying float vA; varying float vR;
+        void main(){ vC = pcolor; vA = palpha; vR = prot; vec4 mv = modelViewMatrix * vec4(position,1.0);
+          gl_PointSize = palpha <= 0.0 ? 0.0 : psize * scale / -mv.z; gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `varying vec3 vC; varying float vA; varying float vR; uniform sampler2D map;
+        void main(){ vec2 p = gl_PointCoord - 0.5; float c = cos(vR), s = sin(vR);
+          p = mat2(c, -s, s, c) * p + 0.5;
+          float a = texture2D(map, p).a;
+          gl_FragColor = vec4(vC, vA * a); }`
+    });
+    this.points = new THREE.Points(g, this.mat);
+    this.points.frustumCulled = false;
+  }
+  spawn(x, y, z, vx, vy, vz, life, s0, s1, c0, c1, a0, drag, buoy) {
+    const i = this.next; this.next = (this.next + 1) % this.n;
+    const i3 = i * 3;
+    this.pos[i3] = x; this.pos[i3 + 1] = y; this.pos[i3 + 2] = z;
+    this.vel[i3] = vx; this.vel[i3 + 1] = vy; this.vel[i3 + 2] = vz;
+    this.c0.set(c0, i3); this.c1.set(c1, i3);
+    this.life[i] = this.max[i] = life; this.s0[i] = s0; this.s1[i] = s1; this.a0[i] = a0;
+    this.drag[i] = drag; this.buoy[i] = buoy; this.rot[i] = Math.random() * 6.28;
+  }
+  update(dt) {
+    const { pos, vel, col, c0, c1, size, s0, s1, alpha, a0, life, max, drag, buoy } = this;
+    for (let i = 0; i < this.n; i++) {
+      if (life[i] <= 0) { alpha[i] = 0; continue; }
+      life[i] -= dt;
+      if (life[i] <= 0) { alpha[i] = 0; continue; }
+      const t = 1 - life[i] / max[i], i3 = i * 3, k = Math.exp(-drag[i] * dt);
+      vel[i3] *= k; vel[i3 + 1] = vel[i3 + 1] * k + buoy[i] * dt; vel[i3 + 2] *= k;
+      pos[i3] += vel[i3] * dt; pos[i3 + 1] += vel[i3 + 1] * dt; pos[i3 + 2] += vel[i3 + 2] * dt;
+      const ct = Math.min(1, t * 1.6);
+      col[i3] = c0[i3] + (c1[i3] - c0[i3]) * ct;
+      col[i3 + 1] = c0[i3 + 1] + (c1[i3 + 1] - c0[i3 + 1]) * ct;
+      col[i3 + 2] = c0[i3 + 2] + (c1[i3 + 2] - c0[i3 + 2]) * ct;
+      size[i] = s0[i] + (s1[i] - s0[i]) * Math.sqrt(t);
+      this.rot[i] += dt * 0.4 * ((i & 1) * 2 - 1);
+      alpha[i] = this.fade ? a0[i] * Math.min(1, t * 6) * (1 - t) : a0[i] * Math.pow(1 - t, 1.5);
+    }
+    const a = this.geo.attributes;
+    a.position.needsUpdate = a.pcolor.needsUpdate = a.psize.needsUpdate = a.palpha.needsUpdate = a.prot.needsUpdate = true;
+  }
+}
+const smoke = new Pool(Math.floor(7000 * Q), false, true);
+const fire = new Pool(Math.floor(8000 * Q), true, false);
+smoke.points.renderOrder = 1; fire.points.renderOrder = 2;
+scene.add(smoke.points, fire.points);
+
+const R = (a, b) => a + Math.random() * (b - a);
+const FIRE_HOT = [3.2, 2.6, 1.6], FIRE_MID = [2.6, 1.1, 0.25], FIRE_END = [0.6, 0.08, 0.02];
+const GOLD = [2.2, 1.6, 0.6];
+function burstFire(x, y, z, n, vmin, vmax, life, size) {
+  for (let i = 0; i < n; i++) {
+    const d = new THREE.Vector3().randomDirection(), s = R(vmin, vmax);
+    fire.spawn(x, y, z, d.x * s, d.y * s, d.z * s, R(life * 0.5, life), size * R(0.6, 1.2), size * R(1.6, 3), Math.random() < 0.5 ? FIRE_HOT : FIRE_MID, FIRE_END, R(0.6, 1), 2.2, 1.2);
+  }
+}
+
+// ---------- 冲击波 ----------
+const shockFloors = [0, 0.45, 1.0].map((delay, i) => {
+  const m = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 160), addGlow(i ? 0xff9a50 : 0xffe0b0, i ? 2 : 3.5));
+  m.rotation.x = -Math.PI / 2; m.position.y = -3.6 + i * 0.01; m.visible = false; m.userData.delay = delay;
+  m.material.fog = false;
+  scene.add(m); return m;
+});
+const shockAir = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 128), addGlow(0xffffff, 3));
+shockAir.position.set(0, 0.2, 0.5); shockAir.visible = false;
+const fireball = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), addGlow(0xffb070, 2));
+fireball.position.set(0, 0.2, 0); fireball.visible = false;
+// 凝结云：冲击波掠过时一瞬间出现的白色雾壳
+const wilsonMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  uniforms: { op: { value: 0 } },
+  vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `varying vec3 vN; varying vec3 vV; uniform float op; void main(){ float rim = 1.0 - abs(dot(vN, vV)); gl_FragColor = vec4(vec3(1.0, 0.95, 0.9), op * (0.08 + pow(rim, 2.5) * 0.9)); }`
+});
+const wilson = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), wilsonMat);
+wilson.position.set(0, 0.2, 0); wilson.visible = false;
+scene.add(shockAir, fireball, wilson);
+
+// ---------- 声音 ----------
+let ac, master, drone, droneGain, droneFilter, noiseBuf, rubGain, rubFilter;
+function initAudio() {
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = ac.createDynamicsCompressor();
+  master = ac.createGain(); master.gain.value = 0.8;
+  master.connect(comp); comp.connect(ac.destination);
+  noiseBuf = ac.createBuffer(1, ac.sampleRate * 4, ac.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  droneFilter = ac.createBiquadFilter(); droneFilter.type = 'lowpass'; droneFilter.frequency.value = 200;
+  droneGain = ac.createGain(); droneGain.gain.value = 0;
+  droneFilter.connect(droneGain); droneGain.connect(master);
+  drone = [55, 55.4, 82.4].map(f => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(droneFilter); o.start(); return o; });
+  const fr = ac.createBufferSource(); fr.buffer = noiseBuf; fr.loop = true;
+  rubFilter = ac.createBiquadFilter(); rubFilter.type = 'bandpass'; rubFilter.frequency.value = 1400; rubFilter.Q.value = 0.8;
+  rubGain = ac.createGain(); rubGain.gain.value = 0;
+  fr.connect(rubFilter); rubFilter.connect(rubGain); rubGain.connect(master); fr.start();
+}
+function noise(dur, type, f0, f1, g0, at = 0) {
+  const t = ac.currentTime + at;
+  const s = ac.createBufferSource(); s.buffer = noiseBuf;
+  const f = ac.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(g0, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + 0.05);
+}
+function tone(type, f0, f1, dur, g0, at = 0, attack = 0.01) {
+  const t = ac.currentTime + at;
+  const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(g0, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+}
+const sfx = {
+  rub(n) {
+    const f = 380 + n * 13 + Math.random() * 60;
+    tone('sine', f, f * 1.15, 0.28, 0.16);
+    tone('triangle', f * 2, f * 2.2, 0.15, 0.04);
+  },
+  friction(press, speed) {
+    if (!ac) return;
+    rubGain.gain.setTargetAtTime(Math.min(0.35, press * speed * 0.05), ac.currentTime, 0.03);
+    rubFilter.frequency.setTargetAtTime(900 + speed * 260, ac.currentTime, 0.05);
+  },
+  setDrone(h) {
+    if (!ac) return;
+    droneGain.gain.setTargetAtTime(h * h * 0.11, ac.currentTime, 0.3);
+    droneFilter.frequency.setTargetAtTime(150 + h * 1100, ac.currentTime, 0.3);
+  },
+  charge() {
+    tone('sawtooth', 80, 1400, 1.5, 0.18, 0, 1.3);
+    noise(1.5, 'highpass', 300, 5000, 0.25);
+  },
+  boom() {
+    droneGain.gain.cancelScheduledValues(ac.currentTime); droneGain.gain.setTargetAtTime(0, ac.currentTime, 0.05);
+    rubGain.gain.setTargetAtTime(0, ac.currentTime, 0.02);
+    noise(0.15, 'highpass', 3000, 2000, 1.3);
+    tone('sine', 140, 24, 3.5, 1.2);
+    noise(1.2, 'lowpass', 8000, 600, 1.2, 0.35);       // 慢动作结束、真正炸开
+    tone('triangle', 55, 22, 5, 0.8, 0.35);
+    noise(3.98, 'lowpass', 2500, 80, 1.3, 0.4);       // 主体轰鸣
+    noise(3.98, 'lowpass', 300, 40, 1.0, 1.4);        // 冲击波扫过时的第二声闷响
+    tone('sine', 70, 28, 4, 0.9, 1.4);
+    noise(3.98, 'lowpass', 500, 50, 0.7, 3.2);         // 远处滚雷
+  },
+  reform() {
+    [392, 523, 659, 784, 1046, 1318].forEach((f, i) => { tone('triangle', f, f, 0.9, 0.12, i * 0.16, 0.02); tone('sine', f * 2, f * 2, 0.6, 0.04, i * 0.16 + 0.02); });
+    noise(1.6, 'bandpass', 6000, 2000, 0.08);
+  }
+};
+
+// ---------- 状态 ----------
+let count = 0, state = 'idle', stateT = 0, heat = 0, heatShown = 0;
+let rubLeft = 0, rubPhase = 0, press = 0, wobble = 0, wobbleV = 0, sparkAcc = 0;
+let emberAcc = 0, stemAcc = 0, capAcc = 0, dustDone = false, boomReal = 0, burnAcc = 0;
+const $count = document.getElementById('count'), $bar = document.getElementById('barFill'), $btn = document.getElementById('touchBtn');
+const $flash = document.getElementById('flash');
+function updateUI() {
+  $count.textContent = count;
+  $bar.style.width = (count / MAX * 100) + '%';
+  $btn.classList.toggle('locked', state !== 'idle');
+}
+
+function rub() {
+  initAudio();
+  if (state !== 'idle') return;
+  count++;
+  heat = count / MAX;
+  // 连续点击时手不重来，而是继续摸下去
+  rubLeft = Math.min(1.4, Math.max(rubLeft, 0) + 0.6);
+  wobbleV += 3 + heat * 5;
+  sfx.rub(count); sfx.setDrone(heat);
+  if (count >= MAX) {
+    state = 'windup'; stateT = 0; rubLeft = 0.95;
+    try { navigator.vibrate && navigator.vibrate([0, 1800, 80, 40, 300, 100, 200]); } catch (e) {}
+  }
+  updateUI();
+}
+$btn.addEventListener('pointerdown', e => { e.preventDefault(); rub(); });
+addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); if (!e.repeat) rub(); } });
+['gesturestart', 'gesturechange', 'dblclick'].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
+
+// ---------- 镜头 ----------
+let baseDist = 10, wideK = 1;
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  camera.aspect = w / h;
+  baseDist = 10.5 * Math.max(1, 0.85 / camera.aspect);
+  wideK = Math.max(1, Math.pow(1.2 / camera.aspect, 0.8));
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h); composer.setSize(w, h);
+  const s = h * renderer.getPixelRatio() / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+  fire.mat.uniforms.scale.value = smoke.mat.uniforms.scale.value = s;
+}
+addEventListener('resize', resize); resize();
+
+const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const clamp01 = t => Math.max(0, Math.min(1, t));
+let shake = 0, wide = 0, wideTarget = 0, push = 0, pushTarget = 0, burn = 0;
+const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
+const BOOM_LEN = 8.5, REFORM_LEN = 2.6;
+
+// 每次爆炸都重新掷骰：云的高度、粗细、上升速度、偏风、鼓包，镜头角度，慢动作长短
+let B = {};
+function rollBoom() {
+  B = {
+    height: R0(15, 25), rise: R0(0.36, 0.58), capR: R0(5.5, 10), tubeK: R0(0.35, 0.6),
+    windX: R0(-1, 1) * R0(0.2, 1.1), windZ: R0(-0.5, 0.5), stemW: R0(0.7, 1.4),
+    lobes: Array.from({ length: 2 + (Math.random() * 4 | 0) }, () => ({ a: R0(0, 6.28), k: R0(1.15, 1.6), up: R0(-0.4, 0.8) })),
+    hot: R0(0.7, 1.1), smokeTint: R0(0.8, 1.15),
+    camAngle: R0(-0.4, 0.4), camSpin: R0(-1, 1) * R0(0.01, 0.035), camDist: R0(36, 48), camH: R0(1, 7), lookH: R0(7, 11),
+    slow: R0(0.35, 0.75), slowScale: R0(0.08, 0.2)
+  };
+}
+rollBoom();
+const cloudY = t => -2 + B.height * (1 - Math.exp(-t * B.rise));      // 云冠中心高度
+const cloudR = t => 1.5 + B.capR * (1 - Math.exp(-t * 0.55));         // 云冠环半径
+const drift = t => t * 0.5;                                             // 风把云冠吹偏
+const SMOKE_HOT = [1.0, 0.5, 0.22], SMOKE_DARK = [0.2, 0.17, 0.19];
+
+// ---------- 主循环 ----------
+const clock = new THREE.Clock();
+const _d = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+let simTime = 0;
+function frame() {
+  const realDt = Math.min(clock.getDelta(), 0.05);
+  simTime += realDt;
+  tick(realDt, simTime);
+  composer.render();
+  requestAnimationFrame(frame);
+}
+function tick(realDt, time) {
+  // 爆炸瞬间的慢动作
+  let ts = 1;
+  if (state === 'boom') { boomReal += realDt; ts = boomReal < B.slow ? B.slowScale : Math.min(1, B.slowScale + (boomReal - B.slow) * 2.2); }
+  const dt = realDt * ts;
+  stateT += dt;
+  heatShown += (heat - heatShown) * Math.min(1, realDt * 3);
+  const h = heatShown;
+
+  // ---- 摸头 ----
+  let def = null;
+  if (state === 'idle' || state === 'windup') {
+    const rubbing = rubLeft > 0;
+    rubLeft -= realDt;
+    rubPhase += realDt * (rubbing ? 8.5 + h * 6 : 0);
+    // 目标点：贴着头顶弧线来回；不摸时抬到上方悬停
+    const tx = rubbing ? Math.sin(rubPhase) * (0.95 + h * 0.2) : hand.position.x * 0.92;
+    const ty = rubbing ? headGroup.position.y + headTop(tx) - 0.08 : HAND_REST.y + Math.sin(time * 2) * 0.08;
+    // 弹簧跟随，动作有惯性
+    const k = 260, c = 2 * Math.sqrt(k) * 0.8;
+    handVel.x += ((tx - hand.position.x) * k - handVel.x * c) * realDt;
+    handVel.y += ((ty - hand.position.y) * k - handVel.y * c) * realDt;
+    hand.position.x += handVel.x * realDt; hand.position.y += handVel.y * realDt;
+    hand.position.z = HAND_REST.z;
+    const contactY = headGroup.position.y + headTop(hand.position.x);
+    const near = clamp01(1 - (hand.position.y - contactY) / 0.5);
+    press += ((rubbing ? near : 0) - press) * Math.min(1, realDt * 14);
+    // 手的姿态：顺着头顶坡度倾斜，随速度甩动，按下时掌心压扁
+    const slope = -0.6 * hand.position.x;
+    hand.material.rotation = Math.atan(slope) * 0.6 - THREE.MathUtils.clamp(handVel.x * 0.018, -0.18, 0.18);
+    const squash = press * (0.07 + 0.03 * Math.sin(rubPhase * 2));
+    hand.scale.set(2.6 * (1 + squash), 2.6 * (1 - squash), 1);
+    handShadow.position.set(hand.position.x, contactY - 0.15, 0.04);
+    handShadow.material.opacity = 0.2 + press * 0.6 - clamp01((hand.position.y - contactY) / 2) * 0.2;
+    handShadow.visible = true;
+    // 头皮被按下并跟着手拖动
+    const speed = Math.abs(handVel.x);
+    def = { x: hand.position.x, y: headTop(hand.position.x) - 0.1, dx: THREE.MathUtils.clamp(handVel.x * 0.03, -0.22, 0.22) * press, dy: -0.2 * press, r2: 0.55 };
+    sfx.friction(press, speed);
+    // 接触点的金色碎光
+    sparkAcc += realDt * press * speed * (6 + h * 20);
+    while (sparkAcc > 1) {
+      sparkAcc--;
+      fire.spawn(hand.position.x + R(-0.4, 0.4), contactY + R(-0.05, 0.15), 0.45, R(-1, 1) - handVel.x * 0.15, R(0.5, 2.5), R(0, 0.8), R(0.3, 0.7), 0.1, 0.03, GOLD, FIRE_END, 1, 1.5, -2);
+    }
+    // 头随手的方向歪
+    wobbleV += -handVel.x * press * 0.25 * realDt * 60 * 0.05;
+  } else {
+    handShadow.visible = false;
+    sfx.friction(0, 0);
+  }
+
+  // 头像晃动（弹簧）
+  wobbleV += (-wobble * 60 - wobbleV * 7) * realDt; wobble += wobbleV * realDt;
+  const jit = h * h * 0.05;
+  headGroup.rotation.z = wobble * 0.05 + (Math.random() - 0.5) * jit * 0.6;
+  headGroup.scale.set(1 + wobble * 0.01, 1 - press * 0.025 + Math.sin(time * (2 + h * 10)) * 0.008 * h, 1);
+  headGroup.position.x = (Math.random() - 0.5) * jit;
+  headGroup.position.y = 0.2 + Math.sin(time * 1.2) * 0.05 + (Math.random() - 0.5) * jit;
+
+  // 环境随热度升级
+  runes.forEach((r, i) => { r.rotation.z += dt * (0.15 + h * 3) * (i % 2 ? -1 : 1); });
+  const auraCol = new THREE.Color(1, 0.72, 0.32).lerp(new THREE.Color(1, 0.18, 0.06), h);
+  auraMat.color.copy(auraCol).multiplyScalar(0.7 + h * 1.8);
+  aura.scale.setScalar(7 + h * 4 + Math.sin(time * 3) * 0.3 * h);
+  runeMat.color.copy(auraCol).multiplyScalar(0.8 + h * 1.6);
+  floorRingMat.color.copy(auraCol).multiplyScalar(1.8 + h * 2 + Math.sin(time * 4) * h);
+  headLight.color.copy(auraCol); headLight.intensity = 30 + h * 120; headLight.distance = 40;
+  headLight.position.set(0, 0.5, 2);
+  nebulaMat.uniforms.time.value = time; nebulaMat.uniforms.heat.value = h;
+  scene.fog.color.setRGB(0.07 + h * 0.12, 0.04 + h * 0.02, 0.11 - h * 0.06);
+  stars.rotation.y += realDt * 0.01;
+  bloom.strength = 0.55 + h * 0.9;
+
+  // 火盆的火焰
+  braziers.forEach(b => {
+    b.light.intensity = (state === 'boom' || state === 'reform') ? 0 : 22 + Math.sin(time * 13 + b.x) * 3 + Math.random() * 4;
+    if (state === 'boom' || state === 'reform') return;
+    b.acc += realDt * 45 * Q;
+    while (b.acc > 1) {
+      b.acc--;
+      fire.spawn(b.x + R(-0.35, 0.35), b.y, b.z + R(-0.35, 0.35), R(-0.1, 0.1), R(1.2, 2.4), R(-0.1, 0.1), R(0.35, 0.7), 0.6, 0.15, FIRE_MID, FIRE_END, 0.85, 0.5, 0.5);
+    }
+  });
+  // 树林、草丛、巨石：平时随风摆，爆炸时按冲击波到达的先后被压倒、烧焦、掀飞
+  const fMode = state === 'boom' ? 'boom' : state === 'reform' ? 'reform' : 'idle';
+  const fe = state === 'reform' ? ease(Math.min(1, stateT / REFORM_LEN)) : 0;
+  const treeBend = r => r < 75 ? 1.5 - (r - 19) / 56 * 1.15 : 0.3;
+  updateField(pines, fMode, stateT, fe, time, treeBend, 60);
+  updateField(cypresses, fMode, stateT, fe, time, treeBend, 60);
+  updateField(grass, fMode, stateT, fe, time, r => r < 55 ? 1.4 : 0.5, 45);
+  updateBoulders(fMode, stateT, fe);
+  // 火炬：冲击波扫过就灭
+  torches.forEach(tc => {
+    if (state === 'reform' || (state === 'boom' && stateT > tc.r / SHOCK_SPEED)) return;
+    tc.acc += realDt * 14 * Q;
+    while (tc.acc > 1) { tc.acc--; fire.spawn(tc.x + R(-0.1, 0.1), tc.y, tc.z + R(-0.1, 0.1), R(-0.05, 0.05), R(0.8, 1.6), R(-0.05, 0.05), R(0.3, 0.55), 0.35, 0.08, FIRE_MID, FIRE_END, 0.8, 0.5, 0.4); }
+  });
+  // 被压倒的树烧起来
+  if (state === 'boom' && stateT < 7.5) {
+    burnAcc += dt * 110 * Q;
+    while (burnAcc > 1) {
+      burnAcc--;
+      const tr = burningTrees[(Math.random() * burningTrees.length) | 0];
+      if (!tr || stateT < tr.r / SHOCK_SPEED + 0.15) continue;
+      const hg = tr.H * tr.s * R(0.2, 0.9);
+      const x = tr.x + tr.out.x * Math.sin(tr.bend) * hg, z = tr.z + tr.out.z * Math.sin(tr.bend) * hg, y = tr.y + Math.cos(tr.bend) * hg;
+      if (Math.random() < 0.75) fire.spawn(x + R(-0.4, 0.4), y, z + R(-0.4, 0.4), R(-0.2, 0.2), R(1, 3), R(-0.2, 0.2), R(0.4, 0.9), 0.7, 1.6, FIRE_MID, FIRE_END, 0.55, 0.5, 0.5);
+      else smoke.spawn(x, y + 0.5, z, R(-0.3, 0.3), R(1, 2.5), R(-0.3, 0.3), R(2, 3.5), 1, 3, [0.4, 0.3, 0.25], SMOKE_DARK, 0.45, 0.3, 0.2);
+    }
+  }
+  // 浮石缓缓起伏
+  if (state === 'idle' || state === 'windup' || state === 'charge') rocks.forEach(r => {
+    r.m.position.y = r.baseY + Math.sin(time * 0.5 + r.phase) * 0.6 + (state === 'charge' ? (Math.random() - 0.5) * 0.2 : 0);
+    r.m.rotation.y += r.spin * realDt;
+  });
+  moonMat.uniforms.heat.value = h;
+  shaftMat.uniforms.op.value = 0.18 + h * 0.3;
+  shaftMat.uniforms.color.value.copy(auraCol);
+
+  // 平台上升起的余烬
+  if (state !== 'boom') {
+    emberAcc += dt * (4 + h * 70) * Q;
+    while (emberAcc > 1) {
+      emberAcc--;
+      const a = Math.random() * Math.PI * 2, r = R(0.5, 3.6);
+      fire.spawn(Math.cos(a) * r, -2.75, Math.sin(a) * r * 0.6, R(-0.2, 0.2), R(0.6, 1.8) + h * 2, R(-0.2, 0.2), R(1.5, 3), 0.1, 0.04, GOLD, FIRE_END, R(0.5, 1), 0.3, 0.2);
+    }
+  }
+
+  // ---- 状态机 ----
+  let flash = 0, burnTarget = 0;
+  if (state === 'idle' || state === 'windup') {
+    deformIntact(def);
+    pushTarget = 0; wideTarget = 0;
+    if (state === 'windup' && stateT >= 0.95) {
+      state = 'charge'; stateT = 0; sfx.charge();
+      layoutShards(0, 0, 0); showShards(true);
+    }
+  } else if (state === 'charge') {
+    const p = Math.min(1, stateT / 1.8);
+    // 龟裂：缝隙越来越大，后面的光从缝里透出来
+    layoutShards(0, p * p * 0.32, p * p * 0.05);
+    headMat.color.setRGB(1 + p * 0.5, 1 + p * 0.3, 1 + p * 0.1);
+    // 背后的光接着第 56 下的亮度继续增强，不会断
+    auraMat.color.copy(auraCol).multiplyScalar(2.5 + Math.sin(time * 18) * 0.4 * p);
+    aura.scale.setScalar(10 + p * 1.5 + Math.sin(time * 25) * 0.3 * p);
+    shake = p * p * 0.1;
+    pushTarget = ease(p) * 0.6;
+    bloom.strength = 1.4;
+    hand.position.y += realDt * 3; // 手被弹开
+    hand.material.opacity = 1 - p;
+    // 能量向内汇聚
+    for (let i = 0; i < (4 + p * 10) * Q; i++) {
+      _d.randomDirection().multiplyScalar(R(5, 9)); _d.z = -Math.abs(_d.z); // 只从后方和两侧汇聚，不贴着镜头飞
+      fire.spawn(_d.x, _d.y + 0.2, _d.z, -_d.x * 1.7, -_d.y * 1.7, -_d.z * 1.7, 0.55, 0.12, 0.04, FIRE_MID, FIRE_END, 0.6, 0, 0);
+    }
+    if (stateT >= 1.8) startBoom();
+  } else if (state === 'boom') {
+    const t = stateT;
+    layoutShards(t, 0.32, 0);
+    const cool = Math.min(1, t / 2);
+    auraMat.color.multiplyScalar(Math.max(0, 1 - boomReal / 0.3));
+    headMat.color.setRGB(1.35 - cool * 0.35, 1.1 - cool * 0.2, 0.9 - cool * 0.05);
+    // 碎片拖着火尾
+    if (t < 2.2) for (let i = 0; i < 18 * Q; i++) {
+      const tr = tris[(Math.random() * tris.length) | 0];
+      fire.spawn(tr.wx, tr.wy + 0.2, tr.wz, 0, 0, 0, 0.5, 0.3, 0.1, FIRE_MID, FIRE_END, 0.45, 0, 0.5);
+    }
+    flash = Math.max(0, 1 - boomReal / 0.35) * 0.85 + Math.max(0, 1 - Math.abs(boomReal - 0.6) / 0.2) * 0.35;
+    burnTarget = t < 4 ? 1 : Math.max(0.35, 1 - (t - 4) / 7);
+    shake = t < 0.15 ? 0.4 : Math.max(0, 1.4 * Math.exp(-(t - 0.15) * 1.3)) + (t > 1.3 && t < 2 ? 0.5 : 0);
+    pushTarget = 0; wideTarget = 1;
+    bloom.strength = 0.7 + 0.7 * Math.exp(-t * 1.5);
+
+    fireball.visible = t < 1.6;
+    fireball.scale.setScalar(0.3 + 3.2 * (1 - Math.exp(-t * 5)));
+    fireball.position.y = 0.2 + t * 2;
+    fireball.material.opacity = Math.max(0, 1 - t / 1.6) * 0.35;
+    shockAir.visible = t < 1.4;
+    shockAir.scale.setScalar(t * 45); shockAir.material.opacity = Math.max(0, 1 - t / 1.4);
+    wilson.visible = t > 0.2 && t < 2.2;
+    wilson.scale.setScalar(4 + (t - 0.2) * 30);
+    wilsonMat.uniforms.op.value = Math.sin(clamp01((t - 0.2) / 2) * Math.PI) * 0.28;
+    shockFloors.forEach(m => {
+      const tt = t - m.userData.delay;
+      m.visible = tt > 0 && tt < 3;
+      m.scale.setScalar(2 + tt * 28); m.material.opacity = Math.max(0, 1 - tt / 3);
+    });
+    // 天上地下被照亮
+    headLight.position.set(B.windX * drift(t), cloudY(t), 4 + B.windZ * drift(t)); headLight.distance = 0;
+    headLight.color.setRGB(1, 0.55, 0.25); headLight.intensity = 400 + 4000 * Math.exp(-t * 0.9);
+
+    // 冲击波掠过：柱子倒下、横梁砸落、火盆和浮石被掀飞
+    debris.forEach(d => {
+      const kk = clamp01((t - d.delay) * (d.kind === 'fall' ? 0.75 : 0.6));
+      if (kk > 0 && !d.dust) { d.dust = true; dustBurst(d.homeP, 30); }
+      if (kk >= 1 && !d.landed && d.kind !== 'fly') { d.landed = true; dustBurst(d.fallP, 45); }
+      poseDebris(d, d.kind === 'fly' ? 1 - Math.pow(1 - kk, 3) : kk * kk);
+    });
+
+    // 地面扬尘：贴地向外扩散的一圈
+    if (!dustDone && t > 0.1) {
+      dustDone = true;
+      for (let i = 0; i < 900 * Q; i++) {
+        const a = Math.random() * Math.PI * 2, s = R(10, 30);
+        smoke.spawn(Math.cos(a) * 2, -3.1, Math.sin(a) * 2, Math.cos(a) * s, R(0, 2), Math.sin(a) * s, R(3, 5.5), 2, 7, [0.85, 0.5, 0.3], SMOKE_DARK, 0.6, 0.9, 0.3);
+      }
+    }
+    // 蘑菇云：烟柱 + 翻卷的云冠
+    const cy = cloudY(t), cr = cloudR(t), tube = 1.2 + cr * B.tubeK;
+    const dx = B.windX * drift(t), dz = B.windZ * drift(t);
+    if (t < 5.5) {
+      const fade = clamp01((5.5 - t) / 2);
+      stemAcc += dt * 320 * Q * fade;
+      while (stemAcc > 1) {
+        stemAcc--;
+        const y0 = R(-3.3, cy - tube * 0.5), f = (y0 + 3.3) / (cy + 3.3), wr = (0.9 + f * 1.5) * B.stemW;
+        const a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random()) * wr;
+        const hot = Math.random() < Math.max(0.15, (0.8 - t * 0.2) * B.hot);
+        const x = Math.cos(a) * rr + dx * f * f, z = Math.sin(a) * rr + dz * f * f, vy = R(3, 6);
+        if (hot) fire.spawn(x, y0, z, 0, vy, 0, R(0.6, 1.2), 2, 3.5, Math.random() < 0.15 ? FIRE_HOT : FIRE_MID, FIRE_END, 0.3, 0.5, 0);
+        else smoke.spawn(x, y0, z, 0, vy, 0, R(2.5, 4), 2.4, 4, SMOKE_HOT, SMOKE_DARK, 0.75, 0.3, 0);
+      }
+      capAcc += dt * 650 * Q * fade;
+      while (capAcc > 1) {
+        capAcc--;
+        // 在环面上取点，速度沿环面切线：顶上往外翻、外侧往下卷
+        // 一部分粒子集中到几个鼓包上，云冠不再是规整的圆环
+        let a = Math.random() * Math.PI * 2, bulge = 1, lift = 0;
+        if (Math.random() < 0.4) { const L = B.lobes[(Math.random() * B.lobes.length) | 0]; a = L.a + R(-0.45, 0.45); bulge = L.k; lift = L.up * tube; }
+        const phi = Math.random() * Math.PI * 2;
+        const dir = _d.set(Math.cos(a), 0, Math.sin(a));
+        const ring = cr + tube * bulge * Math.cos(phi);
+        const x = dir.x * ring + dx, z = dir.z * ring + dz, y = cy + lift + tube * bulge * Math.sin(phi) * 0.75;
+        const roll = 1.5 + cr * 0.25, rise = 0.45 * 20 * Math.exp(-t * 0.45) * 0.8;
+        const vx = dir.x * Math.sin(phi) * roll, vz = dir.z * Math.sin(phi) * roll, vy = -Math.cos(phi) * roll + rise;
+        const hot = Math.random() < Math.max(0.12, (0.85 - t * 0.22) * B.hot);
+        if (hot) fire.spawn(x, y, z, vx, vy, vz, R(0.7, 1.4), 3, 5.5, Math.random() < 0.12 ? FIRE_HOT : FIRE_MID, FIRE_END, 0.28, 0.4, 0);
+        else smoke.spawn(x, y, z, vx, vy, vz, R(4, 6.5), 3.5, 7.5, SMOKE_HOT, SMOKE_DARK, 0.8, 0.35, 0);
+      }
+    }
+    if (t > BOOM_LEN) startReform();
+  } else if (state === 'reform') {
+    const p = Math.min(1, stateT / REFORM_LEN), e = ease(p);
+    layoutShards(BOOM_LEN * (1 - e), 0.32 * (1 - e), 0);
+    const g = 1 + Math.sin(p * Math.PI) * 1.4;
+    headMat.color.setRGB(g, g * 0.95, g * 0.8);
+    debris.forEach(d => poseDebris(d, 1 - e));
+    wideTarget = 0; pushTarget = 0;
+    burnTarget = 0;
+    heat = 1 - e; // 热度跟着复原进度一起退，天空、雾、光晕同步褪色
+    hand.material.opacity = clamp01(p * 2 - 1);
+    // 碎片回归时的金色光尘
+    if (p < 0.9) for (let i = 0; i < 5; i++) {
+      const tr = tris[(Math.random() * tris.length) | 0];
+      fire.spawn(tr.wx, tr.wy + 0.2, tr.wz + 0.2, R(-0.3, 0.3), R(-0.3, 0.3), R(-0.3, 0.3), 0.6, 0.18, 0.05, GOLD, FIRE_END, 0.8, 1, 0);
+    }
+    if (stateT >= REFORM_LEN) {
+      state = 'idle'; count = 0; heat = 0;
+      layoutShards(0, 0, 0); headMat.color.setRGB(1, 1, 1);
+      showShards(false); fracture(); deformIntact(null);
+      debris.forEach(d => { d.dust = d.landed = false; poseDebris(d, 0); });
+      sfx.setDrone(0); updateUI();
+      burstFire(0, 0.2, 0, 150 * Q, 1, 5, 1, 0.2);
+    }
+  }
+
+  // ---- 镜头：近景 → 推近脸 → 拉到远景看蘑菇云 ----
+  push += (pushTarget - push) * Math.min(1, realDt * 3);
+  wide += (wideTarget - wide) * Math.min(1, realDt * (wideTarget > wide ? 2.6 : 1.6));
+  const w = ease(clamp01(wide));
+  const th = B.camAngle + B.camSpin * boomReal * 10;
+  camPos.set(Math.sin(time * 0.25) * 0.6, 0.6, baseDist - h * 1.4 - push * 4)
+    .lerp(_p3.set(Math.sin(th) * B.camDist * wideK, 2 + B.camH, Math.cos(th) * B.camDist * wideK), w);
+  camLook.set(0, 0.3 + w * B.lookH, 0);
+  camPos.x += (Math.random() - 0.5) * shake; camPos.y += (Math.random() - 0.5) * shake;
+  camera.position.copy(camPos);
+  camera.lookAt(camLook);
+  camera.far = 500; camera.updateProjectionMatrix();
+  if (state !== 'boom') shake *= 0.9;
+
+  burn += (burnTarget - burn) * Math.min(1, realDt * (burnTarget > burn ? 4 : 1.2));
+  nebulaMat.uniforms.flash.value = flash * 0.4 + burn * 0.3;
+  nebulaMat.uniforms.heat.value = Math.max(h, burn);
+  $flash.style.opacity = Math.min(1, flash).toFixed(3);
+
+  fire.update(dt); smoke.update(dt);
+}
+
+function dustBurst(p, n) {
+  for (let i = 0; i < n * Q; i++) {
+    const a = Math.random() * Math.PI * 2, s = R(1.5, 5);
+    smoke.spawn(p.x + R(-1, 1), GROUND_Y + 0.4, p.z + R(-1, 1), Math.cos(a) * s, R(0.3, 2), Math.sin(a) * s, R(1.8, 3.5), 1.4, 3.6, [0.55, 0.38, 0.3], SMOKE_DARK, 0.55, 1.2, 0.25);
+  }
+}
+
+function startBoom() {
+  state = 'boom'; stateT = 0; boomReal = 0; dustDone = false; stemAcc = capAcc = 0;
+  rollBoom(); rollShardVelocities();
+  debris.forEach(d => {
+    const b = d.base, out = _p3.set(d.homeP.x, 0, d.homeP.z).normalize();
+    d.fallP.copy(b.fallP).addScaledVector(out, d.kind === 'fly' ? R(-3, 8) : R(-0.8, 2.5));
+    d.fallQ.copy(b.fallQ).premultiply(_qa.setFromAxisAngle(_up, d.kind === 'fly' ? R(-3, 3) : R(-0.35, 0.35)));
+    d.hop = b.hop * R(0.6, 1.5); d.delay = b.delay + R(-0.08, 0.15);
+  });
+  sfx.boom();
+  for (let i = 0; i < 450 * Q; i++) {
+    const d = new THREE.Vector3().randomDirection(), sp = R(4, 20);
+    fire.spawn(d.x * 0.5, 0.2 + d.y * 0.5, d.z * 0.5, d.x * sp, d.y * sp + 2, d.z * sp, R(0.8, 1.6), 1, 2.6, Math.random() < 0.2 ? FIRE_HOT : FIRE_MID, FIRE_END, R(0.15, 0.3), 2.4, 1.5);
+  }
+  for (let i = 0; i < 700 * Q; i++) { // 火星
+    const d = new THREE.Vector3().randomDirection(), s = R(14, 40);
+    fire.spawn(0, 0.2, 0, d.x * s, Math.abs(d.y) * s + 6, d.z * s, R(1.5, 3), 0.2, 0.08, FIRE_HOT, FIRE_MID, 1, 0.5, -9);
+  }
+  hand.visible = false;
+}
+function startReform() {
+  state = 'reform'; stateT = 0;
+  hand.visible = true; hand.position.copy(HAND_REST); handVel.set(0, 0);
+  fireball.visible = shockAir.visible = wilson.visible = false;
+  shockFloors.forEach(m => m.visible = false);
+  sfx.reform();
+}
+
+deformIntact(null);
+updateUI();
+frame();
+
+// 调试用：在控制台 __kly.set(56) 直接跳到第 56 下
+window.__kly = { set(n) { count = Math.min(MAX - 1, n); heat = count / MAX; updateUI(); }, get state() { return state; }, get t() { return [stateT, boomReal]; },
+  ff(sec) { for (let i = 0; i < sec * 60; i++) { simTime += 1 / 60; tick(1 / 60, simTime); } composer.render(); } };
+</script>
+</body>
+</html>

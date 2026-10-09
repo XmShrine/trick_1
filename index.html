@@ -42,14 +42,15 @@
     <div class="container">
         <div class="grid" id="cardGrid">
 
-            <div class="card" onclick="showVersionPicker()" data-title="MCH打人小游戏重制版原版">
+            <div class="card" onclick="showVersionPicker('mch')" data-title="MCH打人小游戏重制版原版">
                 <span class="badge-remake"><span>重制版</span></span>
                 <div class="card-icon" style="background: linear-gradient(135deg, #4285f4, #34a853);">🐎</div>
                 <div class="card-title">MCH</div>
                 <div class="card-desc">打人小游戏</div>
             </div>
 
-            <div class="card" onclick="showPasswordModal('KLY_head/index.html', 2428189742)" data-title="Jin摸一摸疗愈">
+            <div class="card" onclick="showVersionPicker('kly')" data-title="Jin摸一摸疗愈重制版原版">
+                <span class="badge-remake"><span>重制版</span></span>
                 <div class="card-icon" style="background: linear-gradient(135deg, #ff3b30, #cc0000);">Jin</div>
                 <div class="card-title">摸一摸⚱️</div>
                 <div class="card-desc">疗愈</div>
@@ -289,34 +290,47 @@
         </div>
     </div>
 
-    <!-- MCH 版本选择 -->
+    <!-- 重制版游戏的版本选择（MCH、KLY 共用） -->
     <div class="modal" id="versionModal">
         <div class="modal-content">
             <h2>选择版本</h2>
-            <div class="version-list">
-                <button class="version-item" onclick="pickVersion('MCH_beat_new/index.html')">
-                    <div class="v-text">
-                        <div class="v-name">重制版 <span class="v-tag">推荐</span></div>
-                        <div class="v-desc">点哪砸哪 · 蓄力重击 · 连击暴走</div>
-                    </div>
-                    <span class="v-chev">›</span>
-                </button>
-                <button class="version-item" onclick="pickVersion('MCH_beat/index.html')">
-                    <div class="v-text">
-                        <div class="v-name">原版</div>
-                        <div class="v-desc">最初的 AI 版本</div>
-                    </div>
-                    <span class="v-chev">›</span>
-                </button>
-            </div>
+            <div class="version-list" id="versionList"></div>
             <div class="modal-btns">
                 <button class="btn btn-cancel" onclick="hideVersionPicker()">取消</button>
             </div>
         </div>
     </div>
     <script>
-        const MCH_PASSWORD = 3493947695;
-        function showVersionPicker() {
+        const REMAKES = {
+            mch: {
+                password: 3493947695,
+                versions: [
+                    { url: 'MCH_beat_new/index.html', name: '重制版', tag: '推荐', desc: '点哪砸哪 · 蓄力重击 · 连击暴走' },
+                    { url: 'MCH_beat/index.html', name: '原版', desc: '最初的 AI 版本' }
+                ]
+            },
+            kly: {
+                password: 2428189742,
+                versions: [
+                    { url: 'KLY_head_new/index.html', name: '重制版', tag: '推荐', desc: '精细摸头 · 神殿崩塌 · 每次都不一样的蘑菇云' },
+                    { url: 'KLY_head/index.html', name: '原版', desc: '最初的 AI 版本' }
+                ]
+            }
+        };
+        function showVersionPicker(key) {
+            const game = REMAKES[key];
+            const list = document.getElementById('versionList');
+            list.replaceChildren(...game.versions.map(v => {
+                const btn = document.createElement('button');
+                btn.className = 'version-item';
+                btn.innerHTML = '<div class="v-text"><div class="v-name"></div><div class="v-desc"></div></div><span class="v-chev">›</span>';
+                const name = btn.querySelector('.v-name');
+                name.textContent = v.name + ' ';
+                if (v.tag) { const tag = document.createElement('span'); tag.className = 'v-tag'; tag.textContent = v.tag; name.appendChild(tag); }
+                btn.querySelector('.v-desc').textContent = v.desc;
+                btn.onclick = () => pickVersion(v.url, game.password);
+                return btn;
+            }));
             const m = document.getElementById('versionModal');
             m.style.display = 'block';
             requestAnimationFrame(() => m.classList.add('show'));
@@ -326,8 +340,8 @@
             m.classList.remove('show');
             setTimeout(() => { m.style.display = 'none'; if (then) then(); }, 250);
         }
-        function pickVersion(url) {
-            hideVersionPicker(() => showPasswordModal(url, MCH_PASSWORD));
+        function pickVersion(url, password) {
+            hideVersionPicker(() => showPasswordModal(url, password));
         }
         document.getElementById('versionModal').addEventListener('click', e => {
             if (e.target.id === 'versionModal') hideVersionPicker();
