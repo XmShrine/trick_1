@@ -1,437 +1,1229 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <!-- 关键：禁止缩放，适配刘海屏 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>曼波播放器 98 Mobile</title>
-    <style>
-        /* --- 核心设置 --- */
-        @font-face { font-family: 'Pixel'; src: local('Tahoma'), local('Verdana'), sans-serif; }
-        
-        * { 
-            box-sizing: border-box; 
-            user-select: none; 
-            -webkit-user-select: none; 
-            -webkit-tap-highlight-color: transparent; /* 去除点击高亮块 */
-        }
-        
-        body {
-            margin: 0; padding: 0;
-            background-color: #008080; /* Win95 Teal */
-            font-family: 'Pixel', 'MS Sans Serif', sans-serif;
-            height: 100vh; width: 100vw;
-            overflow: hidden; /* 禁止 body 滚动，只允许窗口内部滚动 */
-            position: relative;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>曼波播放器 98</title>
+<link rel="icon" href="icon.png">
+<style>
+/* 曼波 98：一台完整的 Win98 风格桌面，曼波播放器是主角 */
+:root{
+  color-scheme: light;
+  --desk:#008080; --face:#c0c0c0; --hi:#ffffff; --lt:#dfdfdf; --sh:#808080; --dk:#000000;
+  --navy:#000080; --blue2:#1084d0; --ina1:#808080; --ina2:#b5b5b5; --field:#ffffff; --text:#000000; --tip:#ffffe1;
+  --ui: Tahoma, "SimSun", "宋体", "Songti SC", "PingFang SC", sans-serif;
+  --mono: "Courier New", "SimSun", monospace;
+  --fs:12px; --tb:18px; --cbw:16px; --cbh:14px; --gs:1; --tbh:28px; --mih:20px; --btnh:23px; --ico:32px;
+  --bevel-out: inset -1px -1px var(--dk), inset 1px 1px var(--hi), inset -2px -2px var(--sh), inset 2px 2px var(--lt);
+  --bevel-win: inset -1px -1px var(--dk), inset 1px 1px var(--lt), inset -2px -2px var(--sh), inset 2px 2px var(--hi);
+  --bevel-in: inset -1px -1px var(--hi), inset 1px 1px var(--dk), inset -2px -2px var(--lt), inset 2px 2px var(--sh);
+  --bevel-field: inset -1px -1px var(--hi), inset 1px 1px var(--sh), inset -2px -2px var(--lt), inset 2px 2px var(--dk);
+  --bevel-thin-in: inset -1px -1px var(--hi), inset 1px 1px var(--sh);
+  --bevel-thin-out: inset -1px -1px var(--sh), inset 1px 1px var(--hi);
+  --dither: conic-gradient(var(--hi) 25%, var(--face) 0 50%, var(--hi) 0 75%, var(--face) 0) 0 0/2px 2px;
+}
+@media (max-width:600px), (pointer:coarse){
+  :root{ --fs:14px; --tb:28px; --cbw:26px; --cbh:24px; --gs:2; --tbh:40px; --mih:32px; --btnh:40px; }
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#000;font:var(--fs)/1.25 var(--ui);color:var(--text);
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;overscroll-behavior:none;cursor:default}
+button,input,select,textarea{font:inherit;color:inherit;margin:0}
+u{text-decoration:underline;text-underline-offset:1px}
+.px{image-rendering:pixelated}
 
-        /* --- 动画：窗口震动 --- */
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            30% { transform: translate(3px, 2px) rotate(0deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            70% { transform: translate(3px, 1px) rotate(-1deg); }
-            90% { transform: translate(1px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
-        }
-        .window-shake { animation: shake 0.5s; animation-iteration-count: infinite; }
+/* ---------- 通用控件 ---------- */
+.btn{border:0;background:var(--face);padding:0 12px;min-height:var(--btnh);min-width:75px;box-shadow:var(--bevel-out);outline:none}
+.btn:active:not(:disabled),.btn.down{box-shadow:var(--bevel-in);padding:1px 11px 0 13px}
+.btn:focus-visible{outline:1px dotted #000;outline-offset:-5px}
+.btn.def{box-shadow:0 0 0 1px var(--dk),var(--bevel-out)}
+.btn.def:active{box-shadow:0 0 0 1px var(--dk),var(--bevel-in)}
+.btn:disabled{color:var(--sh);text-shadow:1px 1px var(--hi)}
+.sunken{box-shadow:var(--bevel-field)}
+.field{background:var(--field);border:0;box-shadow:var(--bevel-field);outline:none;padding:3px 4px;min-height:22px}
+fieldset.group{border:1px solid var(--sh);box-shadow:1px 1px 0 var(--hi),inset 1px 1px 0 var(--hi);margin:4px 0 0;padding:8px 8px 9px;min-width:0}
+fieldset.group legend{padding:0 3px}
+.radio,.check{display:flex;align-items:center;gap:6px;min-height:22px}
+.radio input,.check input{appearance:none;-webkit-appearance:none;flex:none;width:13px;height:13px;background:#fff;box-shadow:var(--bevel-field);display:grid;place-items:center}
+.radio input{border-radius:50%}
+.radio input:checked::after{content:"";width:4px;height:4px;border-radius:50%;background:#000}
+.check input:checked{background:#fff var(--g-chk) center no-repeat}
+select.sel{appearance:none;-webkit-appearance:none;border:0;outline:none;min-height:22px;padding:2px 22px 2px 4px;box-shadow:var(--bevel-field);
+  background:var(--g-dn) no-repeat right 6px center,linear-gradient(var(--face),var(--face)) no-repeat right 2px center/16px calc(100% - 4px),#fff}
+select.sel:focus{background-color:#fff}
 
-        /* --- 彩蛋：蓝屏死机 --- */
-        #bsod {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000082; color: #fff; font-family: 'Courier New', monospace;
-            padding: 20px; z-index: 9999; font-size: 14px; line-height: 1.4;
-            overflow-y: auto;
-        }
+/* ---------- 桌面 ---------- */
+#desk{position:fixed;left:0;right:0;top:0;bottom:calc(var(--tbh) + env(safe-area-inset-bottom,0px));background:var(--desk);overflow:hidden}
+#desk.off{visibility:hidden}
+#wall{position:absolute;inset:0;background-repeat:no-repeat;background-position:center}
+#icons{position:absolute;inset:0;pointer-events:none}
+#icons.off{visibility:hidden}
+.icon{position:absolute;width:78px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:2px;color:#fff;text-align:center;touch-action:none;pointer-events:auto}
+.icon .im{width:var(--ico);height:var(--ico);position:relative}
+.icon img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.icon .im::after{content:"";position:absolute;inset:0;background:var(--navy);opacity:0;mix-blend-mode:multiply;pointer-events:none}
+.icon span{padding:1px 2px;line-height:1.25;word-break:break-all;border:1px dotted transparent;text-shadow:1px 1px #000}
+.icon.sel .im::after{opacity:.55}
+.icon.sel span{background:var(--navy);border-color:#ffff00;text-shadow:none}
+.marq{position:absolute;border:1px dotted #fff;pointer-events:none;z-index:2}
 
-        /* --- 主窗口 --- */
-        .window {
-            position: absolute;
-            background-color: #c0c0c0;
-            width: 400px; /* 默认宽度 */
-            max-width: 95vw; /* 移动端最大宽度 */
-            max-height: 80vh; /* 防止超出一屏 */
-            box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #000000, inset 2px 2px #ffffff, inset -2px -2px #808080;
-            padding: 3px;
-            display: flex; flex-direction: column;
-            z-index: 100;
-            /* 阴影增加立体感 */
-            box-shadow: 4px 4px 10px rgba(0,0,0,0.5); 
-        }
+/* ---------- 窗口 ---------- */
+.win{position:absolute;display:flex;flex-direction:column;padding:3px;background:var(--face);box-shadow:var(--bevel-win),2px 2px 0 rgba(0,0,0,.0);max-width:100%;max-height:100%}
+.win.max{left:0!important;top:0!important;width:100%!important;height:100%!important}
+.tb{height:var(--tb);flex:none;display:flex;align-items:center;gap:3px;padding:0 2px 0 3px;background:linear-gradient(90deg,var(--ina1),var(--ina2));color:var(--lt);font-weight:bold;touch-action:none}
+.win.active>.tb{background:linear-gradient(90deg,var(--navy),var(--blue2));color:#fff}
+.tb .ti{width:16px;height:16px;flex:none;object-fit:contain}
+.tb .tt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:1px}
+.tbb{display:flex;flex:none;align-items:center}
+.cb{width:var(--cbw);height:var(--cbh);border:0;padding:0;background:var(--face) center/calc(8px*var(--gs)) calc(7px*var(--gs)) no-repeat;image-rendering:pixelated;box-shadow:var(--bevel-out)}
+.cb:active{box-shadow:var(--bevel-in);background-position:calc(50% + 1px) calc(50% + 1px)}
+.cb[data-act=min]{background-image:var(--g-min)}
+.cb[data-act=max]{background-image:var(--g-max)}
+.win.max .cb[data-act=max]{background-image:var(--g-res)}
+.cb[data-act=close]{background-image:var(--g-cls);margin-left:2px}
+.cb[data-act=help]{background-image:var(--g-hlp)}
+.menubar{display:flex;flex:none;padding:1px 0 2px;flex-wrap:wrap}
+.mb{padding:1px 6px;min-height:var(--mih);display:flex;align-items:center}
+.mb:hover{box-shadow:var(--bevel-thin-out)}
+.mb.open{box-shadow:var(--bevel-thin-in)}
+.statusbar{display:flex;gap:2px;flex:none;margin-top:2px}
+.pane{box-shadow:var(--bevel-thin-in);padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pane.grow{flex:1;min-width:0}
+.grip{position:absolute;right:3px;bottom:3px;width:12px;height:12px;background:var(--g-grip) no-repeat;cursor:nwse-resize;touch-action:none}
+.dlg .db{padding:14px 14px 10px;display:flex;gap:14px;align-items:flex-start}
+.dlg .ic32{width:32px;height:32px;flex:none}
+.dlg .bts{display:flex;justify-content:flex-end;gap:6px;padding:4px 12px 12px;flex-wrap:wrap}
+@keyframes shake{0%{transform:translate(1px,1px) rotate(0)}10%{transform:translate(-1px,-2px) rotate(-1deg)}30%{transform:translate(3px,2px) rotate(0)}
+  50%{transform:translate(-1px,2px) rotate(-1deg)}70%{transform:translate(3px,1px) rotate(-1deg)}90%{transform:translate(1px,2px) rotate(0)}100%{transform:translate(1px,-2px) rotate(-1deg)}}
+.window-shake{animation:shake .5s infinite}
 
-        .window.maximized {
-            width: 100% !important; height: calc(100% - 35px) !important; /* 留出任务栏 */
-            top: 0 !important; left: 0 !important; max-height: none; max-width: none;
-            z-index: 900;
-        }
-        
-        .window.minimized { display: none; }
+/* ---------- 菜单 ---------- */
+.menu{position:fixed;z-index:9000;padding:3px;background:var(--face);box-shadow:var(--bevel-win),2px 2px 0 rgba(0,0,0,.25);min-width:150px}
+.mi{display:grid;grid-template-columns:22px 1fr auto 14px;align-items:center;min-height:var(--mih);padding:0 2px;white-space:nowrap}
+.mi .ck{height:100%;display:flex;align-items:center;justify-content:center;background:center no-repeat}
+.mi .ck img{width:16px;height:16px;object-fit:contain}
+.mi.on .ck{background-image:var(--g-chk)}
+.mi .k{padding-left:24px}
+.mi .ar{height:100%;background:center no-repeat}
+.mi.has .ar{background-image:var(--g-arr)}
+.mi.hl:not(.dis){background:var(--navy);color:#fff}
+.mi.hl.on:not(.dis) .ck{background-image:var(--g-chk-w)}
+.mi.hl.has:not(.dis) .ar{background-image:var(--g-arr-w)}
+.mi.dis{color:var(--sh);text-shadow:1px 1px var(--hi)}
+.msep{height:2px;margin:3px 1px;border-top:1px solid var(--sh);border-bottom:1px solid var(--hi)}
+.menu.start{display:flex;padding:3px;min-width:0}
+.menu.start .banner{width:22px;flex:none;background:linear-gradient(0deg,var(--navy),var(--blue2));color:#fff;writing-mode:vertical-rl;transform:rotate(180deg);
+  display:flex;align-items:center;padding:8px 0;font:bold 17px/22px Arial,var(--ui);letter-spacing:1px;white-space:nowrap}
+.menu.start .banner span{font-weight:normal;color:#dfe8ff}
+.menu.start .items{min-width:180px}
+.menu.start .mi{grid-template-columns:42px 1fr 14px;min-height:calc(var(--mih) + 14px);padding-right:6px}
+.menu.start .mi .ck img{width:32px;height:32px}
+.menu.start .mi .k{display:none}
 
-        /* --- 标题栏 --- */
-        .title-bar {
-            background: linear-gradient(90deg, #000080, #1084d0);
-            padding: 4px 5px; min-height: 28px; /* 加高以便触控 */
-            display: flex; justify-content: space-between; align-items: center;
-            touch-action: none; /* 关键：禁止浏览器默认拖动行为 */
-        }
-        .title-bar-text { color: white; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-        .title-bar-controls { display: flex; gap: 4px; }
-        
-        .control-btn {
-            width: 22px; height: 20px; /* 加大按钮 */
-            background: #c0c0c0; border: none;
-            box-shadow: inset 1px 1px #ffffff, inset -1px -1px #000000, inset -2px -2px #808080;
-            font-size: 12px; line-height: 1; font-weight: bold; display: flex; justify-content: center; align-items: center;
-        }
-        .control-btn:active { box-shadow: inset 1px 1px #000000, inset 2px 2px #808080; }
+/* ---------- 任务栏 ---------- */
+#taskbar{position:fixed;left:0;right:0;bottom:0;z-index:5000;height:calc(var(--tbh) + env(safe-area-inset-bottom,0px));
+  padding:2px 2px calc(2px + env(safe-area-inset-bottom,0px));background:var(--face);box-shadow:inset 0 1px var(--lt),inset 0 2px var(--hi);display:flex;align-items:stretch;gap:3px}
+#start{display:flex;align-items:center;gap:3px;padding:0 6px 0 3px;font-weight:bold;min-width:0}
+#start.down{box-shadow:var(--bevel-in);padding:1px 5px 0 4px}
+#start img{width:18px;height:18px;object-fit:contain}
+.tdiv{flex:none;display:flex;gap:2px;margin:1px 0}
+.tdiv::before{content:"";width:0;border-left:1px solid var(--sh);border-right:1px solid var(--hi)}
+.tdiv::after{content:"";width:3px;box-shadow:var(--bevel-thin-out);margin:1px 0}
+#quick{display:flex;align-items:center;gap:1px}
+.qb{width:23px;height:22px;border:0;background:var(--face) center/16px 16px no-repeat;image-rendering:pixelated}
+.qb:hover{box-shadow:var(--bevel-thin-out)}
+.qb:active{box-shadow:var(--bevel-thin-in)}
+#tasks{flex:1;display:flex;gap:3px;min-width:0}
+.task{flex:0 1 160px;min-width:28px;display:flex;align-items:center;gap:4px;padding:0 5px;border:0;background:var(--face);box-shadow:var(--bevel-out);text-align:left}
+.task img{width:16px;height:16px;flex:none;object-fit:contain}
+.task span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.task.on{box-shadow:var(--bevel-in);background:var(--dither);font-weight:bold;padding-top:1px}
+#tray{display:flex;align-items:center;gap:6px;padding:0 8px 0 5px;box-shadow:var(--bevel-thin-in);flex:none}
+#tray img{width:16px;height:16px;image-rendering:pixelated}
+#clock{white-space:nowrap}
 
-        /* --- 菜单栏 --- */
-        .menu-bar { display: flex; padding: 4px 6px; font-size: 14px; margin-bottom: 2px; }
-        .menu-item { margin-right: 15px; padding: 2px; } 
-        .menu-item:active { background: #000080; color: white; } /* 移动端触摸反馈 */
-        .menu-item span { text-decoration: underline; }
-        
-        /* --- 内容区域 --- */
-        .window-body { 
-            padding: 10px; flex-grow: 1; 
-            overflow-y: auto; /* 允许内容过多时滚动 */
-            -webkit-overflow-scrolling: touch; /* iOS 惯性滚动 */
-        }
+/* ---------- 曼波播放器 ---------- */
+#w-player{width:min(400px,100%)}
+.wb{padding:8px 8px 6px;display:flex;flex-direction:column;gap:7px;overflow:auto;flex:1;min-height:0}
+.stage{background:#fff;min-height:150px;display:flex;align-items:center;justify-content:center;padding:8px;overflow:hidden;flex:none}
+.stage.inv{filter:invert(1)}
+.djw{display:flex;align-items:center;justify-content:center;transform-origin:50% 90%}
+.djw.dance{animation:dance .46s steps(2,jump-none) infinite}
+@keyframes dance{0%{transform:rotate(-3deg)}100%{transform:rotate(3deg) translateY(-3px)}}
+#dj{max-width:100%;max-height:200px;height:auto;image-rendering:pixelated;pointer-events:none;display:block}
+#dj.pop{animation:pop .5s steps(5)}
+@keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.18)}60%{transform:scale(.96)}100%{transform:scale(1)}}
+.deck{display:grid;grid-template-columns:1.3fr 1fr;gap:6px;flex:none}
+.lcd{background:#000;color:#3f3;font-family:var(--mono);padding:5px 7px;display:flex;flex-direction:column;justify-content:center;gap:2px;overflow:hidden;min-width:0}
+.lcd .row{display:flex;align-items:baseline;gap:6px;min-width:0}
+.lcd .st{font-size:11px;width:10px}
+.lcd .tm{font-size:19px;font-weight:bold;letter-spacing:1px;text-shadow:0 0 4px rgba(51,255,51,.6);font-variant-numeric:tabular-nums}
+.lcd .kb{margin-left:auto;font-size:10px;color:#1c1;white-space:nowrap}
+.lcd .mq{white-space:nowrap;overflow:hidden;font-size:11px;color:#9f9}
+.lcd .mq span{display:inline-block;padding-left:100%;animation:mq 10s linear infinite}
+@keyframes mq{to{transform:translateX(-100%)}}
+.vizw{background:#000;padding:2px;min-height:46px;display:flex}
+#viz{width:100%;height:100%;display:block}
+.seek{position:relative;height:22px;flex:none;margin:0 2px}
+.seek .groove{position:absolute;left:0;right:0;top:9px;height:4px}
+.seek .thumb{position:absolute;top:1px;left:0;width:11px;height:20px;background:var(--g-thumb) no-repeat center/11px 20px;image-rendering:pixelated}
+.pads{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.pad{min-height:calc(var(--btnh) + 12px);font-size:calc(var(--fs) + 1px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 5px}
+.pad.playing{box-shadow:var(--bevel-in);background:#d4d4d4;padding:1px 4px 0 6px}
 
-        .sunken-panel {
-            border: 2px solid; border-color: #808080 #fff #fff #808080;
-            background: #fff; padding: 2px; margin-bottom: 15px; display: flex; justify-content: center;
-            min-height: 150px; align-items: center;
-        }
-        .main-image { max-width: 100%; height: auto; max-height: 200px; image-rendering: pixelated; pointer-events: none; }
+/* ---------- 记事本 ---------- */
+#w-notepad{width:min(380px,100%);height:min(340px,70%)}
+#np{flex:1;resize:none;border:0;padding:3px 5px;font:13px/1.5 var(--ui);background:#fff;box-shadow:var(--bevel-field);outline:none;user-select:text;-webkit-user-select:text;min-height:0;white-space:pre-wrap}
+#np.nowrap{white-space:pre;overflow-x:auto}
 
-        .button-group {
-            border: 1px solid #808080; border-radius: 2px; position: relative; padding: 15px 10px 10px; margin-top: 10px;
-        }
-        .group-label { position: absolute; top: -8px; left: 8px; background: #c0c0c0; padding: 0 4px; font-size: 12px; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* ---------- 对话框 ---------- */
+#w-about{width:min(360px,100%)}
+#w-about .db{align-items:flex-start}
+#w-about .art{width:72px;flex:none;background:#fff;padding:4px;box-shadow:var(--bevel-field)}
+#w-about .art img{width:100%;display:block}
+#w-about h3{margin:0 0 2px;font-size:calc(var(--fs) + 2px)}
+#w-about p{margin:0 0 3px}
+#w-about hr{border:0;border-top:1px solid var(--sh);border-bottom:1px solid var(--hi);margin:8px 0}
+#w-run{width:min(360px,100%)}
+#w-run .row{display:flex;align-items:center;gap:8px;padding:0 14px 10px}
+#w-run .row input{flex:1;min-width:0;user-select:text;-webkit-user-select:text}
+#w-shut{width:min(320px,100%)}
+#w-err{width:min(380px,100%)}
+#errDetail{margin:0 12px 12px;height:110px;font:11px/1.35 var(--mono);resize:none;user-select:text;-webkit-user-select:text}
+#w-disp{width:min(400px,100%)}
+.tabs{display:flex;padding:6px 6px 0;position:relative;z-index:1;margin-bottom:-2px}
+.tab{padding:3px 9px 3px;margin-top:2px;border:0;background:var(--face);border-radius:3px 3px 0 0;box-shadow:inset 1px 1px var(--hi),inset -1px 0 var(--dk),inset -2px 0 var(--sh),inset 2px 2px var(--lt)}
+.tab.on{margin:0 -2px;padding:3px 11px 6px;position:relative;z-index:2}
+.tabpanel{margin:0 6px;padding:12px;box-shadow:var(--bevel-win)}
+.mon{width:190px;margin:0 auto 12px}
+.mon .bz{background:var(--face);padding:10px 12px 16px;border-radius:5px 5px 2px 2px;box-shadow:var(--bevel-out)}
+.mon .scr{height:104px;background:var(--desk);box-shadow:var(--bevel-field);position:relative;overflow:hidden}
+.mon .scr canvas{position:absolute;inset:2px;width:calc(100% - 4px);height:calc(100% - 4px)}
+.mon .led{width:5px;height:3px;background:#2c2;margin:5px 0 -10px auto}
+.mon .neck{width:60px;height:9px;margin:0 auto;background:var(--face);box-shadow:var(--bevel-out)}
+.mon .foot{width:120px;height:8px;margin:0 auto;background:var(--face);box-shadow:var(--bevel-out);border-radius:2px}
+.prow{display:flex;gap:10px;align-items:flex-start}
+.list{background:#fff;box-shadow:var(--bevel-field);padding:2px;height:96px;overflow:auto;flex:1;min-width:0}
+.list div{padding:1px 4px;white-space:nowrap}
+.list div.on{background:var(--navy);color:#fff}
+.pcol{display:flex;flex-direction:column;gap:6px;width:120px;flex:none}
+.pcol label{display:flex;flex-direction:column;gap:3px}
+.num{width:56px}
 
-        .win95-btn {
-            font-family: 'Pixel', sans-serif; font-size: 13px; background: #c0c0c0; padding: 10px 5px; /* 加大点击区域 */
-            border: none; box-shadow: inset 1px 1px #ffffff, inset -1px -1px #000000, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .win95-btn:active, .win95-btn.playing { 
-            box-shadow: inset 1px 1px #000000, inset 2px 2px #808080; 
-            background: #d4d4d4; /* 按下稍微变色 */
-            transform: translateY(1px); /* 物理位移 */
-        }
+/* ---------- 音量 / 提示 ---------- */
+#volpop{position:fixed;right:4px;bottom:calc(var(--tbh) + env(safe-area-inset-bottom,0px) + 2px);z-index:9000;width:84px;padding:8px 6px;background:var(--face);
+  box-shadow:var(--bevel-win),2px 2px 0 rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;gap:8px}
+#volpop .vs{position:relative;width:26px;height:110px;touch-action:none}
+#volpop .vg{position:absolute;left:11px;top:4px;bottom:4px;width:4px;box-shadow:var(--bevel-field)}
+#volpop .vt{position:absolute;left:2px;width:22px;height:11px;background:var(--face);box-shadow:var(--bevel-out)}
+#tip{position:fixed;z-index:30000;background:var(--tip);border:1px solid #000;padding:1px 4px;pointer-events:none;white-space:nowrap}
+.zoomr{position:fixed;z-index:12000;pointer-events:none;background:linear-gradient(90deg,var(--navy),var(--blue2))}
+.zoomr.ina{background:linear-gradient(90deg,var(--ina1),var(--ina2))}
 
-        /* --- 底部任务栏 --- */
-        .taskbar {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 35px; /* 加高 */
-            background: #c0c0c0; border-top: 2px solid #fff;
-            display: flex; align-items: center; padding: 2px; z-index: 1000;
-            box-shadow: inset 0 1px 0 #fff;
-        }
-        .start-btn {
-            display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 28px;
-            background: #c0c0c0; border: none;
-            box-shadow: inset 1px 1px #fff, inset -1px -1px #000, inset 2px 2px #dfdfdf, inset -2px -2px #808080;
-            font-weight: bold; font-size: 13px; margin-left: 2px;
-        }
-        .start-btn:active { box-shadow: inset 1px 1px #000, inset 2px 2px #808080; padding-top: 6px; padding-left: 10px; }
-        
-        .taskbar-divider { width: 2px; height: 24px; border-left: 1px solid #808080; border-right: 1px solid #fff; margin: 0 6px; }
-        
-        .task-item {
-            flex-grow: 1; max-width: 150px; height: 28px; background: #c0c0c0;
-            display: flex; align-items: center; padding-left: 5px; font-size: 12px; font-weight: bold;
-            box-shadow: inset 1px 1px #000, inset 2px 2px #808080; background: #e0e0e0;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
+/* ---------- 全屏画面 ---------- */
+.screen{position:fixed;inset:0;z-index:20000}
+#bios{background:#000;color:#aaa;font:14px/1.4 var(--mono);padding:max(18px,env(safe-area-inset-top)) 18px 18px;white-space:pre-wrap;overflow:hidden;word-break:break-all}
+#bios .w{color:#fff}
+#bios .cur{animation:blink 1s steps(2) infinite}
+#bios .logo{float:right;margin:0 0 10px 10px;width:64px;image-rendering:pixelated}
+@keyframes blink{50%{opacity:0}}
+#splash{background:linear-gradient(#2d5fb8,#6f9be0 50%,#c3d8f4);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+#splash .cl{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.95),rgba(255,255,255,.55) 55%,rgba(255,255,255,0));animation:drift 26s linear infinite}
+@keyframes drift{from{transform:translateX(-8vw)}to{transform:translateX(8vw)}}
+#splash .logo{position:relative;display:flex;align-items:center;gap:16px}
+#splash .logo img{width:84px;height:84px;image-rendering:pixelated;filter:drop-shadow(2px 3px 0 rgba(0,0,40,.35))}
+#splash .w1{font:900 clamp(40px,10vw,68px)/1 "Arial Black",Arial,var(--ui);color:#fff;text-shadow:3px 3px 0 #0b2a6b}
+#splash .w2{font:italic 900 clamp(32px,8vw,54px)/1 "Arial Black",Arial,sans-serif;color:#ff9b21;text-shadow:3px 3px 0 #6a2b00;margin-left:6px}
+#splash .sub{position:relative;color:#fff;letter-spacing:.35em;margin-top:14px;font-size:13px;text-shadow:1px 1px 0 #0b2a6b}
+#splash .msg{position:absolute;bottom:34px;color:#fff;font-size:14px;letter-spacing:.2em;text-shadow:1px 1px 0 #0b2a6b}
+#splash .bar{position:absolute;left:0;right:0;bottom:0;height:16px;
+  background:repeating-linear-gradient(90deg,#0a2a8a 0,#1f6fe0 12.5%,#3ec6ff 20%,#ffd23a 25%,#3ec6ff 30%,#1f6fe0 37.5%,#0a2a8a 50%) 0 0/200% 100%;animation:bar 1.6s linear infinite}
+@keyframes bar{to{background-position:-100% 0}}
+#bsod{background:#0000aa;color:#fff;font:15px/1.6 var(--mono);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+#bsod .in{max-width:640px}
+#bsod .h{display:table;margin:0 auto 22px;background:#aaa;color:#0000aa;padding:0 8px;font-weight:bold}
+#bsod p{margin:0 0 14px}
+#bsod .cur{animation:blink 1s steps(2) infinite}
+#safe{background:#000;color:#ff8c1a;display:flex;align-items:center;justify-content:center;font:bold clamp(20px,4.4vw,34px)/1.5 var(--ui);text-align:center;padding:24px}
+#dim{position:fixed;inset:0;z-index:15000;background:conic-gradient(#000 25%,transparent 0 50%,#000 0 75%,transparent 0) 0 0/2px 2px;opacity:0;transition:opacity 1s;pointer-events:none}
+#dim.on{opacity:1;pointer-events:auto}
+#saver{background:#000;cursor:none;width:100%;height:100%}
 
-        .tray-area {
-            margin-left: auto; border: 1px solid; border-color: #808080 #fff #fff #808080;
-            padding: 0 6px; height: 28px; display: flex; align-items: center; font-size: 12px;
-        }
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar{width:16px;height:16px}
+::-webkit-scrollbar-track{background:var(--dither)}
+::-webkit-scrollbar-thumb{background:var(--face);box-shadow:var(--bevel-win)}
+::-webkit-scrollbar-button:single-button{display:block;width:16px;height:16px;background:var(--face) center no-repeat;box-shadow:var(--bevel-win)}
+::-webkit-scrollbar-button:vertical:decrement{background-image:var(--g-up)}
+::-webkit-scrollbar-button:vertical:increment{background-image:var(--g-dn)}
+::-webkit-scrollbar-button:horizontal:decrement{background-image:var(--g-lf)}
+::-webkit-scrollbar-button:horizontal:increment{background-image:var(--g-rt)}
+::-webkit-scrollbar-corner{background:var(--face)}
 
-        /* --- 桌面图标 --- */
-        .desktop-icon {
-            position: absolute; top: 20px; left: 20px;
-            width: 80px; text-align: center; color: white; font-size: 12px; 
-            z-index: 1;
-            /* 移动端触摸优化 */
-            padding: 10px; 
-        }
-        .desktop-icon img { width: 36px; height: 36px; margin-bottom: 4px; pointer-events: none; }
-        .desktop-icon span { padding: 2px; text-shadow: 1px 1px #000; pointer-events: none; }
-        
-        /* 选中状态 */
-        .desktop-icon.selected span { background: #000080; border: 1px dotted #ffff00; }
-        .desktop-icon.selected img { filter: brightness(0.7) sepia(1) hue-rotate(180deg); }
-
-        /* --- 移动端特定的 CSS 调整 --- */
-        @media (max-width: 600px) {
-            .window {
-                /* 默认不居中，靠上放，防止被键盘或底部栏遮挡 */
-                left: 5% !important; top: 5% !important; width: 90% !important;
-            }
-            .desktop-icon {
-                top: auto; bottom: 50px; left: 10px; /* 放到下面 */
-            }
-            #bsod { font-size: 12px; padding: 10px; }
-        }
-
-    </style>
+@media (max-width:600px){
+  #quick,#quick+.tdiv{display:none}
+  .task{flex-basis:130px}
+  #bios{font-size:11px}
+  .icon{width:74px}
+}
+@media (prefers-reduced-motion:reduce){
+  .window-shake,.djw.dance,#splash .cl{animation:none}
+}
+</style>
 </head>
 <body>
 
-    <!-- 蓝屏彩蛋 (点击任意处恢复) -->
-    <div id="bsod" onclick="location.reload()">
-        <p>A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36.</p>
-        <p>Current application will be terminated.</p>
-        <br>
-        <p>* Press any key to terminate the current application.</p>
-        <p>* Press CTRL+ALT+DEL again to restart your computer.</p>
-        <br>
-        <p style="text-align: center; margin-top: 50px;">Press any key to continue _</p>
+<div id="desk" class="off">
+  <div id="wall"></div>
+  <div id="icons"></div>
+
+  <!-- 曼波播放器（原版主窗口） -->
+  <section class="win" id="w-player" data-task="曼波播放器 98" data-icon="DJ.png" hidden>
+    <div class="tb"><img class="ti" src="DJ.png" alt=""><span class="tt">曼波播放器 98</span>
+      <div class="tbb"><button class="cb" data-act="min" aria-label="最小化"></button><button class="cb" data-act="max" aria-label="最大化"></button><button class="cb" data-act="close" aria-label="关闭"></button></div></div>
+    <div class="menubar" data-menu="player"></div>
+    <div class="wb">
+      <div class="stage sunken" id="stage"><div class="djw" id="djw"><img id="dj" src="DJ.png" alt="DJ Mambo"></div></div>
+      <div class="deck">
+        <div class="lcd sunken"><div class="row"><span class="st" id="lcdSt">■</span><span class="tm" id="lcdTm">00:00.00</span><span class="kb" id="lcdKb">48kHz</span></div>
+          <div class="mq"><span id="lcdMq"></span></div></div>
+        <div class="vizw sunken"><canvas id="viz"></canvas></div>
+      </div>
+      <div class="seek"><div class="groove sunken"></div><div class="thumb" id="thumb"></div></div>
+      <fieldset class="group"><legend>Soundboard</legend><div class="pads" id="pads"></div></fieldset>
     </div>
+    <div class="statusbar"><div class="pane grow" id="statusText">Ready</div><div class="pane" id="count">已播放 0 次</div></div>
+  </section>
 
-    <!-- 桌面图标 (自定义触摸事件实现双击) -->
-    <div class="desktop-icon" id="myComp" 
-         onclick="handleIconTap()" >
-        <img src="ymjn.png" alt="Icon" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">
-        <br><span>我的丁真</span>
+  <!-- 记事本 -->
+  <section class="win" id="w-notepad" data-task="诗歌剧.txt - 记事本" data-icon="txt" hidden>
+    <div class="tb"><img class="ti px" data-ico="txt" alt=""><span class="tt">诗歌剧.txt - 记事本</span>
+      <div class="tbb"><button class="cb" data-act="min" aria-label="最小化"></button><button class="cb" data-act="max" aria-label="最大化"></button><button class="cb" data-act="close" aria-label="关闭"></button></div></div>
+    <div class="menubar" data-menu="notepad"></div>
+    <textarea id="np" spellcheck="false"></textarea>
+    <div class="grip"></div>
+  </section>
+
+  <!-- 关于 -->
+  <section class="win dlg" id="w-about" hidden>
+    <div class="tb"><span class="tt" id="aboutTitle">关于 曼波播放器</span><div class="tbb"><button class="cb" data-act="close" aria-label="关闭"></button></div></div>
+    <div class="db">
+      <div class="art"><img id="aboutArt" src="DJ.png" alt=""></div>
+      <div id="aboutBody"></div>
     </div>
+    <div class="bts"><button class="btn def" data-close>确定</button></div>
+  </section>
 
-    <!-- 主窗口 -->
-    <div class="window" id="mainWindow">
-        <!-- 拖拽手柄 -->
-        <div class="title-bar" id="dragHandle">
-            <div class="title-bar-text">
-                <img src="DJ.png" style="width:16px; height:16px; background:#fff; margin-right:6px;" onerror="this.style.display='none'">
-                <span>曼波播放器 Mobile</span>
-            </div>
-            <div class="title-bar-controls">
-                <button class="control-btn" onclick="minimizeWindow()">_</button>
-                <button class="control-btn" onclick="maximizeWindow()">□</button>
-                <button class="control-btn" onclick="closeWindow()">×</button>
-            </div>
+  <!-- 运行 -->
+  <section class="win dlg" id="w-run" hidden>
+    <div class="tb"><span class="tt">运行</span><div class="tbb"><button class="cb" data-act="help" aria-label="帮助"></button><button class="cb" data-act="close" aria-label="关闭"></button></div></div>
+    <div class="db"><img class="ic32 px" data-ico="run" alt=""><div>请键入程序、文件夹或文档的名称，曼波 98 将为您打开它。</div></div>
+    <div class="row"><label for="runIn">打开(<u>O</u>):</label><input class="field" id="runIn" list="runList" autocomplete="off"></div>
+    <datalist id="runList"><option value="hajimi"><option value="manbo"><option value="wow"><option value="aminos"><option value="notepad"><option value="dingzhen"></datalist>
+    <div class="bts"><button class="btn def" id="runOk">确定</button><button class="btn" data-close>取消</button><button class="btn" disabled>浏览(<u>B</u>)...</button></div>
+  </section>
+
+  <!-- 关闭系统 -->
+  <section class="win dlg" id="w-shut" hidden>
+    <div class="tb"><span class="tt">关闭 曼波 98</span><div class="tbb"><button class="cb" data-act="close" aria-label="关闭"></button></div></div>
+    <div class="db"><img class="ic32 px" data-ico="mon" alt="">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="margin-bottom:4px">您想让计算机做什么？</div>
+        <label class="radio"><input type="radio" name="sd" id="sdOff" value="off" checked>关闭计算机(<u>S</u>)</label>
+        <label class="radio"><input type="radio" name="sd" id="sdRe" value="re">重新启动计算机(<u>R</u>)</label>
+      </div></div>
+    <div class="bts"><button class="btn def" id="shutOk">确定</button><button class="btn" data-close>取消</button></div>
+  </section>
+
+  <!-- 错误 -->
+  <section class="win dlg" id="w-err" hidden>
+    <div class="tb"><span class="tt" id="errTitle">阿米诺斯.exe</span><div class="tbb"><button class="cb" data-act="close" aria-label="关闭"></button></div></div>
+    <div class="db"><img class="ic32 px" data-ico="err" alt=""><div id="errMsg"></div></div>
+    <div class="bts"><button class="btn def" data-close>关闭</button><button class="btn" id="errMore">详细资料(<u>D</u>) &gt;&gt;</button></div>
+    <textarea class="field" id="errDetail" readonly hidden></textarea>
+  </section>
+
+  <!-- 显示属性 -->
+  <section class="win dlg" id="w-disp" hidden>
+    <div class="tb"><span class="tt">显示 属性</span><div class="tbb"><button class="cb" data-act="help" aria-label="帮助"></button><button class="cb" data-act="close" aria-label="关闭"></button></div></div>
+    <div class="tabs"><button class="tab on" data-tab="bg">背景</button><button class="tab" data-tab="ss">屏幕保护程序</button></div>
+    <div class="tabpanel">
+      <div class="mon"><div class="bz"><div class="scr" id="monScr"><canvas id="monCv" hidden></canvas></div><div class="led"></div></div><div class="neck"></div><div class="foot"></div></div>
+      <div id="tabBg">
+        <div style="margin-bottom:4px">墙纸(<u>W</u>)</div>
+        <div class="prow">
+          <div class="list" id="wallList" role="listbox"></div>
+          <div class="pcol"><label><span>显示(<u>D</u>):</span><select class="sel" id="wallMode"><option value="center">居中</option><option value="tile">平铺</option><option value="stretch">拉伸</option></select></label></div>
         </div>
-
-        <div class="menu-bar">
-            <div class="menu-item" onclick="alert('File Menu')"><span>F</span>ile</div>
-            <div class="menu-item"><span>E</span>dit</div>
-            <div class="menu-item" onclick="alert('Help!')"><span>H</span>elp</div>
+      </div>
+      <div id="tabSs" hidden>
+        <div class="prow" style="align-items:flex-end">
+          <label style="display:flex;flex-direction:column;gap:3px;flex:1"><span>屏幕保护程序(<u>S</u>)</span><select class="sel" id="ssSel"><option value="none">(无)</option><option value="fly">飞越曼波</option></select></label>
+          <button class="btn" id="ssPrev" style="min-width:64px">预览(<u>V</u>)</button>
         </div>
-
-        <div class="window-body">
-            <div class="sunken-panel">
-                <img src="DJ.png" class="main-image" alt="DJ Mambo" onerror="this.parentElement.innerText='[Image Not Found]'">
-            </div>
-
-            <div class="button-group">
-                <span class="group-label">Soundboard</span>
-                <div class="btn-grid">
-                    <button class="win95-btn" onclick="playAudio('hajimi.m4a', this)">😺 Hajimi</button>
-                    <button class="win95-btn" onclick="playAudio('omajilimanbo.m4a', this)">💃 Manbo</button>
-                    <!-- 震动彩蛋 -->
-                    <button class="win95-btn" onclick="playAudio('wow.m4a', this, true)">😯 Wow!</button>
-                    <button class="win95-btn" onclick="playAudio('aminosi.m4a', this, true)">🤬 Aminos</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="status-bar" style="margin-top: 4px; display: flex; gap: 2px; font-size: 11px;">
-            <div style="flex-grow:1; background:#c0c0c0; border:1px inset #fff; padding:2px;" id="statusText">Ready</div>
-        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:10px"><span>等待(<u>W</u>):</span><input class="field num" id="ssMin" type="number" min="1" max="60" value="1"> 分钟</div>
+      </div>
     </div>
+    <div class="bts" style="padding-top:10px"><button class="btn def" id="dispOk">确定</button><button class="btn" data-close>取消</button><button class="btn" id="dispApply">应用(<u>A</u>)</button></div>
+  </section>
+</div>
 
-    <!-- 任务栏 -->
-    <div class="taskbar">
-        <button class="start-btn" onclick="alert('Start Menu')">
-            <img src="https://win98icons.alexmeub.com/icons/png/windows-0.png" width="16" height="16" style="margin-right:2px;"> 
-            Start
-        </button>
-        <div class="taskbar-divider"></div>
-        <div class="task-item" id="taskbarItem" onclick="restoreWindow()">
-            <img src="DJ.png" width="14" height="14" style="margin-right:4px;" onerror="this.style.display='none'">
-            曼波播放器...
-        </div>
-        <div class="tray-area">
-            <img src="https://win98icons.alexmeub.com/icons/png/loudspeaker_rays-0.png" width="16" height="16" style="margin-right:4px;">
-            <span id="clock">12:00</span>
-        </div>
-    </div>
+<div id="taskbar" hidden>
+  <button class="btn" id="start"><img src="icon.png" alt=""><span>开始</span></button>
+  <div class="tdiv"></div>
+  <div id="quick"><button class="qb" id="qDesk" data-tip="显示桌面"></button><button class="qb" id="qPlayer" data-tip="曼波播放器"></button></div>
+  <div class="tdiv"></div>
+  <div id="tasks"></div>
+  <div id="tray"><img id="trayVol" alt="音量" data-tip="音量"><span id="clock">12:00</span></div>
+</div>
 
-    <script>
-        // ==========================================
-        //  1. 初始化逻辑 (自适应屏幕)
-        // ==========================================
-        const win = document.getElementById('mainWindow');
+<div id="volpop" hidden>
+  <div>音量</div>
+  <div class="vs" id="vs"><div class="vg"></div><div class="vt" id="vt"></div></div>
+  <label class="check"><input type="checkbox" id="volMute">静音</label>
+</div>
+<div id="tip" hidden></div>
+<div id="probe" style="position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none"></div>
 
-        window.onload = function() {
-            // 简单的居中/定位逻辑
-            // 移动端主要靠 CSS 的 top: 5% left: 5% 生效
-            // 桌面端简单居中
-            if (window.innerWidth > 600) {
-                win.style.left = (window.innerWidth - 400) / 2 + 'px';
-                win.style.top = '100px';
-            }
-            updateClock();
-        };
+<pre id="bios" class="screen" hidden></pre>
+<div id="splash" class="screen" hidden>
+  <div class="cl" style="width:60vw;height:22vh;left:-10vw;top:8vh"></div>
+  <div class="cl" style="width:50vw;height:18vh;right:-12vw;top:22vh;animation-duration:34s"></div>
+  <div class="cl" style="width:70vw;height:26vh;left:20vw;bottom:6vh;animation-duration:30s"></div>
+  <div class="logo"><img src="icon.png" alt=""><span class="w1">曼波</span><span class="w2">98</span></div>
+  <div class="sub">MAMBO SOFTWARE</div>
+  <div class="msg" id="splashMsg"></div>
+  <div class="bar"></div>
+</div>
+<div id="bsod" class="screen" hidden><div class="in">
+  <div class="h">曼波 98</div>
+  <p>A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36. The current application will be terminated.</p>
+  <p>*  Press any key to terminate the current application.<br>*  Press CTRL+ALT+DEL again to restart your computer. You will lose any unsaved information in all applications.</p>
+  <p style="text-align:center;margin-top:34px">Press any key to continue <span class="cur">_</span></p>
+</div></div>
+<div id="safe" class="screen" hidden>现在可以安全地关闭计算机了。</div>
+<div id="dim"></div>
+<canvas id="saver" class="screen" hidden></canvas>
 
-        // ==========================================
-        //  2. 模拟双击 (Mobile Friendly)
-        // ==========================================
-        let lastTap = 0;
-        function handleIconTap() {
-            const now = new Date().getTime();
-            const tapLen = now - lastTap;
-            const icon = document.getElementById('myComp');
-            
-            // 选中效果
-            icon.classList.add('selected');
-            setTimeout(() => icon.classList.remove('selected'), 1000); // 1秒后自动取消选中
+<script>
+'use strict';
+// ============================================================
+//  基础
+// ============================================================
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const root = document.documentElement;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const small = () => innerWidth <= 600 || matchMedia('(pointer:coarse)').matches;
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('wzy98_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('wzy98_' + k, JSON.stringify(v)); } catch (e) {} },
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mnem = t => esc(t).replace(/\(([A-Z])\)/, '(<u>$1</u>)');
 
-            // 双击判定 (500ms 内两次点击)
-            if (tapLen < 500 && tapLen > 0) {
-                document.getElementById('bsod').style.display = 'block';
-            }
-            lastTap = now;
-        }
+// ============================================================
+//  像素图标
+// ============================================================
+const PAL = { k: '#000', g: '#808080', s: '#c0c0c0', w: '#fff', y: '#ffff00', Y: '#808000', b: '#0000ff', n: '#000080', r: '#ff0000', R: '#800000', c: '#00ffff', t: '#008080', G: '#00ff00', D: '#008000' };
+function pix(rows) {
+  const h = rows.length, w = Math.max(...rows.map(r => r.length));
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+  rows.forEach((r, j) => [...r].forEach((ch, i) => { if (PAL[ch]) { x.fillStyle = PAL[ch]; x.fillRect(i, j, 1, 1); } }));
+  return c.toDataURL();
+}
+const PX = {
+  txt: ['................', '..kkkkkkkkk.....', '..kwwwwwwwkk....', '..kwwwwwwwkwk...', '..kwkkkkwwkkkk..', '..kwwwwwwwwwwk..', '..kwkkkkkkkkwk..', '..kwwwwwwwwwwk..', '..kwkkkkkkkkwk..', '..kwwwwwwwwwwk..', '..kwkkkkkkwwwk..', '..kwwwwwwwwwwk..', '..kwkkkkkkkkwk..', '..kwwwwwwwwwwk..', '..kkkkkkkkkkkk..', '................'],
+  mon: ['................', '.kkkkkkkkkkkkkk.', '.kssssssssssssk.', '.ksggggggggggwk.', '.ksgnnnnnnnnnwk.', '.ksgnnnnnyynnwk.', '.ksgnnnnyynnnwk.', '.ksgnnnnyynnnwk.', '.ksgnnnnnyynnwk.', '.ksgnnnnnnnnnwk.', '.kswwwwwwwwwwwk.', '.kkkkkkkkkkkkkk.', '.....kssssk.....', '...kkkkkkkkkk...', '...kwssssssgk...', '...kkkkkkkkkk...'],
+  fold: ['................', '................', '..kkkkk.........', '.kyyyyyk........', '.kyyyyyykkkkkkk.', '.kywwwwwwwwwwwk.', '.kywyyyyyyyyyYk.', '.kywyyyyyyyyyYk.', '.kywyyyyyyyyyYk.', '.kywyyyyyyyyyYk.', '.kywyyyyyyyyyYk.', '.kywyyyyyyyyyYk.', '.kyYYYYYYYYYYYk.', '.kkkkkkkkkkkkkk.', '................', '................'],
+  run: ['................', '.kkkkkkkkkkkkkk.', '.knnnnnnnnnnnnk.', '.kwwwwwwwwwwwwk.', '.kwwwwwwwwwwwwk.', '.kwwwwwkwwwwwwk.', '.kwwwwwkkwwwwwk.', '.kwkkkkkkkwwwwk.', '.kwkkkkkkkkwwwk.', '.kwkkkkkkkwwwwk.', '.kwwwwwkkwwwwwk.', '.kwwwwwkwwwwwwk.', '.kwwwwwwwwwwwwk.', '.kkkkkkkkkkkkkk.', '................', '................'],
+  help: ['.....kkkkkk.....', '...kkyyyyyykk...', '..kyyyyyyyyyyk..', '.kyyyykkkkyyyyk.', '.kyyykyyyykyyyk.', 'kyyyyyyyyykyyyyk', 'kyyyyyyyykyyyyyk', 'kyyyyyyykyyyyyyk', 'kyyyyyykyyyyyyyk', 'kyyyyyykyyyyyyyk', 'kyyyyyyyyyyyyyyk', '.kyyyykkyyyyyyk.', '.kyyyykkyyyyyyk.', '..kyyyyyyyyyyk..', '...kkyyyyyykk...', '.....kkkkkk.....'],
+  err: ['.....kkkkkk.....', '...kkrrrrrrkk...', '..krrrrrrrrrrk..', '.krrwrrrrrrwrrk.', '.krwwwrrrrwwwrk.', 'krrrwwwrrwwwrrrk', 'krrrrwwwwwwrrrrk', 'krrrrrwwwwrrrrrk', 'krrrrrwwwwrrrrrk', 'krrrrwwwwwwrrrrk', 'krrrwwwrrwwwrrrk', '.krwwwrrrrwwwrk.', '.krrwrrrrrrwrrk.', '..krrrrrrrrrrk..', '...kkrrrrrrkk...', '.....kkkkkk.....'],
+  spk: ['................', '......kk........', '.....kgk........', '....kgwk...k....', 'kkkkgwsk....k...', 'kwwwwssk.k...k..', 'kwssssskk.k..k..', 'kwssssskk.k..k..', 'kwssssskk.k..k..', 'kgggggskk.k..k..', 'kkkkgggk.k...k..', '....kggk....k...', '.....kgk...k....', '......kk........', '................', '................'],
+  spkm: ['................', '......kk........', '.....kgk........', '....kgwk........', 'kkkkgwsk........', 'kwwwwssk.r...r..', 'kwssssskk.r.r...', 'kwssssskk..r....', 'kwssssskk.r.r...', 'kgggggskkr...r..', 'kkkkgggk........', '....kggk........', '.....kgk........', '......kk........', '................', '................'],
+  desk: ['................', '.kkkkkkkkkkkkkk.', '.kttttttttttttk.', '.ktwwttttttttwk.', '.ktwwtttttttttk.', '.kttttttttttttk.', '.ktwwttttttttwk.', '.ktwwtttttttttk.', '.kttttttttttttk.', '.knnnnnnnnnnnnk.', '.kssssssssssssk.', '.kkkkkkkkkkkkkk.', '................', '................', '................', '................'],
+};
+const ICON = {}; for (const k in PX) ICON[k] = pix(PX[k]);
 
-        // ==========================================
-        //  3. 音频核心
-        // ==========================================
-        function playAudio(filename, btn, shake = false) {
-            const audio = new Audio(filename);
-            const status = document.getElementById('statusText');
-            
-            status.innerText = 'Playing: ' + filename;
-            if (btn) btn.classList.add('playing');
-            
-            if (shake) {
-                win.classList.add('window-shake');
-                if (navigator.vibrate) navigator.vibrate(200); // 手机震动反馈
-                setTimeout(() => win.classList.remove('window-shake'), 500);
-            }
+const GL = {
+  min: ['........', '........', '........', '........', '........', '.kkkkk..', '.kkkkk..'],
+  max: ['kkkkkkkk', 'kkkkkkkk', 'k......k', 'k......k', 'k......k', 'k......k', 'kkkkkkkk'],
+  res: ['..kkkkkk', '..kkkkkk', '..k....k', 'kkkkkk.k', 'kkkkkkkk', 'k....k..', 'kkkkkk..'],
+  cls: ['kk....kk', '.kk..kk.', '..kkkk..', '...kk...', '..kkkk..', '.kk..kk.', 'kk....kk'],
+  hlp: ['..kkkk..', '.kk..kk.', '.....kk.', '....kk..', '...kk...', '........', '...kk...'],
+  up: ['...k...', '..kkk..', '.kkkkk.', 'kkkkkkk'],
+  dn: ['kkkkkkk', '.kkkkk.', '..kkk..', '...k...'],
+  lf: ['...k', '..kk', '.kkk', 'kkkk', '.kkk', '..kk', '...k'],
+  rt: ['k...', 'kk..', 'kkk.', 'kkkk', 'kkk.', 'kk..', 'k...'],
+  arr: ['k...', 'kk..', 'kkk.', 'kkkk', 'kkk.', 'kk..', 'k...'],
+  chk: ['......k', '.....kk', 'k...kkk', 'kk.kkk.', 'kkkkk..', '.kkk...', '..k....'],
+  thumb: ['wwwwwwwwwwk', 'wsssssssssk', 'wsssssssgsk'.replace(/g/, 's'), 'wssssssssgk', 'wssssssssgk', 'wssssssssgk', 'wssssssssgk', 'wssssssssgk', 'wssssssssgk', 'wssssssssgk', 'wssssssssgk', 'wssssssssgk', 'wssssssssgk', 'wssssssssgk', '.wssssssgk.', '..wssssgk..', '...wssgk...', '....wgk....', '.....k.....', '...........'],
+};
+for (const k in GL) {
+  root.style.setProperty('--g-' + k, `url(${pix(GL[k])})`);
+  root.style.setProperty('--g-' + k + '-w', `url(${pix(GL[k].map(r => r.replace(/k/g, 'w')))})`);
+}
+(function grip() {
+  const rows = []; for (let y = 0; y < 12; y++) { let r = ''; for (let x = 0; x < 12; x++) { const d = x + y; r += (d === 11 || d === 15 || d === 19) ? 'w' : (d === 12 || d === 13 || d === 16 || d === 17 || d === 20 || d === 21) ? 'g' : '.'; } rows.push(r); }
+  root.style.setProperty('--g-grip', `url(${pix(rows)})`);
+})();
+$$('[data-ico]').forEach(im => { im.src = ICON[im.dataset.ico]; });
+$('#qDesk').style.backgroundImage = `url(${ICON.desk})`;
+$('#qPlayer').style.backgroundImage = 'url(icon.png)';
 
-            audio.play().then(() => {
-                audio.onended = () => {
-                   if (btn) btn.classList.remove('playing');
-                   if (status.innerText.includes(filename)) status.innerText = 'Ready';
-                };
-            }).catch(e => {
-                status.innerText = 'Error: File Not Found';
-                console.error(e);
-                if (btn) btn.classList.remove('playing');
-            });
-            
-            // 视觉回弹
-            setTimeout(() => { if(btn) btn.classList.remove('playing'); }, 200);
-        }
+// ============================================================
+//  设置
+// ============================================================
+const opt = Object.assign({ shake: true, viz: true, vibe: true, wrap: true, saver: 'fly', saverMin: 1, wall: 'none', wallMode: 'center', vol: .8, mute: false }, LS.get('opt', {}));
+const saveOpt = () => LS.set('opt', opt);
+let plays = LS.get('plays', 0);
 
-        // ==========================================
-        //  4. 窗口系统
-        // ==========================================
-        let isMaximized = false;
-        let oldStyle = {};
+// ============================================================
+//  音频
+// ============================================================
+const SND = [
+  { file: 'hajimi.m4a', emoji: '😺', label: 'Hajimi', key: 'H', cn: '哈吉米', kbps: 72, shake: false },
+  { file: 'omajilimanbo.m4a', emoji: '💃', label: 'Manbo', key: 'M', cn: '噢嘛吉利曼波', kbps: 67, shake: false },
+  { file: 'wow.m4a', emoji: '😯', label: 'Wow!', key: 'W', cn: '哇哦', kbps: 68, shake: true },
+  { file: 'aminosi.m4a', emoji: '🤬', label: 'Aminos', key: 'A', cn: '阿米诺斯', kbps: 66, shake: true },
+];
+let AC = null, master, sfx, uiBus, analyser, freq;
+const buffers = [], sGain = [];
+function initAudio() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  master = AC.createGain(); master.gain.value = opt.mute ? 0 : opt.vol; master.connect(AC.destination);
+  analyser = AC.createAnalyser(); analyser.fftSize = 256; analyser.smoothingTimeConstant = .55; freq = new Uint8Array(analyser.frequencyBinCount);
+  sfx = AC.createGain(); sfx.connect(analyser); analyser.connect(master);
+  uiBus = AC.createGain(); uiBus.gain.value = .55;
+  const dl = AC.createDelay(); dl.delayTime.value = .23; const fb = AC.createGain(); fb.gain.value = .28; const lp = AC.createBiquadFilter(); lp.frequency.value = 2400;
+  uiBus.connect(master); uiBus.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(master);
+  SND.forEach((s, i) => fetch(s.file).then(r => r.arrayBuffer()).then(b => AC.decodeAudioData(b)).then(buf => {
+    let pk = 0; const d = buf.getChannelData(0); for (let k = 0; k < d.length; k++) pk = Math.max(pk, Math.abs(d[k]));
+    sGain[i] = Math.min(10, .9 / Math.max(pk, 1e-3)); buffers[i] = buf;
+  }).catch(() => {}));
+}
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+function tone(m, t, dur, v, type = 'sine', a = .008) {
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.value = mtof(m);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(uiBus); o.start(t); o.stop(t + dur + .05);
+}
+const UI = {
+  chime() { if (!AC) return; const t = AC.currentTime + .05;
+    [48, 55, 64, 67, 74].forEach(m => tone(m, t, 3.4, .045, 'triangle', .5));
+    [72, 76, 79, 84, 88, 91].forEach((m, i) => { tone(m, t + .25 + i * .16, 1.6, .07); tone(m + 12, t + .25 + i * .16, .5, .015); }); },
+  bye() { if (!AC) return; const t = AC.currentTime + .05;
+    [41, 48, 57, 64].forEach(m => tone(m, t, 2.6, .045, 'triangle', .3));
+    [84, 79, 76, 72, 67].forEach((m, i) => tone(m, t + i * .2, 1.3, .07)); },
+  ding() { if (!AC) return; const t = AC.currentTime + .01; tone(88, t, .9, .09); tone(100, t, .35, .02); },
+  chord() { if (!AC) return; const t = AC.currentTime + .01; [64, 67, 72].forEach(m => tone(m, t, .55, .05, 'square')); tone(52, t, .6, .06, 'triangle'); },
+  beep() { if (!AC) return; tone(83, AC.currentTime + .02, .14, .05, 'square', .002); },
+};
 
-        function maximizeWindow() {
-            if (isMaximized) {
-                // 还原
-                win.classList.remove('maximized');
-                win.style.left = oldStyle.left;
-                win.style.top = oldStyle.top;
-                win.style.width = oldStyle.width;
-            } else {
-                // 最大化
-                oldStyle.left = win.style.left;
-                oldStyle.top = win.style.top;
-                oldStyle.width = win.style.width;
-                win.classList.add('maximized');
-            }
-            isMaximized = !isMaximized;
-        }
+// ============================================================
+//  播放（原版核心）
+// ============================================================
+let cur = null, active = 0, statusTimer = 0, aminosHits = [];
+function play(i) {
+  if (state !== 'desk') return;
+  initAudio(); if (AC.state === 'suspended') AC.resume();
+  const s = SND[i]; let dur = 1.2;
+  if (buffers[i]) {
+    const src = AC.createBufferSource(), g = AC.createGain(); src.buffer = buffers[i]; g.gain.value = sGain[i] || 1;
+    src.connect(g); g.connect(sfx); src.start(); dur = buffers[i].duration;
+    active++; src.onended = () => { active = Math.max(0, active - 1); if (!active) $('#djw').classList.remove('dance'); };
+  } else {
+    try { const a = new Audio(s.file); a.volume = opt.mute ? 0 : opt.vol; a.play().catch(() => setStatus('Error: File Not Found')); active++; a.onended = () => { active = Math.max(0, active - 1); if (!active) $('#djw').classList.remove('dance'); }; } catch (e) {}
+  }
+  cur = { i, t0: performance.now(), dur };
+  setStatus('Playing: ' + s.file);
+  clearTimeout(statusTimer); statusTimer = setTimeout(() => { if (cur && cur.i === i) setStatus('Ready'); }, dur * 1000 + 60);
+  plays++; LS.set('plays', plays); $('#count').textContent = `已播放 ${plays} 次`;
+  $('#lcdMq').textContent = `${s.emoji} ${s.cn} — ${s.file} *** ${s.kbps}kbps 48kHz 单声道 *** `;
+  $('#lcdKb').textContent = `${s.kbps}kbps`;
+  // 视觉回弹
+  const b = padEls[i]; b.classList.add('playing'); setTimeout(() => b.classList.remove('playing'), 200);
+  $('#djw').classList.add('dance');
+  if (i === 2) { const dj = $('#dj'); dj.classList.remove('pop'); void dj.offsetWidth; dj.classList.add('pop'); }
+  if (i === 3) { const st = $('#stage'); [0, 90, 180, 270].forEach((d, k) => setTimeout(() => st.classList.toggle('inv', k % 2 === 0), d)); }
+  if (s.shake) {
+    const w = W('w-player').el;
+    if (opt.shake && W('w-player').open && !W('w-player').min) { w.classList.add('window-shake'); setTimeout(() => w.classList.remove('window-shake'), 500); }
+    if (opt.vibe && navigator.vibrate) try { navigator.vibrate(200); } catch (e) {}
+  }
+  if (i === 3) {
+    const now = performance.now(); aminosHits = aminosHits.filter(t => now - t < 4000); aminosHits.push(now);
+    if (aminosHits.length >= 5 && !W('w-err').open) { aminosHits = []; setTimeout(aminosCrash, 450); }
+  }
+}
+function setStatus(t) { $('#statusText').textContent = t; }
+function playAll() { let t = 0; SND.forEach((s, i) => { setTimeout(() => play(i), t); t += ((buffers[i] && buffers[i].duration) || 1.2) * 1000 + 280; }); }
 
-        function minimizeWindow() {
-            win.style.display = 'none';
-            const tbItem = document.getElementById('taskbarItem');
-            tbItem.style.background = '#c0c0c0';
-            tbItem.style.boxShadow = 'inset 1px 1px #fff, inset -1px -1px #000'; // 凸起
-        }
+const padEls = SND.map((s, i) => {
+  const b = document.createElement('button'); b.className = 'btn pad';
+  b.innerHTML = `${s.emoji} ${esc(s.label).replace(s.key, `<u>${s.key}</u>`)}`;
+  b.dataset.tip = `${s.cn}  (${i + 1})`;
+  b.addEventListener('click', () => play(i));
+  $('#pads').appendChild(b); return b;
+});
+$('#count').textContent = `已播放 ${plays} 次`;
 
-        function restoreWindow() {
-            if (win.style.display === 'none') {
-                win.style.display = 'flex';
-                const tbItem = document.getElementById('taskbarItem');
-                tbItem.style.background = '#e0e0e0';
-                tbItem.style.boxShadow = 'inset 1px 1px #000, inset 2px 2px #808080'; // 凹陷
-            } else {
-                minimizeWindow(); // 如果开着，点击任务栏则最小化
-            }
-        }
-        
-        function closeWindow() {
-            win.style.display = 'none';
-            document.getElementById('taskbarItem').style.display = 'none';
-        }
+// ============================================================
+//  窗口管理
+// ============================================================
+const desk = $('#desk');
+let zTop = 100, activeId = null;
+const WINS = {};
+function W(id) { return WINS[id] || (WINS[id] = { id, el: document.getElementById(id), open: false, min: false, placed: false }); }
+const tbRect = el => el.querySelector('.tb').getBoundingClientRect();
 
-        // ==========================================
-        //  5. 拖拽逻辑 (触控优化)
-        // ==========================================
-        const handle = document.getElementById('dragHandle');
-        let isDragging = false, startX, startY, initialLeft, initialTop;
+function openWin(id, fromRect) {
+  const w = W(id), el = w.el;
+  if (w.open) { if (w.min) restoreWin(id); else focusWin(id); return; }
+  w.open = true; w.min = false; el.hidden = false;
+  if (!w.placed) placeWin(w);
+  if (el.dataset.task) addTask(w);
+  focusWin(id);
+  if (fromRect) zoom(fromRect, tbRect(el), true);
+  if (el.classList.contains('dlg')) setTimeout(() => { const d = el.querySelector('input:not([type=radio]),.btn.def'); d && d.focus({ preventScroll: true }); }, 30);
+}
+let cascade = 0;
+function placeWin(w) {
+  w.placed = true; const el = w.el, dw = desk.clientWidth, dh = desk.clientHeight;
+  const r = el.getBoundingClientRect();
+  let x, y; const sTop = $('#probe').offsetHeight;
+  if (el.classList.contains('dlg')) { x = (dw - r.width) / 2; y = Math.max(8, (dh - r.height) / 2.4); }
+  else if (small()) { x = (dw - r.width) / 2; y = sTop + 8 + (cascade % 4) * 22; cascade++; }
+  else { x = (dw - r.width) / 2 + (w.id === 'w-notepad' ? Math.min(220, dw * .2) : 0); y = w.id === 'w-player' ? Math.max(12, (dh - r.height) / 2.6) : 60 + (cascade % 4) * 24; cascade++; }
+  el.style.left = Math.round(clamp(x, 0, Math.max(0, dw - r.width))) + 'px';
+  el.style.top = Math.round(clamp(y, Math.min(sTop, Math.max(0, dh - r.height)), Math.max(sTop, dh - r.height))) + 'px';
+}
+function focusWin(id) {
+  for (const k in WINS) WINS[k].el.classList.toggle('active', k === id);
+  if (id) W(id).el.style.zIndex = ++zTop;
+  activeId = id; syncTasks();
+}
+function topOpen(except) {
+  let best = null, bz = -1;
+  for (const k in WINS) { const w = WINS[k]; if (k !== except && w.open && !w.min && +w.el.style.zIndex > bz) { bz = +w.el.style.zIndex; best = k; } }
+  return best;
+}
+function closeWin(id) {
+  const w = W(id); if (!w.open) return;
+  w.open = false; w.min = false; w.el.hidden = true; w.el.classList.remove('window-shake');
+  if (w.task) { w.task.remove(); w.task = null; }
+  if (activeId === id) focusWin(topOpen(id));
+}
+function minimizeWin(id) {
+  const w = W(id); if (!w.open || w.min) return;
+  const from = tbRect(w.el); w.min = true; w.el.hidden = true;
+  if (w.task) zoom(from, w.task.getBoundingClientRect(), true);
+  focusWin(topOpen(id));
+}
+function restoreWin(id) {
+  const w = W(id); w.min = false; w.el.hidden = false;
+  if (w.task) zoom(w.task.getBoundingClientRect(), tbRect(w.el), true);
+  focusWin(id);
+}
+function toggleMax(id) {
+  const w = W(id), el = w.el; if (!el.querySelector('[data-act=max]')) return;
+  const from = el.getBoundingClientRect();
+  el.classList.toggle('max');
+  zoom(from, el.getBoundingClientRect(), true, true);
+}
+function zoom(a, b, act = true, whole = false) {
+  const d = document.createElement('div'); d.className = 'zoomr' + (act ? '' : ' ina');
+  const set = r => Object.assign(d.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: (whole ? r.height : Math.max(r.height, 6)) + 'px' });
+  set(a); if (whole) { d.style.background = 'transparent'; d.style.outline = '2px solid #808080'; }
+  document.body.appendChild(d);
+  const steps = 7; let k = 0;
+  const it = setInterval(() => {
+    k++; const q = k / steps;
+    set({ left: a.left + (b.left - a.left) * q, top: a.top + (b.top - a.top) * q, width: a.width + (b.width - a.width) * q, height: a.height + (b.height - a.height) * q });
+    if (k >= steps) { clearInterval(it); d.remove(); }
+  }, 22);
+}
 
-        handle.addEventListener('mousedown', startDrag);
-        handle.addEventListener('touchstart', startDrag, {passive: false});
+// 任务栏按钮
+function addTask(w) {
+  const b = document.createElement('button'); b.className = 'task';
+  const ic = w.el.dataset.icon; const src = ICON[ic] || ic;
+  b.innerHTML = `<img src="${src}" alt=""${ICON[ic] ? ' class="px"' : ''}><span>${esc(w.el.dataset.task)}</span>`;
+  b.dataset.tip = w.el.dataset.task;
+  b.addEventListener('click', () => { if (w.min) restoreWin(w.id); else if (activeId === w.id) minimizeWin(w.id); else focusWin(w.id); });
+  $('#tasks').appendChild(b); w.task = b;
+}
+function syncTasks() { for (const k in WINS) { const w = WINS[k]; if (w.task) w.task.classList.toggle('on', k === activeId && !w.min); } }
 
-        function startDrag(e) {
-            if (isMaximized) return;
-            // 手机端：阻止默认事件防止页面随窗口滚动
-            if (e.cancelable) e.preventDefault();
-            
-            isDragging = true;
-            const evt = e.touches ? e.touches[0] : e;
-            startX = evt.clientX;
-            startY = evt.clientY;
-            initialLeft = win.offsetLeft;
-            initialTop = win.offsetTop;
+// 标题栏按钮、拖动、聚焦
+desk.addEventListener('click', e => {
+  const cb = e.target.closest('.cb[data-act]'); if (!cb) return;
+  const id = cb.closest('.win').id, act = cb.dataset.act;
+  if (act === 'close') closeWin(id); else if (act === 'min') minimizeWin(id); else if (act === 'max') toggleMax(id);
+  else if (act === 'help') { UI.ding(); }
+});
+desk.addEventListener('click', e => { const c = e.target.closest('[data-close]'); if (c) closeWin(c.closest('.win').id); });
+desk.addEventListener('pointerdown', e => { const win = e.target.closest('.win'); if (win) focusWin(win.id); }, true);
+desk.addEventListener('dblclick', e => { const tb = e.target.closest('.tb'); if (tb && !e.target.closest('.cb')) toggleMax(tb.closest('.win').id); });
+$$('.win .tb').forEach(tb => {
+  let drag = null;
+  tb.addEventListener('pointerdown', e => {
+    if (e.target.closest('.cb') || e.button > 0) return;
+    const el = tb.closest('.win'); if (el.classList.contains('max')) return;
+    drag = { x: e.clientX, y: e.clientY, l: el.offsetLeft, t: el.offsetTop, el }; tb.setPointerCapture(e.pointerId);
+  });
+  tb.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dw = desk.clientWidth, dh = desk.clientHeight, el = drag.el;
+    el.style.left = clamp(drag.l + e.clientX - drag.x, 40 - el.offsetWidth, dw - 40) + 'px';
+    el.style.top = clamp(drag.t + e.clientY - drag.y, 0, dh - 20) + 'px';
+  });
+  const end = () => { drag = null; };
+  tb.addEventListener('pointerup', end); tb.addEventListener('pointercancel', end);
+});
+$$('.grip').forEach(g => {
+  let rs = null;
+  g.addEventListener('pointerdown', e => { const el = g.closest('.win'); rs = { x: e.clientX, y: e.clientY, w: el.offsetWidth, h: el.offsetHeight, el }; g.setPointerCapture(e.pointerId); e.stopPropagation(); });
+  g.addEventListener('pointermove', e => { if (!rs) return; rs.el.style.width = Math.max(220, rs.w + e.clientX - rs.x) + 'px'; rs.el.style.height = Math.max(150, rs.h + e.clientY - rs.y) + 'px'; });
+  g.addEventListener('pointerup', () => { rs = null; });
+});
 
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('touchmove', drag, {passive: false});
-            document.addEventListener('mouseup', stopDrag);
-            document.addEventListener('touchend', stopDrag);
-        }
+// ============================================================
+//  菜单
+// ============================================================
+let menuStack = [], menuOwner = null;
+function closeMenus() {
+  menuStack.forEach(m => m.remove()); menuStack = [];
+  $$('.mb.open').forEach(b => b.classList.remove('open')); $('#start').classList.remove('down'); menuOwner = null;
+}
+function buildMenu(items, level, start) {
+  const m = document.createElement('div'); m.className = 'menu' + (start ? ' start' : '');
+  let host = m;
+  if (start) { m.innerHTML = '<div class="banner"><b>曼波</b><span>98</span></div><div class="items"></div>'; host = m.querySelector('.items'); }
+  items.forEach(it => {
+    if (it.sep) { const s = document.createElement('div'); s.className = 'msep'; host.appendChild(s); return; }
+    const d = document.createElement('div');
+    d.className = 'mi' + (it.dis ? ' dis' : '') + (it.chk && it.chk() ? ' on' : '') + (it.sub ? ' has' : '');
+    const px = it.i && it.i.startsWith('data:') ? ' class="px"' : '';
+    d.innerHTML = `<span class="ck">${it.i ? `<img src="${it.i}"${px} alt="">` : ''}</span><span class="lb">${mnem(it.t)}</span><span class="k">${esc(it.k || '')}</span><span class="ar"></span>`;
+    d.addEventListener('pointerenter', () => { hl(d); trim(level); if (it.sub && !it.dis) openSub(d, it.sub, level); });
+    d.addEventListener('click', e => {
+      e.stopPropagation(); if (it.dis) return;
+      if (it.sub) { trim(level); openSub(d, it.sub, level); return; }
+      closeMenus(); it.a && it.a();
+    });
+    host.appendChild(d);
+  });
+  return m;
+}
+function hl(d) { d.parentElement.querySelectorAll('.mi.hl').forEach(x => x.classList.remove('hl')); d.classList.add('hl'); }
+function trim(level) { while (menuStack.length > level + 1) menuStack.pop().remove(); }
+function placeMenu(m, x, y, altX, above) {
+  m.style.left = '0px'; m.style.top = '0px'; document.body.appendChild(m);
+  const r = m.getBoundingClientRect(); let px = x, py = above != null ? above - r.height : y;
+  if (px + r.width > innerWidth) px = altX != null ? altX - r.width : innerWidth - r.width - 2;
+  if (py + r.height > innerHeight) py = innerHeight - r.height - 2;
+  m.style.left = Math.max(0, px) + 'px'; m.style.top = Math.max(0, py) + 'px'; menuStack.push(m);
+}
+function openSub(d, items, level) { const r = d.getBoundingClientRect(); placeMenu(buildMenu(items, level + 1), r.right - 3, r.top - 3, r.left + 3); }
+function popMenu(items, x, y) { closeMenus(); placeMenu(buildMenu(items, 0), x, y); }
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.menu,.mb,#start')) closeMenus(); }, true);
 
-        function drag(e) {
-            if (!isDragging) return;
-            if (e.cancelable) e.preventDefault(); // 关键：拖动时禁止页面卷动
-            
-            const evt = e.touches ? e.touches[0] : e;
-            const dx = evt.clientX - startX;
-            const dy = evt.clientY - startY;
-            
-            win.style.left = (initialLeft + dx) + 'px';
-            win.style.top = (initialTop + dy) + 'px';
-        }
+const MENUS = {
+  player: [
+    ['文件(F)', () => [
+      { t: '打开 诗歌剧.txt(O)', i: ICON.txt, a: () => openWin('w-notepad') },
+      { t: '全部播放(P)', a: playAll },
+      { sep: 1 },
+      { t: '退出(X)', a: () => closeWin('w-player') }]],
+    ['编辑(E)', () => [
+      { t: '复制曼波(C)', k: 'Ctrl+C', dis: 1 },
+      { t: '粘贴哈吉米(P)', k: 'Ctrl+V', dis: 1 },
+      { sep: 1 },
+      { t: '播放次数清零(Z)', a: () => { plays = 0; LS.set('plays', 0); $('#count').textContent = '已播放 0 次'; } }]],
+    ['查看(V)', () => [
+      { t: '窗口抖动(S)', chk: () => opt.shake, a: () => { opt.shake = !opt.shake; saveOpt(); } },
+      { t: '可视化效果(Z)', chk: () => opt.viz, a: () => { opt.viz = !opt.viz; saveOpt(); } },
+      { t: '手机振动(B)', chk: () => opt.vibe, a: () => { opt.vibe = !opt.vibe; saveOpt(); } },
+      { sep: 1 },
+      { t: '显示属性(D)...', a: openDisplay }]],
+    ['帮助(H)', () => [
+      { t: '曼波丁真 诗歌剧(T)', i: ICON.txt, a: () => openWin('w-notepad') },
+      { sep: 1 },
+      { t: '关于 曼波播放器(A)', a: () => about('player') }]],
+  ],
+  notepad: [
+    ['文件(F)', () => [
+      { t: '新建(N)', a: () => { np.value = ''; } },
+      { t: '打开(O)...', dis: 1 },
+      { t: '保存(S)', dis: 1 },
+      { sep: 1 },
+      { t: '恢复原诗(R)', a: () => { np.value = POEM; } },
+      { sep: 1 },
+      { t: '退出(X)', a: () => closeWin('w-notepad') }]],
+    ['编辑(E)', () => [
+      { t: '全选(A)', a: () => { np.focus(); np.select(); } },
+      { t: '时间/日期(D)', k: 'F5', a: insertTime },
+      { sep: 1 },
+      { t: '自动换行(W)', chk: () => opt.wrap, a: () => { opt.wrap = !opt.wrap; saveOpt(); np.classList.toggle('nowrap', !opt.wrap); } }]],
+    ['搜索(S)', () => [{ t: '查找(F)...', dis: 1 }, { t: '查找下一个(N)', k: 'F3', dis: 1 }]],
+    ['帮助(H)', () => [{ t: '帮助主题(H)', dis: 1 }, { sep: 1 }, { t: '关于记事本(A)', a: () => about('notepad') }]],
+  ],
+};
+$$('.menubar').forEach(bar => {
+  MENUS[bar.dataset.menu].forEach(([t, items]) => {
+    const b = document.createElement('div'); b.className = 'mb'; b.innerHTML = mnem(t);
+    const open = () => { closeMenus(); b.classList.add('open'); menuOwner = bar; const r = b.getBoundingClientRect(); placeMenu(buildMenu(items(), 0), r.left, r.bottom); };
+    b.addEventListener('pointerdown', e => { e.preventDefault(); if (b.classList.contains('open')) closeMenus(); else open(); });
+    b.addEventListener('pointerenter', () => { if (menuOwner === bar && !b.classList.contains('open')) open(); });
+    bar.appendChild(b);
+  });
+});
 
-        function stopDrag() {
-            isDragging = false;
-            document.removeEventListener('mousemove', drag);
-            document.removeEventListener('touchmove', drag);
-        }
+const START = () => [
+  { t: '曼波播放器', i: 'icon.png', a: () => openWin('w-player') },
+  { sep: 1 },
+  { t: '程序(P)', i: ICON.fold, sub: [
+    { t: '曼波播放器', i: 'DJ.png', a: () => openWin('w-player') },
+    { t: '记事本', i: ICON.txt, a: () => openWin('w-notepad') },
+    { t: '附件', i: ICON.fold, sub: [
+      { t: '飞越曼波 (屏幕保护)', i: ICON.mon, a: () => startSaver() },
+      { t: '音量控制', i: ICON.spk, a: toggleVol }] }] },
+  { t: '文档(D)', i: ICON.fold, sub: [{ t: '诗歌剧.txt', i: ICON.txt, a: () => openWin('w-notepad') }] },
+  { t: '设置(S)', i: ICON.fold, sub: [{ t: '显示属性', i: ICON.mon, a: openDisplay }, { t: '音量控制', i: ICON.spk, a: toggleVol }] },
+  { t: '帮助(H)', i: ICON.help, a: () => about('player') },
+  { t: '运行(R)...', i: ICON.run, a: () => { openWin('w-run'); } },
+  { sep: 1 },
+  { t: '关闭系统(U)...', i: ICON.mon, a: () => { $('#sdOff').checked = true; openWin('w-shut'); } },
+];
+$('#start').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if ($('#start').classList.contains('down')) { closeMenus(); return; }
+  closeMenus(); $('#start').classList.add('down');
+  placeMenu(buildMenu(START(), 0, true), 2, 0, null, $('#taskbar').getBoundingClientRect().top + 1);
+});
 
-        // ==========================================
-        //  6. 时钟
-        // ==========================================
-        function updateClock() {
-            const now = new Date();
-            let h = now.getHours();
-            const m = String(now.getMinutes()).padStart(2, '0');
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12; h = h ? h : 12; 
-            document.getElementById('clock').innerText = `${h}:${m} ${ampm}`;
-        }
-        setInterval(updateClock, 1000);
-    </script>
+const DESK_MENU = () => [
+  { t: '排列图标(I)', sub: [{ t: '按名称(N)', a: arrangeIcons }, { t: '按类型(T)', a: arrangeIcons }] },
+  { t: '对齐图标(E)', a: arrangeIcons },
+  { sep: 1 },
+  { t: '刷新(F)', a: refreshDesk },
+  { sep: 1 },
+  { t: '粘贴(P)', dis: 1 },
+  { t: '新建(W)', sub: [{ t: '文件夹(F)', dis: 1 }, { t: '文本文档(T)', dis: 1 }] },
+  { sep: 1 },
+  { t: '属性(R)', a: openDisplay },
+];
+
+// ============================================================
+//  桌面图标
+// ============================================================
+const DICONS = [
+  { id: 'dz', label: '我的丁真', img: 'ymjn.png', open: () => bsod() },
+  { id: 'pl', label: '曼波播放器', img: 'icon.png', open: r => openWin('w-player', r) },
+  { id: 'np', label: '诗歌剧.txt', img: ICON.txt, px: true, open: r => openWin('w-notepad', r) },
+];
+let lastTap = { id: null, t: 0 };
+DICONS.forEach(d => {
+  const el = document.createElement('div'); el.className = 'icon';
+  el.innerHTML = `<div class="im"><img src="${d.img}" alt=""${d.px || d.img === 'icon.png' ? ' class="px"' : ''}></div><span>${esc(d.label)}</span>`;
+  d.el = el; $('#icons').appendChild(el);
+  let st = null;
+  el.addEventListener('pointerdown', e => {
+    if (e.button > 0) return; e.stopPropagation(); closeMenus();
+    selectIcons([d]); st = { x: e.clientX, y: e.clientY, ox: d.x, oy: d.y, drag: false }; el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if (!st) return;
+    if (!st.drag && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 6) st.drag = true;
+    if (st.drag) { d.x = clamp(st.ox + e.clientX - st.x, 0, desk.clientWidth - 70); d.y = clamp(st.oy + e.clientY - st.y, 0, desk.clientHeight - 60); el.style.left = d.x + 'px'; el.style.top = d.y + 'px'; }
+  });
+  el.addEventListener('pointerup', () => {
+    if (!st) return; const dragged = st.drag; st = null;
+    if (dragged) { d.moved = true; return; }
+    const now = performance.now();
+    if (lastTap.id === d.id && now - lastTap.t < 480) { lastTap = { id: null, t: 0 }; d.open(el.querySelector('.im').getBoundingClientRect()); }
+    else lastTap = { id: d.id, t: now };
+  });
+  el.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); selectIcons([d]);
+    popMenu([{ t: '打开(O)', a: () => d.open(el.querySelector('.im').getBoundingClientRect()) }, { sep: 1 }, { t: '删除(D)', dis: 1 }, { t: '重命名(M)', dis: 1 }, { sep: 1 }, { t: '属性(R)', dis: 1 }], e.clientX, e.clientY); });
+});
+function selectIcons(list) { DICONS.forEach(d => d.el.classList.toggle('sel', list.includes(d))); }
+function layoutIcons(force) {
+  const dh = desk.clientHeight;
+  DICONS.forEach((d, i) => {
+    if (d.moved && !force) return; d.moved = false;
+    if (innerWidth <= 600) { d.x = 6 + i * 78; d.y = dh - 84; } else { d.x = 10; d.y = 10 + i * 80; }
+    d.el.style.left = d.x + 'px'; d.el.style.top = d.y + 'px';
+  });
+}
+function arrangeIcons() { layoutIcons(true); }
+function refreshDesk() { const ic = $('#icons'); ic.classList.add('off'); setTimeout(() => ic.classList.remove('off'), 140); }
+
+// 框选、右键、长按
+let marq = null, press = null;
+desk.addEventListener('pointerdown', e => {
+  if (e.target !== desk && e.target.id !== 'wall' && e.target.id !== 'icons') return;
+  selectIcons([]);
+  if (e.pointerType === 'mouse' && e.button === 0) {
+    marq = { x: e.clientX, y: e.clientY, el: document.createElement('div') }; marq.el.className = 'marq'; desk.appendChild(marq.el);
+  }
+  if (e.pointerType !== 'mouse') { press = { x: e.clientX, y: e.clientY, t: setTimeout(() => { popMenu(DESK_MENU(), press.x, press.y); press = null; }, 550) }; }
+});
+addEventListener('pointermove', e => {
+  if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) { clearTimeout(press.t); press = null; }
+  if (!marq) return;
+  const r = { l: Math.min(marq.x, e.clientX), t: Math.min(marq.y, e.clientY), r: Math.max(marq.x, e.clientX), b: Math.max(marq.y, e.clientY) };
+  Object.assign(marq.el.style, { left: r.l + 'px', top: r.t + 'px', width: (r.r - r.l) + 'px', height: (r.b - r.t) + 'px' });
+  selectIcons(DICONS.filter(d => { const q = d.el.getBoundingClientRect(); return q.right > r.l && q.left < r.r && q.bottom > r.t && q.top < r.b; }));
+});
+addEventListener('pointerup', () => { if (marq) { marq.el.remove(); marq = null; } if (press) { clearTimeout(press.t); press = null; } });
+desk.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (e.target === desk || e.target.id === 'wall' || e.target.id === 'icons') popMenu(DESK_MENU(), e.clientX, e.clientY);
+});
+$('#taskbar').addEventListener('contextmenu', e => e.preventDefault());
+
+// 快速启动
+$('#qDesk').addEventListener('click', () => { const any = Object.values(WINS).some(w => w.open && !w.min); for (const k in WINS) { const w = WINS[k]; if (w.open && w.el.dataset.task) any ? minimizeWin(k) : restoreWin(k); } });
+$('#qPlayer').addEventListener('click', () => openWin('w-player'));
+
+// ============================================================
+//  对话框
+// ============================================================
+function about(kind) {
+  const p = kind === 'notepad';
+  $('#aboutTitle').textContent = p ? '关于 记事本' : '关于 曼波播放器';
+  $('#aboutArt').src = p ? 'ymjn.png' : 'DJ.png';
+  $('#aboutBody').innerHTML = p
+    ? `<h3>曼波 98 记事本</h3><p>版本 4.10.1998</p><p>版权所有 © 1981-1998 曼波软件公司</p><hr><p>本产品使用权属于：</p><p>&nbsp;&nbsp;我的丁真</p><hr><p>可用的物理内存：65,536 KB</p><p>系统资源：57% 可用</p>`
+    : `<h3>曼波播放器 98</h3><p>Mobile 第二版 · 版本 4.10.2222</p><p>版权所有 © 1998-2026 曼波软件公司</p><hr><p>本产品使用权属于：</p><p>&nbsp;&nbsp;我的丁真</p><p>&nbsp;&nbsp;哈吉米工作室</p><hr><p>已播放：${plays} 次</p><p>可用的哈吉米：640 KB</p>`;
+  W('w-about').placed = false; openWin('w-about'); UI.ding();
+}
+function errBox(title, msg, detail) {
+  $('#errTitle').textContent = title; $('#errMsg').innerHTML = msg;
+  $('#errDetail').value = detail || ''; $('#errDetail').hidden = true; $('#errMore').hidden = !detail;
+  $('#errMore').innerHTML = '详细资料(<u>D</u>) &gt;&gt;';
+  W('w-err').placed = false; if (W('w-err').open) closeWin('w-err'); openWin('w-err'); UI.chord();
+}
+$('#errMore').addEventListener('click', () => {
+  const d = $('#errDetail'); d.hidden = !d.hidden;
+  $('#errMore').innerHTML = d.hidden ? '详细资料(<u>D</u>) &gt;&gt;' : '&lt;&lt; 详细资料(<u>D</u>)';
+});
+function aminosCrash() {
+  errBox('阿米诺斯.exe', '该程序执行了非法操作，即将关闭。<br><br>如果仍有问题，请与程序供应商联系。',
+    'AMINOS 在模块 MAMBO.DLL 的 0167:bff7b9a6 处导致无效页错误。\nRegisters:\nEAX=00000057 CS=0167 EIP=bff7b9a6 EFLGS=00000246\nEBX=0000aa55 SS=016f ESP=0063fd3c EBP=0063fd60\nECX=00000004 DS=016f ESI=00000000 FS=0f97\nEDX=hajimi00 ES=016f EDI=0063fe24 GS=0000\nBytes at CS:EIP:\n8b 44 24 04 c2 04 00 4d 41 4d 42 4f\nStack dump:\nbff76d3c 00000000 6d616e62 6f000000 0063fe24');
+}
+function runCmd() {
+  const raw = $('#runIn').value.trim(), c = raw.toLowerCase(); if (!raw) return;
+  const map = { hajimi: 0, '哈吉米': 0, manbo: 1, mambo: 1, '曼波': 1, wow: 2, '哇哦': 2, aminos: 3, aminosi: 3, '阿米诺斯': 3 };
+  closeWin('w-run');
+  if (c in map) play(map[c]);
+  else if (['notepad', 'notepad.exe', '诗歌剧', '诗歌剧.txt'].includes(c)) openWin('w-notepad');
+  else if (['player', 'mambo.exe', '曼波播放器'].includes(c)) openWin('w-player');
+  else if (['dingzhen', '丁真', 'bsod'].includes(c)) bsod();
+  else if (['ssaver', 'saver', '屏保'].includes(c)) startSaver();
+  else errBox(raw, `找不到文件“${esc(raw)}”(或它的组件之一)。请确定路径和文件名是否正确，而且所需的库文件均可用。`);
+}
+$('#runOk').addEventListener('click', runCmd);
+$('#runIn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runCmd(); } });
+$('#shutOk').addEventListener('click', () => { const re = $('#sdRe').checked; closeWin('w-shut'); shutdown(re); });
+
+// 显示属性
+const WALLS = [{ id: 'none', name: '(无)' }, { id: 'dz', name: '丁真', src: 'ymjn.jpeg', w: 2008, h: 1722 }, { id: 'mb', name: '曼波', src: 'DJ.png', w: 200, h: 282 }, { id: 'cloud', name: '云彩' }];
+let pend = {};
+function wallStyle(el, id, mode, sc) {
+  const s = el.style; s.backgroundImage = 'none'; s.backgroundRepeat = 'no-repeat'; s.backgroundSize = 'auto'; s.backgroundPosition = 'center'; s.imageRendering = 'auto';
+  const w = WALLS.find(x => x.id === id) || WALLS[0];
+  if (w.id === 'cloud') {
+    s.backgroundImage = ['radial-gradient(closest-side,#fff,rgba(255,255,255,0)) 10% 20%/40% 18% no-repeat', 'radial-gradient(closest-side,#fff,rgba(255,255,255,0)) 70% 30%/50% 20% no-repeat', 'radial-gradient(closest-side,#fff,rgba(255,255,255,0)) 35% 70%/60% 22% no-repeat', 'radial-gradient(closest-side,rgba(255,255,255,.8),rgba(255,255,255,0)) 90% 80%/40% 16% no-repeat', 'linear-gradient(#3b72c9,#8fb6ea)'].join(',');
+    s.backgroundRepeat = ''; s.backgroundSize = ''; s.backgroundPosition = ''; return;
+  }
+  if (!w.src) return;
+  s.backgroundImage = `url(${w.src})`;
+  if (w.id === 'mb') s.imageRendering = 'pixelated';
+  if (mode === 'stretch') s.backgroundSize = '100% 100%';
+  else if (mode === 'tile') { s.backgroundRepeat = 'repeat'; s.backgroundPosition = '0 0'; const th = (w.id === 'dz' ? 180 : 141) * sc; s.backgroundSize = `auto ${th}px`; }
+  else { const h = Math.min(w.h, (w.id === 'dz' ? 520 : 282)) * sc; s.backgroundSize = `auto ${h}px`; }
+}
+function applyWall() { wallStyle($('#wall'), opt.wall, opt.wallMode, 1); }
+function openDisplay() {
+  pend = { wall: opt.wall, wallMode: opt.wallMode, saver: opt.saver, saverMin: opt.saverMin };
+  const list = $('#wallList');
+  list.replaceChildren(...WALLS.map(w => { const d = document.createElement('div'); d.textContent = w.name; d.dataset.id = w.id; d.className = w.id === pend.wall ? 'on' : ''; d.addEventListener('click', () => { pend.wall = w.id; $$('div', list).forEach(x => x.classList.toggle('on', x === d)); dispPreview(); }); return d; }));
+  $('#wallMode').value = pend.wallMode; $('#ssSel').value = pend.saver; $('#ssMin').value = pend.saverMin;
+  setTab('bg'); openWin('w-disp');
+}
+function setTab(t) {
+  $$('#w-disp .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $('#tabBg').hidden = t !== 'bg'; $('#tabSs').hidden = t !== 'ss'; dispTab = t; dispPreview();
+}
+let dispTab = 'bg';
+function dispPreview() {
+  const scr = $('#monScr'), cv = $('#monCv');
+  const ss = dispTab === 'ss' && pend.saver === 'fly';
+  cv.hidden = !ss;
+  if (dispTab === 'bg' || !ss) { wallStyle(scr, pend.wall, pend.wallMode, (scr.clientWidth || 160) / Math.max(innerWidth, 320)); scr.style.backgroundColor = ''; }
+  if (dispTab === 'ss' && pend.saver === 'none') { scr.style.backgroundImage = 'none'; scr.style.backgroundColor = '#000'; }
+}
+$$('#w-disp .tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+$('#wallMode').addEventListener('change', e => { pend.wallMode = e.target.value; dispPreview(); });
+$('#ssSel').addEventListener('change', e => { pend.saver = e.target.value; dispPreview(); });
+$('#ssMin').addEventListener('change', e => { pend.saverMin = clamp(parseInt(e.target.value) || 1, 1, 60); e.target.value = pend.saverMin; });
+$('#ssPrev').addEventListener('click', () => startSaver());
+const commitDisp = () => { Object.assign(opt, pend); saveOpt(); applyWall(); };
+$('#dispApply').addEventListener('click', commitDisp);
+$('#dispOk').addEventListener('click', () => { commitDisp(); closeWin('w-disp'); });
+
+// 记事本
+const POEM = `曼波丁真 · 诗歌剧
+━━━━━━━━━━━━━━━━
+
+【一】哈吉米
+檐下狸奴唤哈吉，
+一声哈吉月如钩。
+
+【二】噢嘛吉利曼波
+噢嘛吉利舞曼波，
+曼波一曲醉千家。
+
+【三】哇哦
+满座惊呼一声哇，
+灯火骤明天地白。
+
+【四】阿米诺斯
+阿米诺斯怒拍案，
+一声断喝惊飞鸟。
+
+—— 用曼波播放器朗诵：
+   按 1 2 3 4，或 文件 → 全部播放
+`;
+const np = $('#np');
+np.value = LS.get('poem', POEM);
+np.classList.toggle('nowrap', !opt.wrap);
+np.addEventListener('input', () => LS.set('poem', np.value));
+function insertTime() {
+  const d = new Date(); let h = d.getHours(); const ap = h < 12 ? '上午' : '下午'; h = h % 12 || 12;
+  const s = `${ap} ${h}:${String(d.getMinutes()).padStart(2, '0')} ${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  const a = np.selectionStart, b = np.selectionEnd; np.setRangeText(s, a, b, 'end'); np.focus(); LS.set('poem', np.value);
+}
+np.addEventListener('keydown', e => { if (e.key === 'F5') { e.preventDefault(); insertTime(); } });
+
+// ============================================================
+//  音量
+// ============================================================
+function syncVol() {
+  $('#trayVol').src = opt.mute ? ICON.spkm : ICON.spk;
+  $('#vt').style.top = (4 + (1 - opt.vol) * (110 - 8 - 11)) + 'px';
+  $('#volMute').checked = opt.mute;
+  if (AC) master.gain.setTargetAtTime(opt.mute ? 0 : opt.vol, AC.currentTime, .03);
+}
+function toggleVol() { $('#volpop').hidden = !$('#volpop').hidden; syncVol(); }
+$('#trayVol').addEventListener('click', e => { e.stopPropagation(); toggleVol(); });
+document.addEventListener('pointerdown', e => { if (!e.target.closest('#volpop,#trayVol')) $('#volpop').hidden = true; });
+(function () {
+  const vs = $('#vs'); let on = false;
+  const set = e => { const r = vs.getBoundingClientRect(); opt.vol = clamp(1 - (e.clientY - r.top - 9) / (r.height - 18), 0, 1); syncVol(); };
+  vs.addEventListener('pointerdown', e => { on = true; vs.setPointerCapture(e.pointerId); set(e); });
+  vs.addEventListener('pointermove', e => on && set(e));
+  vs.addEventListener('pointerup', () => { on = false; saveOpt(); UI.ding(); });
+  $('#volMute').addEventListener('change', e => { opt.mute = e.target.checked; saveOpt(); syncVol(); });
+})();
+syncVol();
+
+// ============================================================
+//  时钟、提示
+// ============================================================
+function tick() {
+  const d = new Date(); let h = d.getHours(); const ap = h < 12 ? '上午' : '下午'; h = h % 12 || 12;
+  $('#clock').textContent = `${ap} ${h}:${String(d.getMinutes()).padStart(2, '0')}`;
+  $('#clock').dataset.tip = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${'日一二三四五六'[d.getDay()]}`;
+}
+setInterval(tick, 1000); tick();
+let tipT = 0;
+document.addEventListener('pointerover', e => {
+  if (e.pointerType !== 'mouse') return;
+  const el = e.target.closest('[data-tip]'); clearTimeout(tipT); $('#tip').hidden = true; if (!el) return;
+  tipT = setTimeout(() => { const t = $('#tip'); t.textContent = el.dataset.tip; t.hidden = false;
+    const x = Math.min(e.clientX + 2, innerWidth - t.offsetWidth - 4), y = e.clientY + 20 + t.offsetHeight > innerHeight ? e.clientY - t.offsetHeight - 6 : e.clientY + 20;
+    t.style.left = x + 'px'; t.style.top = y + 'px'; }, 550);
+});
+document.addEventListener('pointerdown', () => { clearTimeout(tipT); $('#tip').hidden = true; });
+
+// ============================================================
+//  开机 / 关机 / 蓝屏
+// ============================================================
+let state = 'boot', waitKey = false;
+function hideScreens() { ['#bios', '#splash', '#bsod', '#safe', '#saver'].forEach(s => { $(s).hidden = true; }); $('#dim').classList.remove('on'); }
+function closeAll() { for (const k in WINS) if (WINS[k].open) closeWin(k); for (const k in WINS) WINS[k].placed = false; cascade = 0; }
+const BIOS = [
+  ['<span class="w">曼波 Modular BIOS v4.51PG</span>, An Energy Star Ally'],
+  ['Copyright (C) 1984-98, Mambo Software, Inc.'], [''],
+  ['#401A0-0098  曼波 98 系统主板'], [''],
+  ['PENTIUM-MMX CPU at 233MHz'],
+  ['mem'], [''],
+  ['曼波 Plug and Play BIOS Extension  v1.0A'],
+  ['Copyright (C) 1998, Mambo Software, Inc.'],
+  ['   Detecting IDE Primary Master   ... 哈吉米 HDD 2.1GB', 220],
+  ['   Detecting IDE Primary Slave    ... 丁真 CD-ROM 24X', 220],
+  ['   Detecting IDE Secondary Master ... 噢嘛吉利 SOUND BLASTER 16', 220],
+  ['   Detecting IDE Secondary Slave  ... None', 260], [''],
+];
+function boot(fast) {
+  state = 'boot'; waitKey = false; closeMenus(); closeAll();
+  hideScreens(); desk.classList.add('off'); $('#icons').classList.add('off'); $('#taskbar').hidden = true; $('#volpop').hidden = true;
+  const b = $('#bios'); b.innerHTML = '<img class="logo" src="icon.png" alt="">'; b.hidden = false;
+  UI.beep();
+  let i = 0;
+  const step = () => {
+    if (state !== 'boot') return;
+    if (i >= BIOS.length) {
+      if (fast && AC) { setTimeout(() => state === 'boot' && splashIn(), 500); }
+      else { b.insertAdjacentHTML('beforeend', '\n<span class="w">点击屏幕或按任意键，启动 曼波 98</span> <span class="cur">_</span>'); waitKey = true; }
+      return;
+    }
+    const [txt, d] = BIOS[i++];
+    if (txt === 'mem') {
+      const sp = document.createElement('span'); b.appendChild(sp); let m = 0;
+      const it = setInterval(() => { m = Math.min(65536, m + (fast ? 16384 : 2048)); sp.textContent = `Memory Test :  ${m}K${m === 65536 ? ' OK' : ''}\n`; if (m === 65536) { clearInterval(it); setTimeout(step, 120); } }, 16);
+      return;
+    }
+    b.insertAdjacentHTML('beforeend', txt + '\n');
+    setTimeout(step, fast ? 40 : (d || 70));
+  };
+  step();
+}
+function splashIn(msg = '') {
+  hideScreens(); $('#splash').hidden = false; $('#splashMsg').textContent = msg;
+  if (!msg) { UI.chime(); setTimeout(() => { if (state === 'boot') revealDesk(); }, 3200); }
+}
+function revealDesk() {
+  hideScreens(); desk.classList.remove('off'); applyWall(); layoutIcons(true);
+  setTimeout(() => { $('#icons').classList.remove('off'); $('#taskbar').hidden = false; }, 350);
+  setTimeout(() => { state = 'desk'; lastInput = performance.now(); openWin('w-player'); setStatus('Ready'); }, 750);
+}
+function bsod() { if (state !== 'desk') return; closeMenus(); state = 'bsod'; $('#bsod').hidden = false; }
+function leaveBsod() { $('#bsod').hidden = true; boot(true); }
+function shutdown(restart) {
+  state = 'shut'; closeMenus(); $('#dim').classList.add('on'); UI.bye();
+  setTimeout(() => { closeAll(); splashIn('曼波 98 正在关闭...'); desk.classList.add('off'); $('#taskbar').hidden = true; }, 1300);
+  setTimeout(() => { hideScreens(); if (restart) boot(true); else { state = 'off'; $('#safe').hidden = false; } }, 4200);
+}
+function startFromKey() {
+  if (!waitKey) return; waitKey = false; initAudio(); if (AC.state === 'suspended') AC.resume(); splashIn();
+}
+$('#bios').addEventListener('pointerdown', startFromKey);
+$('#bsod').addEventListener('pointerdown', leaveBsod);
+$('#safe').addEventListener('pointerdown', () => boot(true));
+
+// ============================================================
+//  屏幕保护：飞越曼波
+// ============================================================
+const SIMG = ['DJ.png', 'ymjn.png', 'icon.png'].map(s => { const i = new Image(); i.src = s; return i; });
+function flyObj(init) { return { x: (Math.random() - .5) * 2.6, y: (Math.random() - .5) * 2, z: init ? .2 + Math.random() * 2 : 2.2, k: Math.floor(Math.random() * 3), r: (Math.random() - .5) * .5, vr: (Math.random() - .5) * .6 }; }
+function makeFly(n) { return { objs: Array.from({ length: n }, () => flyObj(true)), stars: Array.from({ length: 120 }, () => ({ x: (Math.random() - .5) * 4, y: (Math.random() - .5) * 3, z: Math.random() * 2 + .05 })) }; }
+function drawFly(cx, w, h, F, dt) {
+  cx.fillStyle = '#000'; cx.fillRect(0, 0, w, h);
+  const ox = w / 2, oy = h / 2, f = Math.min(w, h) * .5;
+  cx.fillStyle = '#fff';
+  for (const s of F.stars) { s.z -= dt * .5; if (s.z < .05) { s.x = (Math.random() - .5) * 4; s.y = (Math.random() - .5) * 3; s.z = 2; } const sc = f / s.z, sz = Math.max(.6, 1.6 / s.z); cx.globalAlpha = clamp((2 - s.z) / 1.2, 0, 1); cx.fillRect(ox + s.x * sc, oy + s.y * sc, sz, sz); }
+  F.objs.sort((a, b) => b.z - a.z);
+  for (const o of F.objs) {
+    o.z -= dt * .42; o.r += o.vr * dt; if (o.z < .07) Object.assign(o, flyObj(false));
+    const im = SIMG[o.k]; if (!im.complete || !im.naturalWidth) continue;
+    const sc = f / o.z, size = .22 * sc, ar = im.naturalWidth / im.naturalHeight;
+    const iw = ar >= 1 ? size : size * ar, ih = ar >= 1 ? size / ar : size;
+    cx.globalAlpha = clamp((2.2 - o.z) / .7, 0, 1);
+    cx.save(); cx.translate(ox + o.x * sc, oy + o.y * sc); cx.rotate(o.r); cx.imageSmoothingEnabled = o.k !== 2; cx.drawImage(im, -iw / 2, -ih / 2, iw, ih); cx.restore();
+  }
+  cx.globalAlpha = 1;
+}
+let F = null, saverT0 = 0, monF = makeFly(14);
+function startSaver() {
+  if (state !== 'desk') return; closeMenus(); state = 'saver'; saverT0 = performance.now();
+  const c = $('#saver'); c.hidden = false; c.width = innerWidth * Math.min(2, devicePixelRatio || 1); c.height = innerHeight * Math.min(2, devicePixelRatio || 1);
+  F = makeFly(26);
+}
+function stopSaver() { $('#saver').hidden = true; state = 'desk'; lastInput = performance.now(); }
+let lastInput = performance.now();
+['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, e => {
+  if (state === 'saver') { if (performance.now() - saverT0 < 700) return; if (e.type === 'pointermove' && Math.abs(e.movementX) + Math.abs(e.movementY) < 3) return; e.preventDefault && e.cancelable && e.preventDefault(); stopSaver(); return; }
+  lastInput = performance.now();
+}, { capture: true, passive: false }));
+
+// ============================================================
+//  键盘
+// ============================================================
+addEventListener('keydown', e => {
+  if (state === 'bsod') { e.preventDefault(); leaveBsod(); return; }
+  if (state === 'off') { boot(true); return; }
+  if (state === 'boot') { if (waitKey) { e.preventDefault(); startFromKey(); } return; }
+  if (state !== 'desk') return;
+  if (e.key === 'Escape') { if (menuStack.length) closeMenus(); else if (activeId && W(activeId).el.classList.contains('dlg')) closeWin(activeId); return; }
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'F5') { e.preventDefault(); refreshDesk(); return; }
+  if (e.key === 'Enter' && activeId && W(activeId).el.classList.contains('dlg')) { const d = W(activeId).el.querySelector('.btn.def'); if (d && document.activeElement !== d) { e.preventDefault(); d.click(); } return; }
+  const idx = { '1': 0, '2': 1, '3': 2, '4': 3, h: 0, m: 1, w: 2, a: 3 }[e.key.toLowerCase()];
+  if (idx != null && !e.repeat) play(idx);
+});
+
+// ============================================================
+//  主循环：液晶屏、频谱、屏保
+// ============================================================
+const viz = $('#viz'), vctx = viz.getContext('2d'), peaks = new Float32Array(16);
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  const pw = W('w-player');
+  if (pw.open && !pw.min && state === 'desk') {
+    // 液晶屏
+    let el = 0, p = 0, playing = false;
+    if (cur) { el = (now - cur.t0) / 1000; playing = el < cur.dur; p = clamp(el / cur.dur, 0, 1); if (!playing) el = cur.dur; }
+    const t = Math.max(0, el); $('#lcdTm').textContent = `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(2).padStart(5, '0')}`;
+    $('#lcdSt').textContent = playing ? '▶' : '■';
+    const tr = $('#thumb').parentElement.clientWidth - 11; $('#thumb').style.left = (playing ? p : (cur ? 1 : 0)) * tr + 'px';
+    // 频谱
+    const dpr = Math.min(2, devicePixelRatio || 1), cw = viz.clientWidth, ch = viz.clientHeight;
+    if (viz.width !== Math.round(cw * dpr) || viz.height !== Math.round(ch * dpr)) { viz.width = Math.round(cw * dpr); viz.height = Math.round(ch * dpr); }
+    vctx.setTransform(dpr, 0, 0, dpr, 0, 0); vctx.fillStyle = '#000'; vctx.fillRect(0, 0, cw, ch);
+    if (opt.viz) {
+      if (AC) analyser.getByteFrequencyData(freq);
+      const N = 16, segs = 9, gap = 2, bw = (cw - gap * (N + 1)) / N, sh = (ch - 4) / segs;
+      for (let i = 0; i < N; i++) {
+        let v = 0;
+        if (AC) { const a = Math.floor(Math.pow(i / N, 1.7) * 90) + 1, b = Math.floor(Math.pow((i + 1) / N, 1.7) * 90) + 2; for (let k = a; k < b; k++) v = Math.max(v, freq[k]); v /= 255; }
+        const lv = Math.round(v * segs); peaks[i] = Math.max(lv, peaks[i] - dt * 7);
+        const x = gap + i * (bw + gap);
+        for (let s = 0; s < lv; s++) { vctx.fillStyle = s >= segs - 2 ? '#f33' : s >= segs - 4 ? '#ff3' : '#3f3'; vctx.fillRect(x, ch - 2 - (s + 1) * sh + 1, bw, sh - 1); }
+        if (peaks[i] > .5) { vctx.fillStyle = '#cfc'; vctx.fillRect(x, ch - 2 - Math.ceil(peaks[i]) * sh + 1, bw, 1.5); }
+        if (!lv) { vctx.fillStyle = '#063'; vctx.fillRect(x, ch - 2 - sh + 1, bw, sh - 1); }
+      }
+    } else { vctx.fillStyle = '#1a1'; vctx.font = '10px Courier New'; vctx.fillText('VIZ OFF', 6, ch / 2 + 3); }
+  }
+  // 屏保
+  if (state === 'saver') { const c = $('#saver'), x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); drawFly(x, c.width, c.height, F, dt); }
+  if (W('w-disp').open && dispTab === 'ss' && pend.saver === 'fly') {
+    const c = $('#monCv'), x = c.getContext('2d'); if (c.width !== c.clientWidth * 2) { c.width = c.clientWidth * 2; c.height = c.clientHeight * 2; }
+    drawFly(x, c.width, c.height, monF, dt);
+  }
+  if (state === 'desk' && opt.saver === 'fly' && !active && now - lastInput > opt.saverMin * 60000) startSaver();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+addEventListener('resize', () => {
+  layoutIcons(); closeMenus();
+  for (const k in WINS) { const w = WINS[k]; if (!w.open) continue; const el = w.el; el.style.left = clamp(el.offsetLeft, 0, Math.max(0, desk.clientWidth - el.offsetWidth)) + 'px'; el.style.top = clamp(el.offsetTop, 0, Math.max(0, desk.clientHeight - 30)) + 'px'; }
+});
+
+$('#lcdMq').textContent = '曼波播放器 98 *** 就绪 *** 按 1~4 或 H/M/W/A 播放 *** ';
+boot(false);
+
+window.__wzy98 = { play, boot, bsod, startSaver, about, aminosCrash, get state() { return { state, activeId, plays }; } };
+</script>
 </body>
 </html>
