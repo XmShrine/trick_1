@@ -227,7 +227,7 @@ input, textarea { font: inherit; color: inherit; }
   font-family: var(--hand); font-weight: 700; font-size: 18px; line-height: 1;
 }
 .log-d:hover { text-decoration: underline; }
-.log-w { flex: none; width: 18px; font-family: var(--hand); font-size: 17px; color: var(--ink-3); line-height: 26px; }
+.log-w { flex: none; width: 30px; font-family: var(--hand); font-size: 17px; color: var(--ink-3); line-height: 26px; }
 .log-row .tx { font-size: 14px; }
 .log-row.today .log-w { color: var(--ink); font-weight: 700; }
 
@@ -282,7 +282,7 @@ input, textarea { font: inherit; color: inherit; }
 
 /* ---------- habits ---------- */
 .hab { border-collapse: collapse; width: 100%; }
-.hab th { font-family: var(--hand); font-weight: 700; font-size: 17px; color: var(--ink-2); padding: 0 0 2px; }
+.hab th { font-family: var(--hand); font-weight: 700; font-size: 15px; color: var(--ink-2); padding: 0 0 2px; }
 .hab td { padding: 0; border-bottom: 1px solid var(--line); }
 .hab .grid { border-left: 1.8px solid var(--ink); border-right: 1.8px solid var(--ink); }
 .hab tr:first-child .grid { border-top: 1.8px solid var(--ink); }

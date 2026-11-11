@@ -28,7 +28,7 @@ function weekNo(s) {
   return 1 + Math.round(((d - w1) / 864e5 - 3 + (w1.getDay() + 6) % 7) / 7);
 }
 
-const WD = ['m', 't', 'w', 'th', 'f', 'sa', 'su'];
+const WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const WD_CN = ['一', '二', '三', '四', '五', '六', '日'];
 const WD_FULL = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
