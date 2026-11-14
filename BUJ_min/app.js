@@ -52,6 +52,11 @@ function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* 隐私模�
 function blankDoc() {
   return { app: 'mini-bujo', v: 1, updatedAt: 0, settings: { sym: 'box' }, moodLabels: { ...DEFAULT_MOOD_LABELS }, days: {}, weeks: {}, months: {}, cols: [] };
 }
+function normalizeSleep(s = {}) {
+  const seven = values => Array.from({ length: 7 }, (_, i) =>
+    Array.isArray(values) && values.every(v => typeof v === 'string') ? values[i] || '' : '');
+  return { ...s, bed: seven(s?.bed), wake: seven(s?.wake), wt: seven(s?.wt), rhr: seven(s?.rhr) };
+}
 function normalize(d) {
   const b = blankDoc();
   if (!d || typeof d !== 'object') return b;
@@ -59,7 +64,9 @@ function normalize(d) {
     ...b, ...d,
     settings: { ...b.settings, ...(d.settings || {}) },
     moodLabels: { ...b.moodLabels, ...(d.moodLabels || {}) },
-    days: d.days || {}, weeks: d.weeks || {}, months: d.months || {},
+    days: d.days || {},
+    weeks: Object.fromEntries(Object.entries(d.weeks || {}).map(([key, w]) => [key, { ...w, sleep: normalizeSleep(w.sleep) }])),
+    months: d.months || {},
     cols: Array.isArray(d.cols) ? d.cols : [],
   };
 }
@@ -99,7 +106,7 @@ function newWeek(mon) {
     serious: [], light: [], track: [],
     habits: (p ? p.habits.map(h => h.name) : DEFAULT_HABITS).map(name => ({ id: uid(), name, marks: Array(7).fill('') })),
     scores: (p ? p.scores.map(h => h.name) : DEFAULT_SCORES).map(name => ({ id: uid(), name, vals: Array(7).fill('') })),
-    sleep: { bed: Array(7).fill(''), wake: Array(7).fill(''), wt: Array(7).fill('') },
+    sleep: normalizeSleep(),
     lists: p
       ? p.lists.map(l => ({ id: uid(), title: l.title, items: l.items.filter(open).map(i => ({ ...i, id: uid() })) }))
       : DEFAULT_LISTS.map(title => ({ id: uid(), title, items: [] })),
@@ -290,7 +297,8 @@ const VIEWS = {
     const sleepRows = WD.map((w, i) => `<tr><td>${w}</td>
       <td><input type="time" value="${esc(W.sleep.bed[i])}" data-bind="w.${mon}.sleep.bed.${i}" aria-label="${w} 入睡"></td>
       <td><input type="time" value="${esc(W.sleep.wake[i])}" data-bind="w.${mon}.sleep.wake.${i}" aria-label="${w} 起床"></td>
-      <td><input inputmode="decimal" value="${esc(W.sleep.wt[i])}" data-bind="w.${mon}.sleep.wt.${i}" placeholder="—" aria-label="${w} 体重"></td></tr>`).join('');
+      <td class="vital" data-label="体重"><input inputmode="decimal" value="${esc(W.sleep.wt[i])}" data-bind="w.${mon}.sleep.wt.${i}" placeholder="—" aria-label="${w} 体重"></td>
+      <td class="vital" data-label="静息心率"><input inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${esc(W.sleep.rhr[i])}" data-bind="w.${mon}.sleep.rhr.${i}" placeholder="—" aria-label="${w} 静息心率（bpm）"><span class="unit">bpm</span></td></tr>`).join('');
     const lists = W.lists.map(l => `<section class="clist">
       <div class="cl-h"><input class="cl-t" value="${esc(l.title)}" data-bind="w.${mon}.list.${l.id}" placeholder="清单名"><button class="xbtn" data-act="dellist" data-w="${mon}" data-l="${l.id}" title="删除清单">×</button></div>
       ${listHTML(`wl|${mon}|${l.id}`, l.items, { ph: '' })}</section>`).join('');
@@ -303,8 +311,8 @@ const VIEWS = {
         <h3 class="sec">打分 1–7</h3>
         <table class="hab"><thead>${head}</thead><tbody>${srows}</tbody></table>
         <div class="tools"><button class="btn small" data-act="addscore" data-w="${mon}">+ 打分项</button></div>
-        <h3 class="sec">SLEEP · 睡眠 &amp; 体重</h3>
-        <table class="sleep"><thead><tr><th></th><th>入睡</th><th>起床</th><th>体重</th></tr></thead><tbody>${sleepRows}</tbody></table>
+        <h3 class="sec">SLEEP · 睡眠 &amp; 身体记录</h3>
+        <div class="sleep-table"><table class="sleep"><thead><tr><th></th><th>入睡</th><th>起床</th><th class="vital-head">体重</th><th class="vital-head">静息心率</th></tr></thead><tbody>${sleepRows}</tbody></table></div>
         <div id="sleepChart">${sleepSVG(W)}</div>`,
       right: `
         <header class="ph"><h2>lists</h2><span class="sub">每周可以换；没做完的条目会自动带到下周</span></header>
@@ -439,7 +447,8 @@ function sleepSVG(W) {
   const wake = W.sleep.wake.map((v, i) => { const x = toH(v); if (x == null) return null; const w = x + 24; return bed[i] != null && w <= bed[i] ? w + 24 : w; });
   const wt = W.sleep.wt.map(v => { const x = parseFloat(v); return isNaN(x) ? null : x; });
   const tv = [...bed, ...wake].filter(v => v != null), wv = wt.filter(v => v != null);
-  if (!tv.length && !wv.length) return '<p class="hint">填入睡、起床时间或体重后，这里会画出睡眠条和体重线。</p>';
+  const heart = restingHeartRateSVG(W.sleep.rhr);
+  if (!tv.length && !wv.length) return heart || '<p class="hint">填入睡、起床时间、体重或静息心率后，这里会画出对应图表。</p>';
   const Wd = 320, L = 38, R = 30, iw = Wd - L - R, slot = iw / 7, x = i => L + (i + 0.5) * slot;
   const SH = tv.length ? 150 : 0, WH = wv.length ? 72 : 0, gap = SH && WH ? 16 : 0, B = 18, H = 8 + SH + gap + WH + B;
   let out = `<svg viewBox="0 0 ${Wd} ${H}" class="chart" role="img" aria-label="睡眠时间与体重">
@@ -473,7 +482,45 @@ function sleepSVG(W) {
     out += `<path d="${d}" class="ln wt"/>`;
     wt.forEach((v, i) => { if (v != null) out += `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" class="pt wt"/><text x="${x(i).toFixed(1)}" y="${(y(v) - 6).toFixed(1)}" class="ax wt" text-anchor="middle">${v}</text>`; });
   }
-  return out + '</svg><div class="legend"><span><i class="lk sl"></i>入睡 → 起床</span><span><i class="lk"></i>体重</span></div>';
+  return out + '</svg><div class="legend"><span><i class="lk sl"></i>入睡 → 起床</span><span><i class="lk"></i>体重</span></div>' + heart;
+}
+
+// 静息心率使用独立的 bpm 轴；缺测日断开，不补零或跨日连线。
+function restingHeartRateModel(raw) {
+  const values = normalizeSleep({ rhr: raw }).rhr.map(text => {
+    text = text.trim();
+    return /^[0-9]{1,3}$/.test(text) && +text > 0 ? +text : null;
+  });
+  const valid = values.filter(v => v != null);
+  const lo = valid.length ? Math.min(...valid) : 60, hi = valid.length ? Math.max(...valid) : 60;
+  const step = Math.max(5, Math.ceil((hi - lo + 10) / 20) * 5);
+  const lower = Math.max(0, Math.floor(((lo + hi) / 2 - 2 * step) / 5) * 5);
+  return { values, lower, step, upper: lower + 4 * step, isEmpty: !valid.length };
+}
+
+function restingHeartRateSVG(raw) {
+  const m = restingHeartRateModel(raw);
+  if (m.isEmpty) return '';
+  const x = i => 38 + (i + 0.5) * 36;
+  const y = v => 18 + (m.upper - v) / (m.upper - m.lower) * 76;
+  const description = m.values.map((v, i) => v == null ? '' : `${WD[i]} ${v} bpm`).filter(Boolean).join('，');
+  let out = `<section class="heart-chart"><h4>静息心率 · bpm</h4><svg viewBox="0 0 320 124" class="chart" role="img" aria-label="静息心率，每分钟心跳次数：${description}">`;
+  for (let tick = 0; tick <= 4; tick++) {
+    const value = m.lower + tick * m.step;
+    out += `<line x1="38" x2="290" y1="${y(value)}" y2="${y(value)}" class="gl"/><text x="33" y="${y(value) + 3.5}" class="ax" text-anchor="end">${value}</text>`;
+  }
+  let d = '', pen = false;
+  m.values.forEach((v, i) => {
+    if (v == null) { pen = false; return; }
+    d += `${pen ? 'L' : 'M'}${x(i)} ${y(v)} `;
+    pen = true;
+  });
+  out += `<path d="${d}" class="ln rhr"/>`;
+  m.values.forEach((v, i) => {
+    out += `<text x="${x(i)}" y="116.5" class="ax" text-anchor="middle">${WD[i]}</text>`;
+    if (v != null) out += `<circle cx="${x(i)}" cy="${y(v)}" r="2.6" class="pt rhr"><title>${WD[i]} 静息心率 ${v} bpm</title></circle><text x="${x(i)}" y="${y(v) - 6.5}" class="ax rhr" text-anchor="middle">${v}</text>`;
+  });
+  return out + '</svg></section>';
 }
 
 /* ---------- search ---------- */
