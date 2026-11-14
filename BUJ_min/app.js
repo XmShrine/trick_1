@@ -236,7 +236,7 @@ const VIEWS = {
       left: `
         <header class="ph"><h1>${MONTHS[m - 1]}</h1><span class="sub">${y} · 月视图</span></header>
         <div class="cal"><div class="cal-h">${WD.map(w => `<span>${w}</span>`).join('')}</div><div class="cal-g">${cells}</div></div>
-        <p class="hint">点日期贴圆点：<span class="dotk red"></span>重要安排 <span class="dotk blue"></span>一般预约 · 再点一次撕掉</p>
+        <p class="hint">点日期贴圆点：<span class="dotk red"></span>重要安排 <span class="dotk blue"></span>日常安排 · 再点一次撕掉</p>
         <h3 class="sec">本月目标 · goals</h3>
         ${listHTML('mg|' + key, peekList('mg|' + key), { ph: '这个月想做成的事…' })}`,
       right: `
@@ -392,7 +392,7 @@ const VIEWS = {
           ${k('<span class="star" style="line-height:1">★</span>', '重要（输入时用 ! 开头）')}
           ${k('<s class="muted">abc</s>', '取消 cancelled')}
           ${k('<span class="dotk red" style="margin:0"></span>', '红圆点：这天有重要安排')}
-          ${k('<span class="dotk blue" style="margin:0"></span>', '蓝圆点：这天有不太重要的预约')}
+          ${k('<span class="dotk blue" style="margin:0"></span>', '蓝圆点：这天有日常安排')}
         </table>
         <p class="hint">点符号切换状态；每行右侧 ⋯ 可以改类型、标重要、迁移、取消、删除。回车新增一行，空行按退格删除。</p>
         <h3 class="sec">数据</h3>
