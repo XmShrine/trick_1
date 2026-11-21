@@ -1,0 +1,750 @@
+:root {
+  --paper: #efe8da;
+  --paper-sheet: #f8f3e8;
+  --ink: #241f1a;
+  --ink-soft: #5c5247;
+  --ink-faint: #8b7e70;
+  --kraft: #e4d4b6;
+  --kraft-ink: #2c2218;
+  --cinnabar: #b23a29;
+  --ribbon: #9d3528;
+  --ribbon-ink: #fbf4ea;
+  --dot-ink: rgba(74, 63, 52, 0.24);
+  --shadow-cutout: drop-shadow(5px 12px 14px rgba(34, 24, 15, 0.22));
+  --shadow-lift: drop-shadow(12px 24px 26px rgba(24, 16, 10, 0.3));
+  --font-serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "SF Mono", "Menlo", ui-monospace, monospace;
+}
+
+html[data-theme="night"] {
+  --paper: #191613;
+  --paper-sheet: #25211c;
+  --ink: #e8dfd1;
+  --ink-soft: #b6aa98;
+  --ink-faint: #847868;
+  --kraft: #483d2e;
+  --kraft-ink: #f2e8d9;
+  --cinnabar: #c64b38;
+  --ribbon: #8a2c21;
+  --ribbon-ink: #f6ede0;
+  --dot-ink: rgba(232, 223, 209, 0.2);
+  --shadow-cutout: drop-shadow(7px 14px 18px rgba(0, 0, 0, 0.52));
+  --shadow-lift: drop-shadow(14px 26px 32px rgba(0, 0, 0, 0.68));
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.55s ease, color 0.55s ease;
+}
+
+.canvas-viewport {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.canvas-viewport.is-panning {
+  cursor: grabbing;
+}
+
+/* Fine uncoated paper tooth */
+.paper-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.036;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Subtle dappled tree-canopy afternoon light on paper */
+.dappled-light {
+  position: fixed;
+  inset: -12%;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 34% 28% at 28% 32%, rgba(255, 250, 232, 0.42), transparent 72%),
+    radial-gradient(ellipse 40% 34% at 72% 62%, rgba(255, 246, 222, 0.34), transparent 74%),
+    radial-gradient(ellipse 52% 45% at 50% 50%, transparent 56%, rgba(164, 140, 108, 0.14) 100%);
+  animation: canopy-sway 18s ease-in-out infinite alternate;
+  transition: opacity 0.6s ease;
+}
+
+html[data-theme="night"] .dappled-light {
+  opacity: 0;
+}
+
+@keyframes canopy-sway {
+  from {
+    transform: translate3d(-1.5%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(1.8%, 1.2%, 0) scale(1.03);
+  }
+}
+
+/* Quiet late-night desk-lamp pool */
+.lamp-pool {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse 58% 56% at 52% 48%, rgba(255, 198, 118, 0.13) 0%, rgba(220, 152, 74, 0.05) 45%, rgba(10, 8, 6, 0.62) 100%);
+  transition: opacity 0.6s ease;
+}
+
+html[data-theme="night"] .lamp-pool {
+  opacity: 1;
+}
+
+/* --- Expansive Freeform World --- */
+.nest-world {
+  position: relative;
+  width: 1760px;
+  height: 1120px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.nest-world.is-resetting {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.canvas-item {
+  position: absolute;
+  --dx: 0px;
+  --dy: 0px;
+  --rot: 0deg;
+  --scale: 1;
+  transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot)) scale(var(--scale));
+  transform-origin: center center;
+  cursor: grab;
+  text-decoration: none;
+  color: inherit;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: filter 0.25s ease;
+}
+
+.canvas-item.is-resetting {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), filter 0.25s ease;
+}
+
+.canvas-item.is-dragging {
+  cursor: grabbing;
+  --scale: 1.045;
+  transition: none;
+}
+
+.canvas-item:focus-visible {
+  outline: 2px dashed var(--cinnabar);
+  outline-offset: 8px;
+}
+
+.cutout-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  filter: var(--shadow-cutout);
+  transition: filter 0.3s ease;
+}
+
+.canvas-item:hover .cutout-img,
+.canvas-item.is-dragging .cutout-img,
+.canvas-item.is-highlighted .cutout-img {
+  filter: var(--shadow-lift);
+}
+
+.ink-cutout {
+  filter: drop-shadow(1px 2px 2px rgba(44, 36, 29, 0.08));
+  opacity: 0.88;
+}
+
+.canvas-item:hover .ink-cutout,
+.canvas-item.is-dragging .ink-cutout {
+  filter: drop-shadow(4px 8px 10px rgba(44, 36, 29, 0.16));
+  opacity: 0.98;
+}
+
+html[data-theme="night"] .ink-cutout {
+  filter: invert(0.84) sepia(0.28) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+}
+
+/* --- Vertical Title Stamp (Directly on Paper) --- */
+.title-stamp {
+  left: 710px;
+  top: 145px;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.stamp-heading {
+  writing-mode: vertical-rl;
+  font-family: var(--font-serif);
+  font-size: 2.35rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.stamp-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.cinnabar-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--cinnabar);
+  color: #f9f2e6;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+}
+
+.stamp-latin {
+  writing-mode: vertical-rl;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+
+/* --- Feathered 1919 Red Squirrel Watercolor --- */
+.item-squirrel {
+  left: 615px;
+  top: 345px;
+  width: 470px;
+}
+
+.squirrel-img {
+  mix-blend-mode: multiply;
+  filter: contrast(1.04) brightness(1.03);
+  -webkit-mask-image: radial-gradient(ellipse 68% 66% at 50% 50%, #000 48%, rgba(0, 0, 0, 0.5) 72%, transparent 94%);
+  mask-image: radial-gradient(ellipse 68% 66% at 50% 50%, #000 48%, rgba(0, 0, 0, 0.5) 72%, transparent 94%);
+}
+
+.item-squirrel:hover .squirrel-img,
+.item-squirrel.is-dragging .squirrel-img {
+  filter: contrast(1.06) brightness(1.04);
+}
+
+html[data-theme="night"] .squirrel-img {
+  mix-blend-mode: normal;
+  filter: brightness(0.78) contrast(1.12) saturate(0.95);
+  -webkit-mask-image: radial-gradient(ellipse 64% 62% at 50% 50%, #000 38%, rgba(0, 0, 0, 0.42) 66%, transparent 88%);
+  mask-image: radial-gradient(ellipse 64% 62% at 50% 50%, #000 38%, rgba(0, 0, 0, 0.42) 66%, transparent 88%);
+}
+
+/* --- Raw Pencil Whisper Directly on Paper --- */
+.pencil-whisper {
+  left: 655px;
+  top: 735px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-family: var(--font-serif);
+  font-size: 0.94rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.03em;
+  max-width: 280px;
+  transition: opacity 0.2s ease;
+}
+
+.pencil-whisper.is-fading {
+  opacity: 0.2;
+}
+
+.whisper-mark {
+  color: var(--cinnabar);
+  font-size: 0.82rem;
+}
+
+/* --- Portal 1: Fender Bass + Physical Kraft Luggage Tag --- */
+.item-bass {
+  left: 265px;
+  top: 185px;
+  width: 210px;
+}
+
+.luggage-tag {
+  position: absolute;
+  right: -96px;
+  top: 44%;
+  transform: rotate(12deg);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 14px 9px 20px;
+  background: var(--kraft);
+  color: var(--kraft-ink);
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+  filter: drop-shadow(2px 4px 6px rgba(32, 24, 16, 0.18));
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.25s ease;
+}
+
+.tag-string {
+  position: absolute;
+  left: -34px;
+  top: 50%;
+  width: 38px;
+  height: 1.5px;
+  background: var(--ink-soft);
+  transform: translateY(-50%) rotate(-8deg);
+  opacity: 0.72;
+}
+
+.tag-eyelet {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1.5px solid rgba(90, 68, 42, 0.55);
+  transform: translateY(-50%);
+}
+
+.tag-title {
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tag-sub {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+.item-bass:hover .luggage-tag,
+.item-bass:focus-visible .luggage-tag,
+.item-bass.is-highlighted .luggage-tag {
+  transform: rotate(6deg) translateX(4px);
+}
+
+/* --- Portal 2: Books Stack + Crimson Cloth Bookmark Ribbon --- */
+.item-books {
+  left: 1125px;
+  top: 165px;
+  width: 385px;
+}
+
+.bookmark-ribbon {
+  position: absolute;
+  right: 52px;
+  bottom: -44px;
+  transform: rotate(-4deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 14px 18px;
+  background: var(--ribbon);
+  color: var(--ribbon-ink);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  filter: drop-shadow(2px 6px 8px rgba(28, 16, 12, 0.24));
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ribbon-title {
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ribbon-sub {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  opacity: 0.82;
+  white-space: nowrap;
+}
+
+.item-books:hover .bookmark-ribbon,
+.item-books:focus-visible .bookmark-ribbon,
+.item-books.is-highlighted .bookmark-ribbon {
+  transform: rotate(-1deg) translateY(5px);
+}
+
+/* --- Portal 3: Loose Torn Dot-Grid Paper Sheet (Mini Bujo) --- */
+.item-bujo {
+  left: 1090px;
+  top: 575px;
+  width: 310px;
+  filter: drop-shadow(4px 10px 16px rgba(32, 24, 16, 0.16));
+  transition: filter 0.3s ease;
+}
+
+.item-bujo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--paper-sheet);
+  background-image: radial-gradient(var(--dot-ink) 1px, transparent 1px);
+  background-size: 16px 16px;
+  /* Organic deckled torn sheet silhouette */
+  clip-path: polygon(
+    0% 2%, 8% 0.5%, 18% 1.8%, 31% 0.4%, 44% 1.6%, 58% 0.3%, 72% 1.7%, 85% 0.4%, 97% 1.8%, 100% 1%,
+    99.2% 24%, 100% 48%, 99% 73%, 100% 97%,
+    91% 99.4%, 79% 98%, 65% 99.5%, 51% 98.2%, 37% 99.6%, 22% 98.1%, 10% 99.4%, 1% 98%,
+    0.8% 72%, 0% 44%, 0.7% 20%
+  );
+}
+
+.item-bujo {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 24px 24px;
+}
+
+.bujo-head {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  margin-bottom: 8px;
+}
+
+.bujo-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.bujo-line {
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+
+.bujo-host {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--cinnabar);
+}
+
+.item-bujo:hover,
+.item-bujo.is-highlighted,
+.item-bujo.is-dragging {
+  filter: drop-shadow(8px 18px 24px rgba(24, 16, 10, 0.26));
+}
+
+/* --- Draggable Fountain Pen --- */
+.item-pen {
+  left: 1170px;
+  top: 808px;
+  width: 290px;
+}
+
+/* --- Scattered Botanical & Forest Ephemera --- */
+.item-oak {
+  left: 468px;
+  top: 702px;
+  width: 155px;
+}
+
+.item-pinecone {
+  left: 1465px;
+  top: 430px;
+  width: 122px;
+}
+
+.item-acorn-1 {
+  left: 545px;
+  top: 215px;
+  width: 64px;
+}
+
+.item-acorn-2 {
+  left: 1055px;
+  top: 478px;
+  width: 54px;
+}
+
+.item-leaf {
+  left: 255px;
+  top: 755px;
+  width: 145px;
+}
+
+.item-oakleaf {
+  left: 1435px;
+  top: 745px;
+  width: 76px;
+}
+
+/* Quiet Torn Paper Whisper Scrap */
+.item-scrap {
+  left: 695px;
+  top: 830px;
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  background: var(--paper-sheet);
+  filter: drop-shadow(1px 3px 5px rgba(32, 24, 16, 0.12));
+  clip-path: polygon(
+    2% 4%, 19% 0%, 42% 5%, 68% 1%, 88% 5%, 99% 2%,
+    98% 52%, 100% 95%,
+    82% 99%, 56% 94%, 32% 100%, 11% 95%, 0% 98%,
+    1% 48%
+  );
+}
+
+/* --- Whisper-Quiet Corner Anchors --- */
+.corner-links,
+.corner-actions {
+  position: fixed;
+  bottom: 18px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  opacity: 0.62;
+  transition: opacity 0.25s ease;
+}
+
+.corner-links:hover,
+.corner-links:focus-within,
+.corner-actions:hover,
+.corner-actions:focus-within {
+  opacity: 1;
+}
+
+.corner-links {
+  left: 22px;
+}
+
+.corner-actions {
+  right: 22px;
+}
+
+.corner-links a,
+.whisper-btn {
+  color: var(--ink-soft);
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  padding: 2px 3px;
+  transition: color 0.2s ease;
+}
+
+.corner-links a:hover,
+.corner-links a:focus-visible,
+.whisper-btn:hover,
+.whisper-btn:focus-visible {
+  color: var(--cinnabar);
+  outline: none;
+}
+
+/* --- Mobile Freeform Organic Collage (< 768px) --- */
+@media (max-width: 767px) {
+  .canvas-viewport {
+    width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    cursor: default;
+    touch-action: pan-y;
+    padding-bottom: 18px;
+  }
+
+  .nest-world {
+    width: 100%;
+    height: 1220px;
+    transform: none !important;
+  }
+
+  .canvas-item {
+    cursor: pointer;
+  }
+
+  .title-stamp {
+    left: auto;
+    right: 22px;
+    top: 26px;
+  }
+
+  .stamp-heading {
+    font-size: 1.85rem;
+  }
+
+  .item-squirrel {
+    left: 8px;
+    top: 38px;
+    width: 68vw;
+    max-width: 270px;
+  }
+
+  .pencil-whisper {
+    left: 24px;
+    top: 264px;
+    font-size: 0.84rem;
+    max-width: 72vw;
+  }
+
+  .item-acorn-1 {
+    left: auto;
+    right: 92px;
+    top: 46px;
+    width: 42px;
+  }
+
+  .item-bass {
+    left: 14px;
+    top: 316px;
+    width: 28vw;
+    max-width: 116px;
+  }
+
+  .luggage-tag {
+    right: -96px;
+    top: 36%;
+    padding: 7px 10px 7px 16px;
+  }
+
+  .tag-string {
+    width: 24px;
+    left: -20px;
+  }
+
+  .item-books {
+    left: auto;
+    right: 16px;
+    top: 505px;
+    width: 50vw;
+    max-width: 205px;
+  }
+
+  .bookmark-ribbon {
+    right: 24px;
+    bottom: -38px;
+    padding: 8px 11px 14px;
+  }
+
+  .item-leaf {
+    left: 18px;
+    top: 678px;
+    width: 88px;
+  }
+
+  .item-oak {
+    left: auto;
+    right: 22px;
+    top: 315px;
+    width: 84px;
+  }
+
+  .item-bujo {
+    left: 20px;
+    top: 810px;
+    width: 78vw;
+    max-width: 295px;
+    padding: 18px 20px 20px;
+  }
+
+  .item-pen {
+    left: auto;
+    right: 14px;
+    top: 1022px;
+    width: 52vw;
+    max-width: 210px;
+  }
+
+  .item-pinecone {
+    left: 22px;
+    top: 1038px;
+    width: 74px;
+  }
+
+  .item-acorn-2 {
+    left: 112px;
+    top: 1072px;
+    width: 38px;
+  }
+
+  .item-oakleaf {
+    display: none;
+  }
+
+  .item-scrap {
+    display: none;
+  }
+
+  .corner-links,
+  .corner-actions {
+    position: static;
+    display: flex;
+    justify-content: center;
+    opacity: 0.82;
+    margin-top: 8px;
+  }
+
+  .corner-actions {
+    margin-top: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dappled-light {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

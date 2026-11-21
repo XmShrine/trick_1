@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="day">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>松鼠之窝 · QuarreyWell</title>
+  <meta name="description" content="松鼠之窝（QuarreyWell）—— 一块自由摆放的小桌面，连着贝斯模拟器、个人博客与在线手帐。" />
+  <link rel="icon" type="image/png" href="./assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&display=swap"
+  />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="canvas-viewport" id="canvas-viewport">
+    <div class="paper-grain" aria-hidden="true"></div>
+    <div class="dappled-light" aria-hidden="true"></div>
+    <div class="lamp-pool" aria-hidden="true"></div>
+
+    <main class="nest-world" id="nest-world" aria-label="松鼠之窝自由画布">
+      <!-- Vertical Title Stamp -->
+      <div class="canvas-item title-stamp" id="item-title" data-item="title" data-rot="-1">
+        <h1 class="stamp-heading">松鼠之窝</h1>
+        <div class="stamp-meta">
+          <span class="cinnabar-seal" aria-hidden="true">窝</span>
+          <span class="stamp-latin">QuarreyWell</span>
+        </div>
+      </div>
+
+      <!-- Feathered 1919 Red Squirrel Watercolor -->
+      <button
+        type="button"
+        class="canvas-item item-squirrel"
+        id="item-squirrel"
+        data-item="squirrel"
+        data-rot="-1.5"
+        draggable="false"
+        aria-label="点一点红松鼠，看看旁边的铅笔碎碎念"
+      >
+        <img
+          src="./assets/squirrel-cutout.webp"
+          alt="Archibald Thorburn 绘制的红松鼠与栗子蘑菇水彩博物图"
+          width="920"
+          height="735"
+          draggable="false"
+          class="cutout-img squirrel-img"
+        />
+      </button>
+
+      <!-- Raw Pencil Whisper Written Directly on the Paper -->
+      <p class="canvas-item pencil-whisper" id="item-whisper" data-item="whisper" data-rot="-2" aria-live="polite">
+        <span class="whisper-mark">✎</span>
+        <span id="margin-note">秋天多囤两颗橡果</span>
+      </p>
+
+      <!-- Portal 1: Full-Length Electric Bass + Kraft Luggage Tag -->
+      <a
+        href="https://trick-1.pages.dev/ZQW_bas/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="canvas-item item-bass"
+        id="item-bass"
+        data-item="bass"
+        data-rot="-15"
+        draggable="false"
+        aria-label="贝斯模拟器（Bass Simulator），在新标签页打开"
+      >
+        <img
+          src="./assets/cutout-bass.webp"
+          alt="红色四弦 Fender Jaguar 贝斯吉他"
+          width="306"
+          height="880"
+          draggable="false"
+          class="cutout-img"
+        />
+        <span class="luggage-tag">
+          <span class="tag-string" aria-hidden="true"></span>
+          <span class="tag-eyelet" aria-hidden="true"></span>
+          <span class="tag-title">贝斯模拟器 ↗</span>
+          <span class="tag-sub">Bass Simulator</span>
+        </span>
+      </a>
+
+      <!-- Portal 2: Stacked & Open Books + Crimson Bookmark Ribbon -->
+      <a
+        href="https://quarreyz-blog.pages.dev"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="canvas-item item-books"
+        id="item-books"
+        data-item="books"
+        data-rot="6"
+        draggable="false"
+        aria-label="个人博客（Quarrey-Z Blog），在新标签页打开"
+      >
+        <img
+          src="./assets/cutout-books.webp"
+          alt="叠放与翻开的旧书堆"
+          width="860"
+          height="644"
+          draggable="false"
+          class="cutout-img"
+        />
+        <span class="bookmark-ribbon">
+          <span class="ribbon-title">个人博客 ↗</span>
+          <span class="ribbon-sub">Quarrey-Z</span>
+        </span>
+      </a>
+
+      <!-- Portal 3: Loose Torn Dot-Grid Sheet (Mini Bujo) -->
+      <a
+        href="https://trick-1.pages.dev/BUJ_min/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="canvas-item item-bujo"
+        id="item-bujo"
+        data-item="bujo"
+        data-rot="-5"
+        draggable="false"
+        aria-label="在线手帐（Mini Bujo），在新标签页打开"
+      >
+        <span class="bujo-head">MINI BUJO · 点阵纸页</span>
+        <span class="bujo-title">在线手帐 ↗</span>
+        <span class="bujo-line">记今天想留下的几行字，</span>
+        <span class="bujo-line">随手写，随手存。</span>
+        <span class="bujo-host">trick-1.pages.dev/BUJ_min</span>
+      </a>
+
+      <!-- Draggable Vintage Fountain Pen -->
+      <div class="canvas-item item-pen" id="item-pen" data-item="pen" data-rot="21" aria-hidden="true">
+        <img
+          src="./assets/cutout-pen.webp"
+          alt="复古黑金钢笔"
+          width="780"
+          height="112"
+          draggable="false"
+          class="cutout-img"
+        />
+      </div>
+
+      <!-- Scattered Draggable Botanical & Forest Ephemera -->
+      <div class="canvas-item item-oak" id="item-oak" data-item="oak" data-rot="-11" aria-hidden="true">
+        <img
+          src="./assets/oak-specimen.webp"
+          alt="栎树枝与橡果植物图谱"
+          width="520"
+          height="587"
+          draggable="false"
+          class="cutout-img ink-cutout"
+        />
+      </div>
+
+      <div class="canvas-item item-pinecone" id="item-pinecone" data-item="pinecone" data-rot="18" aria-hidden="true">
+        <img
+          src="./assets/cutout-pinecone.webp"
+          alt="松果植物铜版素描"
+          width="308"
+          height="460"
+          draggable="false"
+          class="cutout-img ink-cutout"
+        />
+      </div>
+
+      <div class="canvas-item item-acorn-1" id="item-acorn-1" data-item="acorn1" data-rot="-28" aria-hidden="true">
+        <img
+          src="./assets/cutout-acorn.webp"
+          alt="橡果素描"
+          width="244"
+          height="320"
+          draggable="false"
+          class="cutout-img ink-cutout"
+        />
+      </div>
+
+      <div class="canvas-item item-acorn-2" id="item-acorn-2" data-item="acorn2" data-rot="33" aria-hidden="true">
+        <img
+          src="./assets/cutout-acorn.webp"
+          alt="橡果素描"
+          width="244"
+          height="320"
+          draggable="false"
+          class="cutout-img ink-cutout"
+        />
+      </div>
+
+      <div class="canvas-item item-leaf" id="item-leaf" data-item="leaf" data-rot="24" aria-hidden="true">
+        <img
+          src="./assets/cutout-leaf.webp"
+          alt="压平的红枫叶"
+          width="486"
+          height="520"
+          draggable="false"
+          class="cutout-img"
+        />
+      </div>
+
+      <div class="canvas-item item-oakleaf" id="item-oakleaf" data-item="oakleaf" data-rot="-31" aria-hidden="true">
+        <img
+          src="./assets/cutout-oakleaf.webp"
+          alt="栎树叶素描"
+          width="224"
+          height="380"
+          draggable="false"
+          class="cutout-img ink-cutout"
+        />
+      </div>
+
+      <!-- Quiet Torn Paper Scrap Hint -->
+      <div class="canvas-item item-scrap" id="item-scrap" data-item="scrap" data-rot="2">
+        拽一拽会慢慢溜回原位，点物件就能推门去
+      </div>
+    </main>
+
+    <!-- Whisper-Quiet Corner Anchors (Zero Boxes / Zero Bars) -->
+    <div class="corner-links" aria-label="快捷入口">
+      <a href="https://trick-1.pages.dev/ZQW_bas/" target="_blank" rel="noopener noreferrer" data-hover-target="item-bass">贝斯</a>
+      <span aria-hidden="true">·</span>
+      <a href="https://quarreyz-blog.pages.dev" target="_blank" rel="noopener noreferrer" data-hover-target="item-books">博客</a>
+      <span aria-hidden="true">·</span>
+      <a href="https://trick-1.pages.dev/BUJ_min/" target="_blank" rel="noopener noreferrer" data-hover-target="item-bujo">手帐</a>
+    </div>
+
+    <div class="corner-actions">
+      <button type="button" class="whisper-btn" id="reset-btn" title="把桌面物件和画布还原回原本的位置 (R)">归位</button>
+      <span aria-hidden="true">·</span>
+      <button type="button" class="whisper-btn" id="theme-toggle" aria-pressed="false" title="切换日光与夜灯模式">夜灯</button>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
