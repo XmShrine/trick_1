@@ -44,6 +44,47 @@ const DEFAULT_HABITS = ['shower 洗澡', 'exercise 运动', 'reading 阅读', 's
 const DEFAULT_SCORES = ['productivity 效率', 'energy 精力'];
 const DEFAULT_LISTS = ['reading list', 'watch list', 'fun list', 'deliveries 快递'];
 
+/* ---------- appearance (本机显示偏好，不写进手帐 JSON) ---------- */
+const PAPER_FORMS = [
+  ['dots', '点阵'],
+  ['lines', '横线'],
+  ['grid', '方格'],
+  ['blank', '空白'],
+];
+const DISPLAY_FONTS = [
+  ['handwriting', '手写体'],
+  ['rounded', '圆体'],
+  ['serif', '衬线'],
+  ['system', '系统'],
+  ['mono', '等宽'],
+];
+const TEXT_SIZES = [
+  ['small', '小', 0.88],
+  ['standard', '标准', 1],
+  ['large', '大', 1.14],
+  ['extraLarge', '特大', 1.28],
+];
+const PAPER_PALETTES = [
+  ['classic', '经典纸白', '#fbfaf6'],
+  ['cream', '米黄', '#fdf6e0'],
+  ['mint', '淡绿', '#f2f7ee'],
+  ['sky', '淡蓝', '#eef4fb'],
+  ['rose', '淡粉', '#fbf1ee'],
+];
+const DEFAULT_APPEARANCE = { paperForm: 'dots', font: 'handwriting', textSize: 'standard', palette: 'classic' };
+function normalizeAppearance(a = {}) {
+  const pick = (list, v, def) => list.some(([k]) => k === v) ? v : def;
+  return {
+    paperForm: pick(PAPER_FORMS, a?.paperForm, DEFAULT_APPEARANCE.paperForm),
+    font: pick(DISPLAY_FONTS, a?.font, DEFAULT_APPEARANCE.font),
+    textSize: pick(TEXT_SIZES, a?.textSize, DEFAULT_APPEARANCE.textSize),
+    palette: pick(PAPER_PALETTES, a?.palette, DEFAULT_APPEARANCE.palette),
+  };
+}
+function textSizeScale(id) {
+  return (TEXT_SIZES.find(([k]) => k === id) || TEXT_SIZES[1])[2];
+}
+
 /* ---------- storage ---------- */
 const LS_DOC = 'mini-bujo.doc', LS_UI = 'mini-bujo.ui';
 function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
@@ -88,7 +129,8 @@ function serialize() {
 }
 
 let D = normalize(lsGet(LS_DOC));
-const UI = Object.assign({ view: 'week', col: null, q: '', hideBanner: false }, lsGet(LS_UI) || {});
+const UI = Object.assign({ view: 'week', col: null, q: '', hideBanner: false, appearance: DEFAULT_APPEARANCE }, lsGet(LS_UI) || {});
+UI.appearance = normalizeAppearance(UI.appearance);
 UI.date = today();
 const saveUI = () => lsSet(LS_UI, JSON.stringify(UI));
 
@@ -698,6 +740,17 @@ const ACT = {
     D.cols = D.cols.filter(x => x !== c); UI.col = null; touch(true);
   },
   setsym: a => { D.settings.sym = a.dataset.s; touch(true); },
+  appear: a => {
+    UI.appearance = normalizeAppearance({ ...UI.appearance, [a.dataset.k]: a.dataset.v });
+    applyAppearance();
+    renderAppearModal();
+  },
+  resetappear: () => {
+    UI.appearance = normalizeAppearance(DEFAULT_APPEARANCE);
+    applyAppearance();
+    renderAppearModal();
+  },
+  closeappear: () => closeAppearModal(),
   download: () => downloadDoc(),
   wipe: () => {
     if (!confirm('清空浏览器里暂存的全部内容？\n（已经保存到文件里的不受影响）')) return;
@@ -705,6 +758,52 @@ const ACT = {
   },
   hidebanner: () => { UI.hideBanner = true; saveUI(); updateStatus(); },
 };
+
+/* ---------- appearance modal ---------- */
+const appearModalEl = $('#appearModal');
+function applyAppearance() {
+  const a = (UI.appearance = normalizeAppearance(UI.appearance));
+  const root = document.documentElement;
+  root.dataset.paper = a.paperForm;
+  root.dataset.font = a.font;
+  root.dataset.palette = a.palette;
+  root.style.setProperty('--ts', String(textSizeScale(a.textSize)));
+  saveUI();
+  $$('textarea.auto').forEach(autosize);
+}
+function renderAppearModal() {
+  if (!appearModalEl || appearModalEl.hidden) return;
+  const a = UI.appearance;
+  const opts = (k, list) => list.map(([id, label, sw]) =>
+    `<button type="button" class="appear-opt${a[k] === id ? ' on' : ''}" data-act="appear" data-k="${k}" data-v="${id}" aria-pressed="${a[k] === id}">${sw ? `<span class="appear-sw" style="background:${sw}"></span>` : ''}${esc(label)}</button>`
+  ).join('');
+  appearModalEl.innerHTML = `<div class="appear-card">
+    <div class="appear-hd"><h3 id="appearTitle">显示</h3><button type="button" class="btn small primary" data-act="closeappear">完成</button></div>
+    <div class="appear-preview paper-surface">
+      <div class="appear-pv-hd"><b>November</b><span>手帐预览 · preview</span></div>
+      <div class="appear-pv-wd">${WD.map(w => `<span>${w}</span>`).join('')}</div>
+      <p class="appear-pv-tx">字体和字体大小、笔记本形态、背景颜色，都可以在这里改。</p>
+    </div>
+    <div class="appear-group">
+      <div class="appear-row"><span class="appear-lbl">笔记本形态</span><div class="appear-opts">${opts('paperForm', PAPER_FORMS)}</div></div>
+      <div class="appear-row"><span class="appear-lbl">背景颜色</span><div class="appear-opts">${opts('palette', PAPER_PALETTES)}</div></div>
+    </div>
+    <div class="appear-group">
+      <div class="appear-row"><span class="appear-lbl">字体</span><div class="appear-opts">${opts('font', DISPLAY_FONTS)}</div></div>
+      <div class="appear-row"><span class="appear-lbl">字体大小</span><div class="appear-opts">${opts('textSize', TEXT_SIZES)}</div></div>
+    </div>
+    <p class="hint" style="margin:2px 0 8px">显示偏好只保存在当前浏览器，不写进手帐 .json 文件，不影响多设备或原生 App 互通。</p>
+    <div class="appear-foot"><button type="button" class="btn small" data-act="resetappear">恢复默认显示</button></div>
+  </div>`;
+}
+function openAppearModal() {
+  if (!appearModalEl) return;
+  appearModalEl.hidden = false;
+  renderAppearModal();
+}
+function closeAppearModal() {
+  if (appearModalEl) appearModalEl.hidden = true;
+}
 
 /* ---------- item menu / popover ---------- */
 let MENU = null;
@@ -755,6 +854,7 @@ menuEl.addEventListener('click', e => {
 
 /* ---------- global events ---------- */
 document.addEventListener('click', e => {
+  if (e.target === appearModalEl) { closeAppearModal(); return; }
   if (e.target.closest('#menu')) return;
   closeMenu();
   const a = e.target.closest('[data-act]');
@@ -763,7 +863,7 @@ document.addEventListener('click', e => {
   if (f) { e.preventDefault(); f(a, e); }
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeMenu();
+  if (e.key === 'Escape') { closeMenu(); closeAppearModal(); }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveDoc(false); return; }
   const t = e.target;
   if (!t.classList?.contains('tx') || e.isComposing || e.keyCode === 229) return;
@@ -950,6 +1050,7 @@ async function reconnect(h, ask) {
   return true;
 }
 
+$('#bAppear')?.addEventListener('click', openAppearModal);
 $('#bOpen').addEventListener('click', openDoc);
 $('#bSave').addEventListener('click', () => saveDoc(false));
 $('#bSaveAs').addEventListener('click', () => saveDoc(true));
@@ -988,6 +1089,7 @@ function updateStatus() {
 }
 
 /* ---------- boot ---------- */
+applyAppearance();
 render();
 updateStatus();
 if (FS) {

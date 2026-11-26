@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=20261114-rhr">
+<link rel="stylesheet" href="style.css?v=20261126-appear">
 </head>
 <body>
 <header class="top">
@@ -15,6 +15,7 @@
   <div class="file">
     <span id="fstat" class="fstat"></span>
     <button id="bReconnect" class="btn" hidden></button>
+    <button id="bAppear" class="btn" title="编辑显示：笔记本形态、字体和字体大小、背景颜色">显示</button>
     <button id="bOpen" class="btn">打开</button>
     <button id="bSave" class="btn primary">保存</button>
     <button id="bSaveAs" class="btn">另存为</button>
@@ -36,8 +37,9 @@
 </main>
 
 <div id="menu" class="menu" hidden></div>
+<div id="appearModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="appearTitle"></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script src="app.js?v=20261114-rhr"></script>
+<script src="app.js?v=20261126-appear"></script>
 </body>
 </html>

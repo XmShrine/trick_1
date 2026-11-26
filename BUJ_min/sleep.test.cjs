@@ -76,3 +76,66 @@ test('睡眠条、体重线与心率图可同时显示', () => {
   assert.match(svg, /class="pt wt"/);
   assert.match(svg, /class="pt rhr"/);
 });
+
+test('显示设置回落到默认值、字号倍数递增，且不写入导出的手帐 JSON', () => {
+  const run = app();
+  const res = run(`(() => {
+    const def = normalizeAppearance(null);
+    const partial = normalizeAppearance({ paperForm: 'grid', font: 'serif', textSize: 'extraLarge', palette: 'mint' });
+    const bogus = normalizeAppearance({ paperForm: 'nope', font: '', textSize: 'huge', palette: 'bogus' });
+    UI.appearance = partial;
+    const exported = JSON.parse(serialize());
+    return {
+      def, partial, bogus,
+      scales: TEXT_SIZES.map(x => x[2]),
+      forms: PAPER_FORMS.map(x => x[0]),
+      palettes: PAPER_PALETTES.map(x => x[0]),
+      swatches: PAPER_PALETTES.map(x => x[2]),
+      hasAppearInDoc: 'appearance' in exported,
+      wd: WD,
+    };
+  })()`);
+  assert.deepEqual(res.def, { paperForm: 'dots', font: 'handwriting', textSize: 'standard', palette: 'classic' });
+  assert.deepEqual(res.partial, { paperForm: 'grid', font: 'serif', textSize: 'extraLarge', palette: 'mint' });
+  assert.deepEqual(res.bogus, res.def);
+  assert.deepEqual(res.scales, [0.88, 1, 1.14, 1.28]);
+  assert.deepEqual(res.forms, ['dots', 'lines', 'grid', 'blank']);
+  assert.deepEqual(res.palettes, ['classic', 'cream', 'mint', 'sky', 'rose']);
+  assert.equal(new Set(res.swatches).size, res.swatches.length);
+  assert.equal(res.hasAppearInDoc, false);
+  assert.deepEqual(res.wd, ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+});
+
+test('显示设置弹窗交互：切换即时写入根节点与 localStorage，恢复默认并关闭正常', () => {
+  const store = {};
+  const mkEl = () => ({ hidden: true, innerHTML: '', textContent: '', dataset: {}, style: { setProperty(k, v) { this[k] = v; } }, classList: { toggle() {}, add() {}, remove() {} }, addEventListener() {} });
+  const els = Object.fromEntries(['#pL', '#pR', '#tabs', '#navbar', '#menu', '#appearModal', '#toast', '#fstat', '#bReconnect', '#banner', '#bAppear', '#bOpen', '#bSave', '#bSaveAs', '#fileIn', '#spread'].map(k => [k, mkEl()]));
+  const docEl = { dataset: {}, style: { props: {}, setProperty(k, v) { this.props[k] = v; } } };
+  const ctx = vm.createContext({
+    localStorage: { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = v; } },
+    document: { documentElement: docEl, activeElement: null, querySelector: s => els[s] || null, querySelectorAll: () => [], addEventListener() {}, fonts: { ready: Promise.resolve() } },
+    window: { addEventListener() {}, scrollTo() {} },
+    ResizeObserver: class { observe() {} },
+    CSS: { escape: s => s },
+    setTimeout, clearTimeout,
+  });
+  vm.runInContext(source, ctx);
+  assert.equal(docEl.dataset.paper, 'dots');
+  assert.equal(docEl.style.props['--ts'], '1');
+
+  vm.runInContext('openAppearModal()', ctx);
+  assert.equal(els['#appearModal'].hidden, false);
+  assert.match(els['#appearModal'].innerHTML, /笔记本形态/);
+
+  vm.runInContext('ACT.appear({ dataset: { k: "palette", v: "rose" } }); ACT.appear({ dataset: { k: "paperForm", v: "lines" } }); ACT.appear({ dataset: { k: "textSize", v: "extraLarge" } });', ctx);
+  assert.equal(docEl.dataset.palette, 'rose');
+  assert.equal(docEl.dataset.paper, 'lines');
+  assert.equal(docEl.style.props['--ts'], '1.28');
+  assert.equal(JSON.parse(store['mini-bujo.ui']).appearance.palette, 'rose');
+
+  vm.runInContext('ACT.resetappear(); ACT.closeappear();', ctx);
+  assert.equal(docEl.dataset.palette, 'classic');
+  assert.equal(docEl.dataset.paper, 'dots');
+  assert.equal(docEl.style.props['--ts'], '1');
+  assert.equal(els['#appearModal'].hidden, true);
+});
