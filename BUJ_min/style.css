@@ -114,6 +114,7 @@ input, textarea { font: inherit; color: inherit; }
 .book { min-width: 0; }
 .navbar { display: flex; align-items: center; gap: 8px; padding: 4px 4px 10px; min-height: 48px; }
 .navbar .lbl { font-family: var(--hand); font-weight: 700; font-size: calc(26px * var(--ts, 1)); flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.navbar .lbl .sub { font-family: var(--ui); font-weight: 500; font-size: calc(15.5px * var(--ts, 1)); color: var(--ink-2); margin-left: 6px; }
 .navbar .arrow { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); font-size: calc(18px * var(--ts, 1)); line-height: 1; }
 .spread {
   display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
@@ -530,7 +531,7 @@ input, textarea { font: inherit; color: inherit; }
     scrollbar-width: none; position: sticky; top: 0; z-index: 10; background: var(--desk);
   }
   .tabs::-webkit-scrollbar { display: none; }
-  .tab { border-radius: 8px; border-left: 0; border-top: 4px solid var(--c); padding: 6px 12px; margin: 0; }
+  .tab { flex: 1 0 auto; justify-content: center; border-radius: 8px; border-left: 0; border-top: 4px solid var(--c); padding: 6px 6px; margin: 0; }
   .tab small { display: none; }
   .tab:hover, .tab.on { transform: none; }
   .spread { grid-template-columns: minmax(0,1fr); box-shadow: var(--shadow), 0 0 0 4px var(--cover); }
@@ -541,8 +542,12 @@ input, textarea { font: inherit; color: inherit; }
   .card.tagged::before { right: -17px; width: 10px; }
   .ph h1 { font-size: calc(40px * var(--ts, 1)); }
   .navbar .lbl { font-size: calc(23px * var(--ts, 1)); }
+  .navbar .lbl .sub { font-size: calc(14.5px * var(--ts, 1)); }
 }
 @media (max-width: 520px) {
+  .day-h { gap: 8px; }
+  .day-h h2 { font-size: calc(26px * var(--ts, 1)); }
+  .day-h .wd { font-size: calc(20px * var(--ts, 1)); }
   .ov { grid-template-columns: minmax(0,1fr); gap: 6px; }
   .wgrid { grid-template-columns: minmax(0,1fr); }
   .wbox, .wbox.sm { min-height: 84px; }

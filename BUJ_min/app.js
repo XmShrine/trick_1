@@ -650,7 +650,7 @@ function navLabel() {
   switch (UI.view) {
     case 'month': return `${MONTHS[+s.slice(5, 7) - 1]} ${s.slice(0, 4)}`;
     case 'week': case 'habits': return `week ${weekNo(mon)} · ${fmtMD(mon)}–${fmtMD(addDays(mon, 6))}`;
-    case 'day': return `${fmtMD(s)} 周${WD_CN[wdIdx(s)]}`;
+    case 'day': return `${fmtMD(s)}<span class="sub">周${WD_CN[wdIdx(s)]}</span>`;
     case 'pixels': return s.slice(0, 4);
     default: return null;
   }
